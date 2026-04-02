@@ -3,6 +3,7 @@ import { Event, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { FooterComponent } from './components/footer/footer.component';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-layout',
@@ -13,7 +14,7 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 export class LayoutComponent implements OnInit {
   private mainContent: HTMLElement | null = null;
 
-  constructor(private router: Router) {
+  constructor(private router: Router, public themeService: ThemeService) {
     this.router.events.subscribe((event: Event) => {
       if (event instanceof NavigationEnd) {
         if (this.mainContent) {

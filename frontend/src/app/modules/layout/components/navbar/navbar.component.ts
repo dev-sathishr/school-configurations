@@ -1,6 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { AngularSvgIconModule } from 'angular-svg-icon';
+import { Subscription, filter } from 'rxjs';
 import { MenuService } from '../../services/menu.service';
+import { ThemeService } from '../../../../core/services/theme.service';
 import { NavbarMenuComponent } from './navbar-menu/navbar-menu.component';
 import { NavbarMobileComponent } from './navbar-mobile/navbar-mobilecomponent';
 import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
@@ -9,12 +12,41 @@ import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css'],
-  imports: [AngularSvgIconModule, NavbarMenuComponent, ProfileMenuComponent, NavbarMobileComponent],
+  imports: [RouterLink, AngularSvgIconModule, NavbarMenuComponent, ProfileMenuComponent, NavbarMobileComponent],
 })
-export class NavbarComponent implements OnInit {
-  constructor(private menuService: MenuService) {}
+export class NavbarComponent implements OnInit, OnDestroy {
+  breadcrumbs: { label: string; route?: string }[] = [];
+  private routerSub!: Subscription;
 
-  ngOnInit(): void {}
+  private routeMap: Record<string, string> = {
+    '/dashboard': 'Dashboard',
+    '/settings': 'Settings',
+    '/settings/users': 'Users',
+  };
+
+  constructor(private menuService: MenuService, public themeService: ThemeService, private router: Router) {}
+
+  ngOnInit(): void {
+    this.buildBreadcrumbs(this.router.url);
+    this.routerSub = this.router.events
+      .pipe(filter((e) => e instanceof NavigationEnd))
+      .subscribe((e: any) => this.buildBreadcrumbs(e.urlAfterRedirects || e.url));
+  }
+
+  ngOnDestroy(): void {
+    this.routerSub?.unsubscribe();
+  }
+
+  private buildBreadcrumbs(url: string) {
+    const parts = url.split('/').filter(Boolean);
+    this.breadcrumbs = [];
+    let path = '';
+    for (const part of parts) {
+      path += '/' + part;
+      const label = this.routeMap[path] || part.charAt(0).toUpperCase() + part.slice(1);
+      this.breadcrumbs.push({ label, route: path });
+    }
+  }
 
   public toggleMobileMenu(): void {
     this.menuService.showMobileMenu = true;

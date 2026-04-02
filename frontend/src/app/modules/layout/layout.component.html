@@ -1,23 +1,30 @@
-<div class="flex h-screen w-full overflow-hidden">
-  <!-- Sidebar -->
-  <app-sidebar></app-sidebar>
-
-  <div class="flex grow flex-col content-start overflow-hidden bg-card">
-    <!-- Header -->
+@if (themeService.theme().menuStyle === 'sidebar') {
+  <!-- Sidebar Layout -->
+  <div class="flex h-screen w-full overflow-hidden">
+    <app-sidebar></app-sidebar>
+    <div class="flex grow flex-col content-start overflow-hidden bg-card">
+      <app-navbar></app-navbar>
+      <div
+        id="main-content"
+        class="scrollbar-thumb-rounded scrollbar-track-rounded grow overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted">
+        <div class="px-4 py-4 sm:px-8">
+          <router-outlet></router-outlet>
+        </div>
+      </div>
+      <app-footer></app-footer>
+    </div>
+  </div>
+} @else {
+  <!-- Header Layout -->
+  <div class="flex h-screen w-full flex-col overflow-hidden">
     <app-navbar></app-navbar>
-    <!-- main content -->
     <div
       id="main-content"
-      class="scrollbar-thumb-rounded scrollbar-track-rounded grow overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted">
+      class="scrollbar-thumb-rounded scrollbar-track-rounded grow overflow-auto bg-card scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted">
       <div class="px-4 py-4 sm:px-8">
         <router-outlet></router-outlet>
       </div>
     </div>
-
-    <!-- footer -->
     <app-footer></app-footer>
-
-    <!-- Bottom bar -->
-    <!-- <app-bottom-navbar></app-bottom-navbar> -->
   </div>
-</div>
+}
