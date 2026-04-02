@@ -1,0 +1,21 @@
+<div class="mb-4 flex justify-between">
+  <div>
+    <h3 class="text-foreground font-semibold">Locations</h3>
+    <p class="text-muted-foreground text-xs">Total: {{ pagination().total_count }}</p>
+  </div>
+  <app-button impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="addNew()">
+    + Add Location
+  </app-button>
+</div>
+
+<app-table
+  [columns]="columns"
+  [data]="data()"
+  [loading]="loading"
+  [totalCount]="pagination().total_count"
+  [filteredCount]="pagination().total_count"
+  [currentPage]="pagination().page"
+  [pageSize]="pagination().size"
+  (onEdit)="editSelected($event)"
+  (onDeleteMulti)="deleteMultiple($event)">
+</app-table>

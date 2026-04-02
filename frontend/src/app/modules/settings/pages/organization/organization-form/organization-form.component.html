@@ -1,0 +1,119 @@
+<div class="mx-auto max-w-4xl">
+  <div class="mb-6">
+    <h3 class="text-foreground text-xl font-semibold">{{ editMode ? 'Edit Organization' : 'New Organization' }}</h3>
+    <p class="text-muted-foreground text-sm">{{ editMode ? 'Update organization details' : 'Create a new organization' }}</p>
+  </div>
+
+  @if (errorMessage) {
+    <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <p class="text-muted-foreground py-10 text-center text-sm">Loading...</p>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+
+      <!-- Basic Info -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Basic Information</h4>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">Name *</label>
+            <input type="text" formControlName="name"
+              [ngClass]="{ 'border-red-500!': submitted && f['name'].errors }"
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">Registration No</label>
+            <input type="text" formControlName="reg_no"
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">Email</label>
+            <input type="email" formControlName="email"
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Contact Details</h4>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">Primary Contact</label>
+            <app-phone-input formControlName="primary_phone" placeholder="Phone number"></app-phone-input>
+          </div>
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">Alternate Contact</label>
+            <app-phone-input formControlName="alternate_phone" placeholder="Phone number"></app-phone-input>
+          </div>
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">Website</label>
+            <input type="url" formControlName="website" placeholder="https://"
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Media -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Social Media</h4>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">Facebook</label>
+            <input type="url" formControlName="social_facebook" placeholder="https://facebook.com/..."
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">Instagram</label>
+            <input type="url" formControlName="social_instagram" placeholder="https://instagram.com/..."
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">Twitter / X</label>
+            <input type="url" formControlName="social_twitter" placeholder="https://x.com/..."
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">LinkedIn</label>
+            <input type="url" formControlName="social_linkedin" placeholder="https://linkedin.com/..."
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-foreground mb-1 block text-xs font-medium">YouTube</label>
+            <input type="url" formControlName="social_youtube" placeholder="https://youtube.com/..."
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Status & Notes -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="is_active" formControlName="is_active" class="rounded" />
+              <label for="is_active" class="text-foreground text-sm font-medium">Active</label>
+            </div>
+          </div>
+          <div class="md:col-span-2">
+            <label class="text-foreground mb-1 block text-xs font-medium">Notes</label>
+            <textarea formControlName="notes" rows="3"
+              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-3">
+        <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
+          Cancel
+        </app-button>
+        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [disabled]="saving">
+          {{ saving ? 'Saving...' : (editMode ? 'Update' : 'Create') }}
+        </app-button>
+      </div>
+    </form>
+  }
+</div>

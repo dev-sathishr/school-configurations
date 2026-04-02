@@ -21,7 +21,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private routeMap: Record<string, string> = {
     '/dashboard': 'Dashboard',
     '/settings': 'Settings',
-    '/settings/users': 'Users',
+    '/settings/user': 'User',
+    '/settings/organization': 'Organization',
+    '/settings/location': 'Location',
   };
 
   constructor(private menuService: MenuService, public themeService: ThemeService, private router: Router) {}

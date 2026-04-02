@@ -1,0 +1,52 @@
+<div class="phone-input-wrapper border-border relative flex overflow-hidden rounded-md border focus-within:border-primary">
+  <!-- Country Code Button -->
+  <button
+    type="button"
+    (click)="toggleDropdown()"
+    [disabled]="disabled"
+    class="text-foreground bg-muted/10 flex h-[36px] shrink-0 items-center gap-1 border-r border-border px-2.5 text-sm hover:bg-muted/20 focus:outline-none disabled:opacity-50">
+    <span class="text-base leading-none">{{ selectedCountry?.flag || '🌐' }}</span>
+    <span class="text-muted-foreground text-xs">{{ selectedCode }}</span>
+    <span class="text-muted-foreground/50 text-[10px]">▼</span>
+  </button>
+
+  <!-- Phone Number Input -->
+  <input
+    type="tel"
+    [(ngModel)]="phoneNumber"
+    (ngModelChange)="onPhoneChange()"
+    (blur)="onTouched()"
+    [disabled]="disabled"
+    [placeholder]="placeholder"
+    class="phone-input-number text-foreground h-[36px] flex-1 px-3 text-sm focus:outline-none disabled:opacity-50" />
+
+  <!-- Dropdown -->
+  @if (showDropdown) {
+    <div class="bg-background border-border absolute left-0 top-[38px] z-50 w-64 rounded-md border shadow-lg">
+      <!-- Search -->
+      <div class="border-border border-b p-2">
+        <input
+          type="text"
+          [(ngModel)]="searchText"
+          placeholder="Search country..."
+          class="border-border bg-background text-foreground w-full rounded px-2 py-1.5 text-xs focus:border-primary focus:outline-none" />
+      </div>
+      <!-- Country List -->
+      <div class="max-h-48 overflow-y-auto p-1">
+        @for (country of filteredCountries; track country.code) {
+          <button
+            type="button"
+            (click)="selectCountry(country)"
+            class="hover:bg-card flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs"
+            [class.bg-primary/5]="country.dial === selectedCode">
+            <span class="text-base">{{ country.flag }}</span>
+            <span class="text-foreground flex-1">{{ country.name }}</span>
+            <span class="text-muted-foreground">{{ country.dial }}</span>
+          </button>
+        } @empty {
+          <p class="text-muted-foreground px-2 py-3 text-center text-xs">No results</p>
+        }
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,13 @@
+:host .phone-input-number {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  ring: none !important;
+}
+
+:host .phone-input-number:focus {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
