@@ -1,0 +1,68 @@
+import { NgClass } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AngularSvgIconModule } from 'angular-svg-icon';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { AuthService } from '../../../../core/services/auth.service';
+
+@Component({
+  selector: 'app-sign-in',
+  templateUrl: './sign-in.component.html',
+  styleUrls: ['./sign-in.component.css'],
+  imports: [FormsModule, ReactiveFormsModule, AngularSvgIconModule, ButtonComponent, NgClass],
+})
+export class SignInComponent implements OnInit {
+  form!: FormGroup;
+  submitted = false;
+  passwordTextType!: boolean;
+  loading = false;
+  errorMessage = '';
+
+  constructor(
+    private readonly _formBuilder: FormBuilder,
+    private readonly _router: Router,
+    private readonly _authService: AuthService,
+  ) {}
+
+  ngOnInit(): void {
+    if (this._authService.isLoggedIn()) {
+      this._router.navigate(['/']);
+    }
+
+    this.form = this._formBuilder.group({
+      username: ['', Validators.required],
+      password: ['', Validators.required],
+    });
+  }
+
+  get f() {
+    return this.form.controls;
+  }
+
+  togglePasswordTextType() {
+    this.passwordTextType = !this.passwordTextType;
+  }
+
+  onSubmit() {
+    this.submitted = true;
+    this.errorMessage = '';
+
+    if (this.form.invalid) {
+      return;
+    }
+
+    this.loading = true;
+    const { username, password } = this.form.value;
+
+    this._authService.login(username, password).subscribe({
+      next: () => {
+        this._router.navigate(['/']);
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err.error?.message || 'Login failed. Please try again.';
+      },
+    });
+  }
+}

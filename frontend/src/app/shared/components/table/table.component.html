@@ -1,0 +1,32 @@
+<div class="border-muted/20 bg-background flex min-w-full flex-col rounded-xl border p-2">
+  <app-table-action [totalCount]="totalCount()" [filteredCount]="filteredCount()"></app-table-action>
+  <div
+    class="scrollbar-thumb-rounded scrollbar-track-rounded scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-x-auto px-5">
+    <table
+      class="text-muted-foreground table w-full table-auto border-collapse border-0 text-left align-middle leading-5">
+      <thead class="border-muted/20 text-muted-foreground border text-xs">
+        <tr app-table-header (onCheck)="toggleAll($event)"></tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td class="py-8 text-center text-sm" colspan="7">Loading...</td>
+          </tr>
+        } @else {
+          @for (row of data(); track row.id) {
+            <tr class="hover:bg-card/50" app-table-row [user]="row"></tr>
+          } @empty {
+            <tr>
+              <td class="py-4 text-center text-sm" colspan="7">No records found</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-table-footer
+    [totalCount]="filteredCount()"
+    [pageSize]="pageSize()"
+    [currentPage]="currentPage()">
+  </app-table-footer>
+</div>
