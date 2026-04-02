@@ -1,12 +1,11 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { TableFilterService, ColumnConfig } from '../../services/table-filter.service';
 
 @Component({
   selector: '[app-table-header]',
-  imports: [NgClass, FormsModule, AngularSvgIconModule],
+  imports: [FormsModule, AngularSvgIconModule],
   templateUrl: './table-header.component.html',
   styleUrl: './table-header.component.css',
 })
