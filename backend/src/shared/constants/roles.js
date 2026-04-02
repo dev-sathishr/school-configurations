@@ -1,0 +1,21 @@
+const ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  ADMIN: 'admin',
+  PRINCIPAL: 'principal',
+  VICE_PRINCIPAL: 'vice_principal',
+  HOD: 'hod',
+  TEACHER: 'teacher',
+  CLASS_TEACHER: 'class_teacher',
+  ACCOUNTANT: 'accountant',
+  LIBRARIAN: 'librarian',
+  CLERK: 'clerk',
+  LAB_ASSISTANT: 'lab_assistant',
+  TRANSPORT_MANAGER: 'transport_manager',
+  STUDENT: 'student',
+  PARENT: 'parent',
+};
+
+const ADMIN_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN];
+const STAFF_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PRINCIPAL, ROLES.VICE_PRINCIPAL, ROLES.HOD, ROLES.TEACHER, ROLES.CLASS_TEACHER, ROLES.ACCOUNTANT, ROLES.LIBRARIAN, ROLES.CLERK, ROLES.LAB_ASSISTANT, ROLES.TRANSPORT_MANAGER];
+
+module.exports = { ROLES, ADMIN_ROLES, STAFF_ROLES };

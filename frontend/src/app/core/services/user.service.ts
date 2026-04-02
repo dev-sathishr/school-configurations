@@ -26,6 +26,8 @@ export interface Pagination {
 }
 
 export interface UserListResponse {
+  success: boolean;
+  message: string;
   data: UserRecord[];
   pagination: Pagination;
 }

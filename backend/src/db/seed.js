@@ -1,5 +1,5 @@
 require('dotenv').config();
-const bcrypt = require('bcryptjs');
+const password = require('../shared/helpers/password.helper');
 const { pool } = require('./index');
 
 async function seed() {
@@ -8,7 +8,7 @@ async function seed() {
     const existing = await client.query('SELECT id FROM settings.users WHERE username = $1', ['superadmin']);
 
     if (existing.rows.length === 0) {
-      const hashedPassword = await bcrypt.hash('admin@123', 10);
+      const hashedPassword = await password.hash('admin@123');
 
       await client.query(
         `INSERT INTO settings.users (username, password, full_name, email, role, is_active)
