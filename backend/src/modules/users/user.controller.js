@@ -5,12 +5,6 @@ const res = require('../../shared/helpers/response.helper');
 
 async function getAll(req, resp) {
   try {
-    const statusMap = { active: true, inactive: false };
-    const filters = {};
-    if (req.query.status && statusMap[req.query.status] !== undefined) {
-      filters['u.is_active'] = statusMap[req.query.status];
-    }
-
     const result = await paginate({
       table: 'settings.users',
       alias: 'u',
@@ -19,8 +13,10 @@ async function getAll(req, resp) {
                       cb.full_name AS created_by_name, ub.full_name AS updated_by_name`,
       joins: 'LEFT JOIN settings.users cb ON u.created_by = cb.id LEFT JOIN settings.users ub ON u.updated_by = ub.id',
       searchColumns: ['u.full_name', 'u.username', 'u.email', 'u.phone'],
-      filters,
-      orderBy: 'u.created_at',
+      filterableColumns: ['u.username', 'u.full_name', 'u.email', 'u.phone', 'u.role', 'u.is_active'],
+      sortableColumns: ['u.username', 'u.full_name', 'u.email', 'u.phone', 'u.role', 'u.is_active', 'u.created_at', 'u.last_login'],
+      defaultSortBy: 'u.created_at',
+      defaultSortOrder: 'DESC',
     }, req.query);
 
     return res.success(resp, result);
@@ -146,4 +142,24 @@ async function remove(req, resp) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove };
+async function removeMultiple(req, resp) {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.badRequest(resp, 'ids array is required');
+    }
+
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+    const result = await db.query(
+      `DELETE FROM settings.users WHERE id IN (${placeholders}) RETURNING id`,
+      ids
+    );
+
+    return res.success(resp, { deleted_count: result.rowCount }, `${result.rowCount} user(s) deleted successfully`);
+  } catch (err) {
+    console.error('Delete multiple users error:', err);
+    return res.error(resp);
+  }
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple };

@@ -2,10 +2,33 @@
   <th class="w-[50px]">
     <input (change)="toggle($event)" class="checkbox checkbox-sm" data-datatable-check="true" type="checkbox" />
   </th>
-  <th class="min-w-[300px]">Member</th>
-  <th class="min-w-[180px]">Username</th>
-  <th class="min-w-[180px]">Hobbies</th>
-  <th class="min-w-[180px]">Occupation</th>
-  <th class="min-w-[150px]">Phone</th>
-  <th class="w-[60px]"></th>
+  @for (col of columns; track col.key) {
+    @if (isVisible(col)) {
+      <th
+        [class.cursor-pointer]="col.sortable"
+        [class.select-none]="col.sortable"
+        (click)="onSort(col)"
+        class="min-w-[140px]">
+        <div class="flex items-center gap-1">
+          <span>{{ col.label }}</span>
+          @if (col.sortable) {
+            <span class="inline-flex items-center" [class.text-primary]="isSorted(col)">
+              @if (isSorted(col)) {
+                @if (filterService.sortOrderField() === 'asc') {
+                  <span class="text-xs">&#9650;</span>
+                } @else {
+                  <span class="text-xs">&#9660;</span>
+                }
+              } @else {
+                <span class="text-xs text-muted-foreground/40">&#9650;&#9660;</span>
+              }
+            </span>
+          }
+        </div>
+      </th>
+    }
+  }
+  @if (showActions) {
+    <th class="w-[80px]">Actions</th>
+  }
 </ng-container>

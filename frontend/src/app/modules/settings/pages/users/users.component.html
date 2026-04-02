@@ -14,12 +14,15 @@
 </div>
 
 <app-table
+  [columns]="columns"
   [data]="users()"
   [loading]="loading"
   [totalCount]="pagination().total_count"
   [filteredCount]="pagination().total_count"
   [currentPage]="pagination().page"
-  [pageSize]="pagination().size">
+  [pageSize]="pagination().size"
+  (onEdit)="openEditModal($event)"
+  (onDeleteMulti)="deleteMultipleUsers($event)">
 </app-table>
 
 <!-- Modal -->

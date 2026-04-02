@@ -92,4 +92,18 @@ export class UserService {
   delete(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  deleteMultiple(ids: string[]): Observable<any> {
+    return this.http.post(`${this.apiUrl}/delete-multiple`, { ids });
+  }
+
+  getAllRaw(params: Record<string, any> = {}): Observable<UserListResponse> {
+    let httpParams = new HttpParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== '') {
+        httpParams = httpParams.set(key, value);
+      }
+    }
+    return this.http.get<UserListResponse>(this.apiUrl, { params: httpParams });
+  }
 }
