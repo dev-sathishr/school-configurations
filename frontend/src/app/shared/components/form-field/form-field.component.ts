@@ -1,5 +1,12 @@
-import { Component, forwardRef, Input, signal } from '@angular/core';
-import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { Component, Input, OnInit } from '@angular/core';
+import { NgClass } from '@angular/common';
+import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { ClickOutsideDirective } from '../../directives/click-outside.directive';
+
+export interface SelectOption {
+  value: string;
+  label: string;
+}
 
 interface CountryCode {
   code: string;
@@ -9,31 +16,29 @@ interface CountryCode {
 }
 
 @Component({
-  selector: 'app-phone-input',
-  standalone: true,
-  templateUrl: './phone-input.component.html',
-  styleUrl: './phone-input.component.css',
-  imports: [FormsModule],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => PhoneInputComponent),
-      multi: true,
-    },
-  ],
+  selector: 'app-form-field',
+  templateUrl: './form-field.component.html',
+  styleUrl: './form-field.component.css',
+  imports: [NgClass, ReactiveFormsModule, FormsModule, ClickOutsideDirective],
 })
-export class PhoneInputComponent implements ControlValueAccessor {
-  @Input() placeholder = 'Phone number';
-  @Input() codeField = '+91';
+export class FormFieldComponent implements OnInit {
+  @Input({ required: true }) formGroup!: FormGroup;
+  @Input({ required: true }) controlName!: string;
+  @Input({ required: true }) label!: string;
+  @Input() fieldType: 'text' | 'email' | 'password' | 'url' | 'number' | 'select' | 'textarea' | 'checkbox' | 'phone' = 'text';
+  @Input() placeholder = '';
+  @Input() required = false;
+  @Input() submitted = false;
+  @Input() options: SelectOption[] = [];
+  @Input() selectPlaceholder = '';
+  @Input() rows = 3;
+  @Input() colSpan = '';
 
+  // Phone field state
   phoneNumber = '';
   selectedCode = '+91';
   showDropdown = false;
   searchText = '';
-  disabled = false;
-
-  onChange: any = () => {};
-  onTouched: any = () => {};
 
   countries: CountryCode[] = [
     { code: 'IN', dial: '+91', flag: '🇮🇳', name: 'India' },
@@ -66,6 +71,25 @@ export class PhoneInputComponent implements ControlValueAccessor {
     { code: 'MX', dial: '+52', flag: '🇲🇽', name: 'Mexico' },
   ];
 
+  ngOnInit(): void {
+    if (this.fieldType === 'phone') {
+      this.initPhone();
+    }
+  }
+
+  get control() {
+    return this.formGroup.get(this.controlName);
+  }
+
+  get hasError(): boolean {
+    return !!this.control?.errors && (this.submitted || !!this.control?.touched);
+  }
+
+  get fieldId(): string {
+    return `field_${this.controlName}`;
+  }
+
+  // Phone helpers
   get filteredCountries(): CountryCode[] {
     if (!this.searchText) return this.countries;
     const s = this.searchText.toLowerCase();
@@ -78,40 +102,28 @@ export class PhoneInputComponent implements ControlValueAccessor {
     return this.countries.find((c) => c.dial === this.selectedCode);
   }
 
-  writeValue(value: any): void {
-    if (value && typeof value === 'object') {
-      this.selectedCode = value.code || '+91';
-      this.phoneNumber = value.number || '';
-    } else if (typeof value === 'string') {
-      this.phoneNumber = value;
+  initPhone(): void {
+    const val = this.control?.value;
+    if (val && typeof val === 'object') {
+      this.selectedCode = val.code || '+91';
+      this.phoneNumber = val.number || '';
     }
   }
 
-  registerOnChange(fn: any): void { this.onChange = fn; }
-  registerOnTouched(fn: any): void { this.onTouched = fn; }
-  setDisabledState(isDisabled: boolean): void { this.disabled = isDisabled; }
-
-  emitValue() {
-    this.onChange({ code: this.selectedCode, number: this.phoneNumber });
+  emitPhoneValue(): void {
+    this.control?.setValue({ code: this.selectedCode, number: this.phoneNumber });
+    this.control?.markAsTouched();
   }
 
-  selectCountry(country: CountryCode) {
+  selectCountry(country: CountryCode): void {
     this.selectedCode = country.dial;
     this.showDropdown = false;
     this.searchText = '';
-    this.emitValue();
+    this.emitPhoneValue();
   }
 
-  toggleDropdown() {
+  toggleDropdown(): void {
     this.showDropdown = !this.showDropdown;
     if (this.showDropdown) this.searchText = '';
-  }
-
-  onPhoneChange() {
-    this.emitValue();
-  }
-
-  onClickOutside(event: Event) {
-    this.showDropdown = false;
   }
 }

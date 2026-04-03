@@ -17,28 +17,11 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Account Information</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Username *</label>
-            <input type="text" formControlName="username"
-              [ngClass]="{ 'border-red-500!': submitted && f['username'].errors }"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Password {{ editMode ? '' : '*' }}</label>
-            <input type="password" formControlName="password"
-              [ngClass]="{ 'border-red-500!': submitted && f['password'].errors }"
-              [placeholder]="editMode ? 'Leave blank to keep current' : ''"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Role *</label>
-            <select formControlName="role"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none">
-              @for (role of roles; track role) {
-                <option [value]="role">{{ formatRole(role) }}</option>
-              }
-            </select>
-          </div>
+          <app-form-field [formGroup]="form" controlName="username" label="Username" [required]="true" [submitted]="submitted" placeholder="e.g. john_doe" />
+          <app-form-field [formGroup]="form" controlName="password" label="Password" fieldType="password"
+            [required]="!editMode" [submitted]="submitted" [placeholder]="editMode ? 'Leave blank to keep current' : 'Enter password'" />
+          <app-form-field [formGroup]="form" controlName="role" label="Role" fieldType="select"
+            [required]="true" [submitted]="submitted" [options]="roleOptions" />
         </div>
       </div>
 
@@ -46,31 +29,15 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Personal Information</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Full Name *</label>
-            <input type="text" formControlName="full_name"
-              [ngClass]="{ 'border-red-500!': submitted && f['full_name'].errors }"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Email</label>
-            <input type="email" formControlName="email"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Phone</label>
-            <input type="text" formControlName="phone"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
+          <app-form-field [formGroup]="form" controlName="full_name" label="Full Name" [required]="true" [submitted]="submitted" placeholder="e.g. John Doe" />
+          <app-form-field [formGroup]="form" controlName="email" label="Email" fieldType="email" placeholder="e.g. john@example.com" />
+          <app-form-field [formGroup]="form" controlName="phone" label="Phone" placeholder="e.g. 9876543210" />
         </div>
       </div>
 
       <!-- Status -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
-        <div class="flex items-center gap-2">
-          <input type="checkbox" id="is_active" formControlName="is_active" class="rounded" />
-          <label for="is_active" class="text-foreground text-sm font-medium">Active</label>
-        </div>
+        <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
       </div>
 
       <!-- Actions -->

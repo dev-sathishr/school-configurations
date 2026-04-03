@@ -17,42 +17,12 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Basic Information</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Organization *</label>
-            <select formControlName="organization_id"
-              [ngClass]="{ 'border-red-500!': submitted && f['organization_id'].errors }"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none">
-              <option value="">Select Organization</option>
-              @for (org of organizations; track org.id) {
-                <option [value]="org.id">{{ org.name }}</option>
-              }
-            </select>
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Name *</label>
-            <input type="text" formControlName="name"
-              [ngClass]="{ 'border-red-500!': submitted && f['name'].errors }"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Code</label>
-            <input type="text" formControlName="code"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Type</label>
-            <select formControlName="type"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none">
-              @for (t of locationTypes; track t.value) {
-                <option [value]="t.value">{{ t.label }}</option>
-              }
-            </select>
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Email</label>
-            <input type="email" formControlName="email"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
+          <app-form-field [formGroup]="form" controlName="organization_id" label="Organization" fieldType="select"
+            [required]="true" [submitted]="submitted" [options]="organizationOptions" selectPlaceholder="Select Organization" />
+          <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted" placeholder="e.g. Main Campus" />
+          <app-form-field [formGroup]="form" controlName="code" label="Code" placeholder="e.g. LOC-001" />
+          <app-form-field [formGroup]="form" controlName="type" label="Type" fieldType="select" [options]="locationTypes" />
+          <app-form-field [formGroup]="form" controlName="email" label="Email" fieldType="email" placeholder="e.g. campus@school.com" />
         </div>
       </div>
 
@@ -60,14 +30,8 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Contact Details</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Primary Contact</label>
-            <app-phone-input formControlName="primary_phone" placeholder="Phone number"></app-phone-input>
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Alternate Contact</label>
-            <app-phone-input formControlName="alternate_phone" placeholder="Phone number"></app-phone-input>
-          </div>
+          <app-form-field [formGroup]="form" controlName="primary_phone" label="Primary Contact" fieldType="phone" placeholder="Phone number" />
+          <app-form-field [formGroup]="form" controlName="alternate_phone" label="Alternate Contact" fieldType="phone" placeholder="Phone number" />
         </div>
       </div>
 
@@ -75,51 +39,20 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Address</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div class="md:col-span-3">
-            <label class="text-foreground mb-1 block text-xs font-medium">Address Line 1</label>
-            <input type="text" formControlName="address_line1"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div class="md:col-span-3">
-            <label class="text-foreground mb-1 block text-xs font-medium">Address Line 2</label>
-            <input type="text" formControlName="address_line2"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">City</label>
-            <input type="text" formControlName="city"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">State</label>
-            <input type="text" formControlName="state"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Pincode</label>
-            <input type="text" formControlName="pincode"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Country</label>
-            <input type="text" formControlName="country"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-          </div>
+          <app-form-field [formGroup]="form" controlName="address_line1" label="Address Line 1" colSpan="md:col-span-3" placeholder="e.g. 123, Main Street" />
+          <app-form-field [formGroup]="form" controlName="address_line2" label="Address Line 2" colSpan="md:col-span-3" placeholder="e.g. Near Bus Stand" />
+          <app-form-field [formGroup]="form" controlName="city" label="City" placeholder="e.g. Chennai" />
+          <app-form-field [formGroup]="form" controlName="state" label="State" placeholder="e.g. Tamil Nadu" />
+          <app-form-field [formGroup]="form" controlName="pincode" label="Pincode" placeholder="e.g. 600001" />
+          <app-form-field [formGroup]="form" controlName="country" label="Country" placeholder="e.g. India" />
         </div>
       </div>
 
       <!-- Status & Notes -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <div class="grid grid-cols-1 gap-4">
-          <div class="flex items-center gap-2">
-            <input type="checkbox" id="is_active" formControlName="is_active" class="rounded" />
-            <label for="is_active" class="text-foreground text-sm font-medium">Active</label>
-          </div>
-          <div>
-            <label class="text-foreground mb-1 block text-xs font-medium">Notes</label>
-            <textarea formControlName="notes" rows="3"
-              class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none"></textarea>
-          </div>
+          <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
+          <app-form-field [formGroup]="form" controlName="notes" label="Notes" fieldType="textarea" [rows]="3" placeholder="Any additional notes..." />
         </div>
       </div>
 

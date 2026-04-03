@@ -1,15 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
-import { PhoneInputComponent } from '../../../../../shared/components/phone-input/phone-input.component';
+import { FormFieldComponent, SelectOption } from '../../../../../shared/components/form-field/form-field.component';
 
 @Component({
   selector: 'app-location-form',
   templateUrl: './location-form.component.html',
-  imports: [NgClass, ReactiveFormsModule, ButtonComponent, PhoneInputComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent],
 })
 export class LocationFormComponent implements OnInit {
   form!: FormGroup;
@@ -20,6 +19,7 @@ export class LocationFormComponent implements OnInit {
   loading = false;
   errorMessage = '';
   organizations: any[] = [];
+  organizationOptions: SelectOption[] = [];
 
   locationTypes = [
     { value: 'main_branch', label: 'Main Branch' },
@@ -53,7 +53,10 @@ export class LocationFormComponent implements OnInit {
     });
 
     this.cs.getService({ url: '/organizations/dropdown' }).subscribe({
-      next: (res: any) => { this.organizations = res.data; },
+      next: (res: any) => {
+        this.organizations = res.data;
+        this.organizationOptions = res.data.map((o: any) => ({ value: o.id, label: o.name }));
+      },
     });
 
     const id = this.cs.getRouteParam(this.route, 'id');

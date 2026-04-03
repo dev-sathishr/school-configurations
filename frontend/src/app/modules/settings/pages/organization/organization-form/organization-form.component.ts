@@ -1,15 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
-import { PhoneInputComponent } from '../../../../../shared/components/phone-input/phone-input.component';
+import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 
 @Component({
   selector: 'app-organization-form',
   templateUrl: './organization-form.component.html',
-  imports: [NgClass, ReactiveFormsModule, ButtonComponent, PhoneInputComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent],
 })
 export class OrganizationFormComponent implements OnInit {
   form!: FormGroup;

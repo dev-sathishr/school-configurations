@@ -1,14 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
+import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 
 @Component({
   selector: 'app-user-form',
   templateUrl: './user-form.component.html',
-  imports: [NgClass, ReactiveFormsModule, ButtonComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent],
 })
 export class UserFormComponent implements OnInit {
   form!: FormGroup;
@@ -24,6 +24,8 @@ export class UserFormComponent implements OnInit {
     'teacher', 'class_teacher', 'accountant', 'librarian', 'clerk',
     'lab_assistant', 'transport_manager', 'student', 'parent',
   ];
+
+  roleOptions = this.roles.map(r => ({ value: r, label: r.replace(/_/g, ' ') }));
 
   constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute) {}
 
@@ -59,7 +61,6 @@ export class UserFormComponent implements OnInit {
   }
 
   get f() { return this.form.controls; }
-  formatRole(role: string): string { return role.replace(/_/g, ' '); }
 
   onSubmit() {
     this.submitted = true;
