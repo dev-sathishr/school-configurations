@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, Input, input, Output } from '@angular/core';
+import { Component, effect, EventEmitter, Input, OnDestroy, OnInit, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { TableActionComponent } from './components/table-action/table-action.component';
@@ -6,6 +6,7 @@ import { TableFooterComponent } from './components/table-footer/table-footer.com
 import { TableHeaderComponent } from './components/table-header/table-header.component';
 import { TableRowComponent } from './components/table-row/table-row.component';
 import { ColumnConfig, TableFilterService } from './services/table-filter.service';
+import { CommonService } from '../../services/common/common.service';
 
 @Component({
   standalone: true,
@@ -16,20 +17,69 @@ import { ColumnConfig, TableFilterService } from './services/table-filter.servic
     TableActionComponent, TableFooterComponent, TableHeaderComponent, TableRowComponent,
   ],
 })
-export class TableComponent {
+export class TableComponent implements OnInit, OnDestroy {
   @Input() columns: ColumnConfig[] = [];
-  data = input<any[]>([]);
-  totalCount = input(0);
-  filteredCount = input(0);
-  loading = input(false);
-  currentPage = input(1);
-  pageSize = input(10);
+  @Input() apiUrl = '';
+  @Input() deleteUrl = '';
+  @Input() displayKeyMap: Record<string, string> = {};
+  @Input() rowTransform: ((row: any, mapped: any) => any) | null = null;
 
   @Output() onEdit = new EventEmitter<any>();
-  @Output() onDelete = new EventEmitter<any>();
-  @Output() onDeleteMulti = new EventEmitter<any[]>();
 
-  constructor(public filterService: TableFilterService) {}
+  data = signal<any[]>([]);
+  pagination = signal<any>({ page: 1, size: 10, total_count: 0, total_pages: 0 });
+  loading = false;
+
+  totalCount = () => this.pagination().total_count;
+
+  constructor(private cs: CommonService, public filterService: TableFilterService) {
+    effect(() => {
+      const search = this.filterService.searchField();
+      const page = this.filterService.pageField();
+      const size = this.filterService.pageSizeField();
+      const sortBy = this.filterService.sortByField();
+      const sortOrder = this.filterService.sortOrderField();
+      const columnFilters = this.filterService.columnFilters();
+      this.loadData({ page, size, search, sortBy, sortOrder, columnFilters });
+    });
+  }
+
+  ngOnInit() {
+    this.filterService.reset();
+    this.filterService.initColumns(this.columns);
+  }
+
+  ngOnDestroy() {
+    this.filterService.reset();
+  }
+
+  loadData(params: any = {}) {
+    if (!this.apiUrl) return;
+    this.loading = true;
+    const q: any = { page: params.page || 1, size: params.size || 10 };
+    if (params.search) q.search = params.search;
+    if (params.sortBy) q.sort_by = params.sortBy;
+    if (params.sortOrder) q.sort_order = params.sortOrder;
+    if (params.columnFilters) {
+      for (const [col, val] of Object.entries(params.columnFilters)) {
+        if (val) q[`filter[${col}]`] = val;
+      }
+    }
+    this.cs.getService({ url: this.apiUrl, params: q }).subscribe({
+      next: (res: any) => {
+        this.data.set(res.data.map((row: any) => {
+          const mapped: any = { ...row, selected: false };
+          for (const [colKey, dataKey] of Object.entries(this.displayKeyMap)) {
+            mapped[colKey] = row[dataKey] ?? '-';
+          }
+          return this.rowTransform ? this.rowTransform(row, mapped) : mapped;
+        }));
+        this.pagination.set(res.pagination);
+        this.loading = false;
+      },
+      error: () => { this.loading = false; },
+    });
+  }
 
   get visibleColumnCount(): number {
     return this.columns.filter((c) => this.filterService.isColumnVisible(c.key)).length + 1;
@@ -66,9 +116,22 @@ export class TableComponent {
   }
 
   deleteSelected() {
-    if (this.selectedCount > 0) {
-      this.onDeleteMulti.emit(this.selectedRows);
+    if (this.selectedCount > 0 && this.deleteUrl) {
+      const rows = this.selectedRows;
+      if (!confirm(`Delete ${rows.length} record(s)?`)) return;
+      this.cs.postService({ url: this.deleteUrl, payload: { ids: rows.map((r) => r.id) } }).subscribe({
+        next: () => this.reloadCurrentPage(),
+        error: (err: any) => alert(err.error?.message || 'Delete failed'),
+      });
     }
+  }
+
+  reloadCurrentPage() {
+    this.loadData({
+      page: this.filterService.pageField(), size: this.filterService.pageSizeField(),
+      search: this.filterService.searchField(), sortBy: this.filterService.sortByField(),
+      sortOrder: this.filterService.sortOrderField(), columnFilters: this.filterService.columnFilters(),
+    });
   }
 
   clearSelection() {

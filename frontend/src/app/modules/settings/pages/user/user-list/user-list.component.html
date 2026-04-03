@@ -1,7 +1,7 @@
 <div class="mb-4 flex justify-between">
   <div>
     <h3 class="text-foreground font-semibold">User Management</h3>
-    <p class="text-muted-foreground text-xs">Total: {{ pagination().total_count }}</p>
+    <p class="text-muted-foreground text-xs">Total: {{ table.totalCount() }}</p>
   </div>
   <app-button impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="addNew()">
     + Add User
@@ -9,13 +9,11 @@
 </div>
 
 <app-table
+  #table
+  [apiUrl]="apiUrl"
+  [deleteUrl]="deleteUrl"
   [columns]="columns"
-  [data]="users()"
-  [loading]="loading"
-  [totalCount]="pagination().total_count"
-  [filteredCount]="pagination().total_count"
-  [currentPage]="pagination().page"
-  [pageSize]="pagination().size"
-  (onEdit)="editSelected($event)"
-  (onDeleteMulti)="deleteMultiple($event)">
+  [displayKeyMap]="displayKeyMap"
+  [rowTransform]="rowTransform"
+  (onEdit)="editSelected($event)">
 </app-table>
