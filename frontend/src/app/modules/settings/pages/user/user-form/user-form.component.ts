@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
@@ -28,7 +28,7 @@ export class UserFormComponent implements OnInit {
 
   roleOptions = this.roles.map(r => ({ value: r, label: r.replace(/_/g, ' ') }));
 
-  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute) {}
+  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -52,8 +52,9 @@ export class UserFormComponent implements OnInit {
           this.form.get('password')?.clearValidators();
           this.form.get('password')?.updateValueAndValidity();
           this.loading = false;
+          this.cdr.detectChanges();
         },
-        error: () => { this.loading = false; this.cs.navigate({ url: '/settings/user' }); },
+        error: () => { this.loading = false; this.cdr.detectChanges(); this.cs.navigate({ url: '/settings/user' }); },
       });
     } else {
       this.form.get('password')?.setValidators(Validators.required);

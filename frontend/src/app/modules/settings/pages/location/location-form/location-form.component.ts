@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
@@ -32,7 +32,7 @@ export class LocationFormComponent implements OnInit {
     { value: 'other', label: 'Other' },
   ];
 
-  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute) {}
+  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -74,8 +74,9 @@ export class LocationFormComponent implements OnInit {
             alternate_phone: { code: d.alternate_contact_code || '+91', number: d.alternate_contact_no || '' },
           });
           this.loading = false;
+          this.cdr.detectChanges();
         },
-        error: () => { this.loading = false; this.cs.navigate({ url: '/settings/location' }); },
+        error: () => { this.loading = false; this.cdr.detectChanges(); this.cs.navigate({ url: '/settings/location' }); },
       });
     }
   }

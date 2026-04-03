@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
@@ -20,7 +20,7 @@ export class OrganizationFormComponent implements OnInit {
   loading = false;
   errorMessage = '';
 
-  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute) {}
+  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/\S*)?$/;
@@ -54,8 +54,9 @@ export class OrganizationFormComponent implements OnInit {
             alternate_phone: { code: d.alternate_contact_code || '+91', number: d.alternate_contact_no || '' },
           });
           this.loading = false;
+          this.cdr.detectChanges();
         },
-        error: () => { this.loading = false; this.cs.navigate({ url: '/settings/organization' }); },
+        error: () => { this.loading = false; this.cdr.detectChanges(); this.cs.navigate({ url: '/settings/organization' }); },
       });
     }
   }
