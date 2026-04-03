@@ -1,6 +1,7 @@
 const db = require('../../db');
 const { paginate } = require('../../shared/helpers/pagination.helper');
 const res = require('../../shared/helpers/response.helper');
+const { saveAddresses, getAddresses } = require('../../shared/helpers/address.helper');
 
 async function getAll(req, resp) {
   try {
@@ -34,7 +35,8 @@ async function getById(req, resp) {
     `, [req.params.id]);
 
     if (result.rows.length === 0) return res.notFound(resp, 'Organization not found');
-    return res.success(resp, { data: result.rows[0] });
+    const addresses = await getAddresses('organization', req.params.id);
+    return res.success(resp, { data: { ...result.rows[0], addresses } });
   } catch (err) {
     console.error('Get organization error:', err);
     return res.error(resp);
@@ -43,7 +45,7 @@ async function getById(req, resp) {
 
 async function create(req, resp) {
   try {
-    const { name, reg_no, email, primary_contact_code, primary_contact_no, alternate_contact_code, alternate_contact_no, website, social_facebook, social_instagram, social_twitter, social_linkedin, social_youtube, is_active, notes } = req.body;
+    const { name, reg_no, email, primary_contact_code, primary_contact_no, alternate_contact_code, alternate_contact_no, website, social_facebook, social_instagram, social_twitter, social_linkedin, social_youtube, is_active, notes, addresses } = req.body;
 
     if (!name) return res.badRequest(resp, 'Organization name is required');
 
@@ -52,6 +54,8 @@ async function create(req, resp) {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING *
     `, [name, reg_no||null, email||null, primary_contact_code||'+91', primary_contact_no||null, alternate_contact_code||'+91', alternate_contact_no||null, website||null, social_facebook||null, social_instagram||null, social_twitter||null, social_linkedin||null, social_youtube||null, is_active!==undefined?is_active:true, notes||null, req.user.id, req.user.id]);
+
+    await saveAddresses('organization', result.rows[0].id, addresses, req.user.id);
 
     return res.created(resp, { data: result.rows[0] }, 'Organization created successfully');
   } catch (err) {
@@ -86,6 +90,8 @@ async function update(req, resp) {
       b.is_active!==undefined?b.is_active:c.is_active, b.notes!==undefined?b.notes:c.notes,
       req.user.id, req.params.id
     ]);
+
+    await saveAddresses('organization', req.params.id, b.addresses, req.user.id);
 
     return res.success(resp, { data: result.rows[0] }, 'Organization updated successfully');
   } catch (err) {

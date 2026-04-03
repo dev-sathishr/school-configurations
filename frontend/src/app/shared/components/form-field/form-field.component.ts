@@ -39,6 +39,7 @@ export class FormFieldComponent implements OnInit {
   @Input() minLength: number | null = null;
   @Input() uppercase = false;
   @Input() lowercase = false;
+  @Input() digitsOnly = false;
 
   // Phone field state
   phoneNumber = '';
@@ -104,7 +105,10 @@ export class FormFieldComponent implements OnInit {
     if (errors['minlength']) return `Minimum ${errors['minlength'].requiredLength} characters`;
     if (errors['maxlength']) return `Maximum ${errors['maxlength'].requiredLength} characters`;
     if (errors['email']) return 'Enter a valid email';
-    if (errors['pattern']) return `Invalid format. e.g. ${this.placeholder || 'https://example.com'}`;
+    if (errors['pattern']) {
+      const example = this.placeholder?.replace(/^e\.g\.\s*/i, '') || '';
+      return example ? `Invalid format. e.g. ${example}` : 'Invalid format';
+    }
     return '';
   }
 
@@ -179,6 +183,11 @@ export class FormFieldComponent implements OnInit {
   toLowercase(): void {
     const val = this.control?.value;
     if (val) this.control?.setValue(val.toLowerCase(), { emitEvent: false });
+  }
+
+  toDigits(): void {
+    const val = this.control?.value;
+    if (val) this.control?.setValue(val.replace(/\D/g, ''), { emitEvent: false });
   }
 
   toggleDropdown(): void {

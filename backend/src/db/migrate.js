@@ -124,6 +124,51 @@ async function migrate() {
       );
     `);
 
+    // Addresses table (reusable across all modules)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.addresses (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        address_line1 VARCHAR(300),
+        address_line2 VARCHAR(300),
+        pincode VARCHAR(10),
+        post_office VARCHAR(200),
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100) DEFAULT 'India',
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    // Address type enum
+    await client.query(`
+      CREATE TYPE settings.address_type AS ENUM (
+        'primary', 'billing', 'shipping', 'branch', 'registered', 'communication', 'other'
+      );
+    `).catch(() => {
+      console.log('Enum address_type already exists, skipping...');
+    });
+
+    // Address mappings table (polymorphic - links addresses to any entity)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.address_mappings (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        address_id UUID NOT NULL REFERENCES settings.addresses(id),
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id UUID NOT NULL,
+        address_type settings.address_type DEFAULT 'primary',
+        is_default BOOLEAN DEFAULT false,
+        created_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];
     for (const table of tables) {

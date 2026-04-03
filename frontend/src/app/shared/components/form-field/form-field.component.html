@@ -7,7 +7,7 @@
   </div>
 } @else {
   <div [class]="colSpan" [formGroup]="formGroup">
-    <label class="text-foreground mb-1 block text-xs font-medium">{{ label }}@if (required) { <span class="text-red-500">*</span>}</label>
+    <label class="text-foreground mb-1 block text-xs font-medium">{{ label }}@if (required) {<span class="ml-0.5 text-red-500">*</span>}</label>
 
     @if (fieldType === 'select') {
       <select [formControlName]="controlName"
@@ -79,7 +79,7 @@
       <input [type]="fieldType" [formControlName]="controlName" [placeholder]="placeholder"
         [attr.maxlength]="maxLength"
         [ngClass]="{ 'border-red-500!': hasError, 'uppercase!': uppercase, 'lowercase!': lowercase }"
-        (input)="uppercase ? toUppercase() : lowercase ? toLowercase() : null"
+        (input)="digitsOnly ? toDigits() : uppercase ? toUppercase() : lowercase ? toLowercase() : null"
         class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
     }
 

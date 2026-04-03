@@ -5,11 +5,12 @@ import { CommonService } from '../../../../../shared/services/common/common.serv
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
+import { AddressComponent, Address } from '../../../../../shared/components/address/address.component';
 
 @Component({
   selector: 'app-organization-form',
   templateUrl: './organization-form.component.html',
-  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, AddressComponent],
 })
 export class OrganizationFormComponent implements OnInit {
   form!: FormGroup;
@@ -19,6 +20,7 @@ export class OrganizationFormComponent implements OnInit {
   saving = false;
   loading = false;
   errorMessage = '';
+  addresses: Address[] = [];
 
   constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
@@ -53,6 +55,7 @@ export class OrganizationFormComponent implements OnInit {
             primary_phone: { code: d.primary_contact_code || '+91', number: d.primary_contact_no || '' },
             alternate_phone: { code: d.alternate_contact_code || '+91', number: d.alternate_contact_no || '' },
           });
+          this.addresses = d.addresses || [];
           this.loading = false;
           this.cdr.detectChanges();
         },
@@ -72,6 +75,7 @@ export class OrganizationFormComponent implements OnInit {
     const val = this.form.value;
     const data = {
       ...val,
+      addresses: this.addresses,
       primary_contact_code: val.primary_phone?.code || '+91',
       primary_contact_no: val.primary_phone?.number || null,
       alternate_contact_code: val.alternate_phone?.code || '+91',
