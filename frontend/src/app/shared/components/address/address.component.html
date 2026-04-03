@@ -50,8 +50,42 @@
 </div>
 
 <!-- Address Modal -->
-<app-modal [visible]="showModal" [title]="editIndex !== null ? 'Edit Address' : 'Add Address'" size="large" (onClose)="closeModal()">
+<app-modal [visible]="showModal" [title]="editIndex !== null ? 'Edit Address' : 'Add Address'" size="full" (onClose)="closeModal()">
   @if (form) {
+    <!-- Map Section -->
+    <div class="mb-4">
+      <div class="mb-2 flex items-center gap-2">
+        <div class="relative flex-1">
+          <svg class="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <input #searchInput type="text" placeholder="Search for a location..."
+            class="border-muted bg-background text-foreground w-full rounded-md border py-2 pl-9 pr-3 text-sm focus:border-primary focus:outline-none" />
+        </div>
+        <button type="button" (click)="useCurrentLocation()"
+          class="flex shrink-0 items-center gap-1.5 rounded-md border border-muted bg-background px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted/20"
+          [disabled]="locating">
+          @if (locating) {
+            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+          } @else {
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+            </svg>
+          }
+          <span class="hidden sm:inline">{{ locating ? 'Locating...' : 'Current Location' }}</span>
+        </button>
+      </div>
+      <div #mapContainer class="border-muted/30 h-[250px] w-full overflow-hidden rounded-lg border bg-muted/10"></div>
+      @if (mapError) {
+        <p class="mt-1 text-xs text-red-500">{{ mapError }}</p>
+      }
+    </div>
+
+    <!-- Form Fields -->
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3" [formGroup]="form">
       <app-form-field [formGroup]="form" controlName="address_type" label="Address Type" fieldType="select"
         [options]="addressTypes" [required]="true" [submitted]="submitted" />

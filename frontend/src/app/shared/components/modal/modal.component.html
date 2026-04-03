@@ -1,13 +1,8 @@
 @if (visible) {
   <!-- Backdrop -->
-  <!-- Backdrop - covers full screen -->
   <div class="fixed inset-0 z-50 bg-black/50" (click)="onBackdropClick()"></div>
-  <!-- Dialog - centers within content area, offset for sidebar on lg+ -->
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none transition-[left] duration-300"
-    [ngClass]="{
-      'lg:left-[210px] xl:left-[280px]': sidebarExpanded,
-      'lg:left-[70px]': sidebarCollapsed
-    }">
+  <!-- Dialog -->
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
     <div class="bg-background max-h-[90vh] w-full overflow-y-auto rounded-xl border border-muted/30 shadow-xl pointer-events-auto"
       [ngClass]="sizeClass"
       (click)="$event.stopPropagation()">

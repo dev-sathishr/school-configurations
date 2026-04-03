@@ -1,7 +1,5 @@
-import { Component, EventEmitter, HostListener, inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { MenuService } from 'src/app/modules/layout/services/menu.service';
-import { ThemeService } from 'src/app/core/services/theme.service';
 
 @Component({
   selector: 'app-modal',
@@ -9,20 +7,6 @@ import { ThemeService } from 'src/app/core/services/theme.service';
   imports: [NgClass],
 })
 export class ModalComponent {
-  private menuService = inject(MenuService);
-  private themeService = inject(ThemeService);
-
-  get isSidebarLayout(): boolean {
-    return this.themeService.theme().menuStyle === 'sidebar';
-  }
-
-  get sidebarExpanded(): boolean {
-    return this.isSidebarLayout && this.menuService.showSideBar;
-  }
-
-  get sidebarCollapsed(): boolean {
-    return this.isSidebarLayout && !this.menuService.showSideBar;
-  }
   @Input() visible = false;
   @Input() title = '';
   @Input() size: 'small' | 'medium' | 'large' | 'full' = 'medium';

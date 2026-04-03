@@ -48,6 +48,7 @@
     "@angular/cli": "^21.0.4",
     "@angular/compiler-cli": "^21.0.6",
     "@playwright/test": "^1.50.1",
+    "@types/google.maps": "^3.58.1",
     "@types/jasmine": "~3.10.0",
     "@types/node": "^12.11.1",
     "autoprefixer": "^10.4.7",

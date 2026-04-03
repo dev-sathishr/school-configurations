@@ -8,6 +8,15 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
   </head>
 
+  <script>
+    (function() {
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBJPi0cUvmA_wjaz6DRQ3yMX78ObbwlZjU&libraries=places';
+      s.async = true;
+      s.defer = true;
+      document.head.appendChild(s);
+    })();
+  </script>
   <body class="bg-background font-poppins selection:bg-primary selection:text-primary-foreground">
     <app-root>
       <div class="flex h-screen">
