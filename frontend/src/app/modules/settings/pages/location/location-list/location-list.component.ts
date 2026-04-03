@@ -1,6 +1,5 @@
 import { Component, effect, OnDestroy, OnInit, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { LocationService } from '../../../../../core/services/location.service';
+import { CommonService } from '../../../../../shared/services/common/common.service';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { TableFilterService, ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
@@ -38,11 +37,7 @@ export class LocationListComponent implements OnInit, OnDestroy {
     'l.type': 'type', 'l.city': 'city', 'l.is_active': 'is_active',
   };
 
-  constructor(
-    private locationService: LocationService,
-    private router: Router,
-    public filterService: TableFilterService,
-  ) {
+  constructor(private cs: CommonService, public filterService: TableFilterService) {
     this.filterService.reset();
     this.filterService.initColumns(this.columns);
     effect(() => {
@@ -66,17 +61,13 @@ export class LocationListComponent implements OnInit, OnDestroy {
     if (params.sortBy) q.sort_by = params.sortBy;
     if (params.sortOrder) q.sort_order = params.sortOrder;
     if (params.columnFilters) {
-      for (const [col, val] of Object.entries(params.columnFilters)) {
-        if (val) q[`filter[${col}]`] = val;
-      }
+      for (const [col, val] of Object.entries(params.columnFilters)) { if (val) q[`filter[${col}]`] = val; }
     }
-    this.locationService.getAll(q).subscribe({
+    this.cs.getService({ url: '/locations', params: q }).subscribe({
       next: (res: any) => {
         this.data.set(res.data.map((r: any) => {
           const mapped: any = { ...r, selected: false };
-          for (const [colKey, dataKey] of Object.entries(this.displayKeyMap)) {
-            mapped[colKey] = r[dataKey] ?? '-';
-          }
+          for (const [colKey, dataKey] of Object.entries(this.displayKeyMap)) { mapped[colKey] = r[dataKey] ?? '-'; }
           mapped['l.is_active'] = r.is_active ? 'Active' : 'Inactive';
           return mapped;
         }));
@@ -87,14 +78,14 @@ export class LocationListComponent implements OnInit, OnDestroy {
     });
   }
 
-  addNew() { this.router.navigate(['/settings/location/new']); }
-  editSelected(row: any) { this.router.navigate(['/settings/location', row.id, 'edit']); }
+  addNew() { this.cs.navigate({ url: '/settings/location/new' }); }
+  editSelected(row: any) { this.cs.navigate({ url: `/settings/location/${row.id}/edit` }); }
 
   deleteMultiple(rows: any[]) {
     if (!confirm(`Delete ${rows.length} location(s)?`)) return;
-    this.locationService.deleteMultiple(rows.map((r) => r.id)).subscribe({
+    this.cs.postService({ url: '/locations/delete-multiple', payload: { ids: rows.map((r) => r.id) } }).subscribe({
       next: () => this.reloadCurrentPage(),
-      error: (err) => alert(err.error?.message || 'Delete failed'),
+      error: (err: any) => alert(err.error?.message || 'Delete failed'),
     });
   }
 

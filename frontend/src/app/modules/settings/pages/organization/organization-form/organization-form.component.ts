@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { OrganizationService } from '../../../../../core/services/organization.service';
+import { ActivatedRoute } from '@angular/router';
+import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { PhoneInputComponent } from '../../../../../shared/components/phone-input/phone-input.component';
 
@@ -20,12 +20,7 @@ export class OrganizationFormComponent implements OnInit {
   loading = false;
   errorMessage = '';
 
-  constructor(
-    private fb: FormBuilder,
-    private orgService: OrganizationService,
-    private router: Router,
-    private route: ActivatedRoute,
-  ) {}
+  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -44,12 +39,12 @@ export class OrganizationFormComponent implements OnInit {
       notes: [''],
     });
 
-    const id = this.route.snapshot.params['id'];
+    const id = this.cs.getRouteParam(this.route, 'id');
     if (id) {
       this.editMode = true;
       this.editId = id;
       this.loading = true;
-      this.orgService.getById(id).subscribe({
+      this.cs.getService({ url: `/organizations/${id}` }).subscribe({
         next: (res: any) => {
           const d = res.data;
           this.form.patchValue({
@@ -59,7 +54,7 @@ export class OrganizationFormComponent implements OnInit {
           });
           this.loading = false;
         },
-        error: () => { this.loading = false; this.router.navigate(['/settings/organization']); },
+        error: () => { this.loading = false; this.cs.navigate({ url: '/settings/organization' }); },
       });
     }
   }
@@ -83,12 +78,15 @@ export class OrganizationFormComponent implements OnInit {
     delete data.primary_phone;
     delete data.alternate_phone;
 
-    const req = this.editMode ? this.orgService.update(this.editId, data) : this.orgService.create(data);
+    const req = this.editMode
+      ? this.cs.putService({ url: `/organizations/${this.editId}`, payload: data })
+      : this.cs.postService({ url: '/organizations', payload: data });
+
     req.subscribe({
-      next: () => { this.saving = false; this.router.navigate(['/settings/organization']); },
-      error: (err) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
+      next: () => { this.saving = false; this.cs.navigate({ url: '/settings/organization' }); },
+      error: (err: any) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
     });
   }
 
-  cancel() { this.router.navigate(['/settings/organization']); }
+  cancel() { this.cs.navigate({ url: '/settings/organization' }); }
 }

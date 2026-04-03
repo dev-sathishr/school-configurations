@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { UserService } from '../../../../../core/services/user.service';
+import { ActivatedRoute } from '@angular/router';
+import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 
 @Component({
@@ -25,12 +25,7 @@ export class UserFormComponent implements OnInit {
     'lab_assistant', 'transport_manager', 'student', 'parent',
   ];
 
-  constructor(
-    private fb: FormBuilder,
-    private userService: UserService,
-    private router: Router,
-    private route: ActivatedRoute,
-  ) {}
+  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -43,20 +38,19 @@ export class UserFormComponent implements OnInit {
       is_active: [true],
     });
 
-    const id = this.route.snapshot.params['id'];
+    const id = this.cs.getRouteParam(this.route, 'id');
     if (id) {
       this.editMode = true;
       this.editId = id;
       this.loading = true;
-      this.userService.getById(id).subscribe({
+      this.cs.getService({ url: `/users/${id}` }).subscribe({
         next: (res: any) => {
-          const data = res.user || res;
-          this.form.patchValue(data);
+          this.form.patchValue(res.user || res.data || res);
           this.form.get('password')?.clearValidators();
           this.form.get('password')?.updateValueAndValidity();
           this.loading = false;
         },
-        error: () => { this.loading = false; this.router.navigate(['/settings/user']); },
+        error: () => { this.loading = false; this.cs.navigate({ url: '/settings/user' }); },
       });
     } else {
       this.form.get('password')?.setValidators(Validators.required);
@@ -65,7 +59,6 @@ export class UserFormComponent implements OnInit {
   }
 
   get f() { return this.form.controls; }
-
   formatRole(role: string): string { return role.replace(/_/g, ' '); }
 
   onSubmit() {
@@ -77,13 +70,15 @@ export class UserFormComponent implements OnInit {
     const data = { ...this.form.value };
     if (this.editMode && !data.password) delete data.password;
 
-    const req = this.editMode ? this.userService.update(this.editId, data) : this.userService.create(data);
+    const req = this.editMode
+      ? this.cs.putService({ url: `/users/${this.editId}`, payload: data })
+      : this.cs.postService({ url: '/users', payload: data });
 
     req.subscribe({
-      next: () => { this.saving = false; this.router.navigate(['/settings/user']); },
-      error: (err) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
+      next: () => { this.saving = false; this.cs.navigate({ url: '/settings/user' }); },
+      error: (err: any) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
     });
   }
 
-  cancel() { this.router.navigate(['/settings/user']); }
+  cancel() { this.cs.navigate({ url: '/settings/user' }); }
 }

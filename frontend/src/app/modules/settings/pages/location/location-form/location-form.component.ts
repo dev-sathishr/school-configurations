@@ -1,9 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { LocationService } from '../../../../../core/services/location.service';
-import { OrganizationService } from '../../../../../core/services/organization.service';
+import { ActivatedRoute } from '@angular/router';
+import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { PhoneInputComponent } from '../../../../../shared/components/phone-input/phone-input.component';
 
@@ -32,13 +31,7 @@ export class LocationFormComponent implements OnInit {
     { value: 'other', label: 'Other' },
   ];
 
-  constructor(
-    private fb: FormBuilder,
-    private locationService: LocationService,
-    private orgService: OrganizationService,
-    private router: Router,
-    private route: ActivatedRoute,
-  ) {}
+  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -59,16 +52,16 @@ export class LocationFormComponent implements OnInit {
       notes: [''],
     });
 
-    this.orgService.getDropdown().subscribe({
+    this.cs.getService({ url: '/organizations/dropdown' }).subscribe({
       next: (res: any) => { this.organizations = res.data; },
     });
 
-    const id = this.route.snapshot.params['id'];
+    const id = this.cs.getRouteParam(this.route, 'id');
     if (id) {
       this.editMode = true;
       this.editId = id;
       this.loading = true;
-      this.locationService.getById(id).subscribe({
+      this.cs.getService({ url: `/locations/${id}` }).subscribe({
         next: (res: any) => {
           const d = res.data;
           this.form.patchValue({
@@ -78,7 +71,7 @@ export class LocationFormComponent implements OnInit {
           });
           this.loading = false;
         },
-        error: () => { this.loading = false; this.router.navigate(['/settings/location']); },
+        error: () => { this.loading = false; this.cs.navigate({ url: '/settings/location' }); },
       });
     }
   }
@@ -101,13 +94,16 @@ export class LocationFormComponent implements OnInit {
     };
     delete data.primary_phone;
     delete data.alternate_phone;
-    const req = this.editMode ? this.locationService.update(this.editId, data) : this.locationService.create(data);
+
+    const req = this.editMode
+      ? this.cs.putService({ url: `/locations/${this.editId}`, payload: data })
+      : this.cs.postService({ url: '/locations', payload: data });
 
     req.subscribe({
-      next: () => { this.saving = false; this.router.navigate(['/settings/location']); },
-      error: (err) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
+      next: () => { this.saving = false; this.cs.navigate({ url: '/settings/location' }); },
+      error: (err: any) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
     });
   }
 
-  cancel() { this.router.navigate(['/settings/location']); }
+  cancel() { this.cs.navigate({ url: '/settings/location' }); }
 }

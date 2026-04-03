@@ -1,6 +1,5 @@
 import { Component, effect, OnDestroy, OnInit, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { UserService, Pagination } from '../../../../../core/services/user.service';
+import { CommonService } from '../../../../../shared/services/common/common.service';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { TableFilterService, ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
@@ -12,7 +11,7 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 })
 export class UserListComponent implements OnInit, OnDestroy {
   users = signal<any[]>([]);
-  pagination = signal<Pagination>({ page: 1, size: 10, total_count: 0, total_pages: 0 });
+  pagination = signal<any>({ page: 1, size: 10, total_count: 0, total_pages: 0 });
   loading = false;
 
   columns: ColumnConfig[] = [
@@ -49,11 +48,7 @@ export class UserListComponent implements OnInit, OnDestroy {
     'u.last_login': 'last_login', 'created_by_name': 'created_by_name',
   };
 
-  constructor(
-    private userService: UserService,
-    private router: Router,
-    public filterService: TableFilterService,
-  ) {
+  constructor(private cs: CommonService, public filterService: TableFilterService) {
     this.filterService.reset();
     this.filterService.initColumns(this.columns);
     effect(() => {
@@ -63,14 +58,14 @@ export class UserListComponent implements OnInit, OnDestroy {
       const sortBy = this.filterService.sortByField();
       const sortOrder = this.filterService.sortOrderField();
       const columnFilters = this.filterService.columnFilters();
-      this.loadUsers({ page, size, search, sortBy, sortOrder, columnFilters });
+      this.loadData({ page, size, search, sortBy, sortOrder, columnFilters });
     });
   }
 
-  ngOnInit(): void {}
-  ngOnDestroy(): void { this.filterService.reset(); }
+  ngOnInit() {}
+  ngOnDestroy() { this.filterService.reset(); }
 
-  loadUsers(params: any = {}): void {
+  loadData(params: any = {}) {
     this.loading = true;
     const q: any = { page: params.page || 1, size: params.size || 10 };
     if (params.search) q.search = params.search;
@@ -81,7 +76,7 @@ export class UserListComponent implements OnInit, OnDestroy {
         if (val) q[`filter[${col}]`] = val;
       }
     }
-    this.userService.getAllRaw(q).subscribe({
+    this.cs.getService({ url: '/users', params: q }).subscribe({
       next: (res: any) => {
         this.users.set(res.data.map((u: any) => {
           const mapped: any = { ...u, selected: false };
@@ -102,20 +97,19 @@ export class UserListComponent implements OnInit, OnDestroy {
     });
   }
 
-  addNew() { this.router.navigate(['/settings/user/new']); }
-  editSelected(user: any) { this.router.navigate(['/settings/user', user.id, 'edit']); }
+  addNew() { this.cs.navigate({ url: '/settings/user/new' }); }
+  editSelected(user: any) { this.cs.navigate({ url: `/settings/user/${user.id}/edit` }); }
 
-  deleteMultiple(users: any[]): void {
-    const count = users.length;
-    if (!confirm(`Delete ${count} user(s)?`)) return;
-    this.userService.deleteMultiple(users.map((u) => u.id)).subscribe({
+  deleteMultiple(users: any[]) {
+    if (!confirm(`Delete ${users.length} user(s)?`)) return;
+    this.cs.postService({ url: '/users/delete-multiple', payload: { ids: users.map((u) => u.id) } }).subscribe({
       next: () => this.reloadCurrentPage(),
-      error: (err) => alert(err.error?.message || 'Delete failed'),
+      error: (err: any) => alert(err.error?.message || 'Delete failed'),
     });
   }
 
-  reloadCurrentPage(): void {
-    this.loadUsers({
+  reloadCurrentPage() {
+    this.loadData({
       page: this.filterService.pageField(), size: this.filterService.pageSizeField(),
       search: this.filterService.searchField(), sortBy: this.filterService.sortByField(),
       sortOrder: this.filterService.sortOrderField(), columnFilters: this.filterService.columnFilters(),

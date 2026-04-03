@@ -1,6 +1,5 @@
 import { Component, effect, OnDestroy, OnInit, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { OrganizationService } from '../../../../../core/services/organization.service';
+import { CommonService } from '../../../../../shared/services/common/common.service';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { TableFilterService, ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
@@ -33,11 +32,7 @@ export class OrganizationListComponent implements OnInit, OnDestroy {
     'created_by_name': 'created_by_name',
   };
 
-  constructor(
-    private orgService: OrganizationService,
-    private router: Router,
-    public filterService: TableFilterService,
-  ) {
+  constructor(private cs: CommonService, public filterService: TableFilterService) {
     this.filterService.reset();
     this.filterService.initColumns(this.columns);
     effect(() => {
@@ -61,17 +56,13 @@ export class OrganizationListComponent implements OnInit, OnDestroy {
     if (params.sortBy) q.sort_by = params.sortBy;
     if (params.sortOrder) q.sort_order = params.sortOrder;
     if (params.columnFilters) {
-      for (const [col, val] of Object.entries(params.columnFilters)) {
-        if (val) q[`filter[${col}]`] = val;
-      }
+      for (const [col, val] of Object.entries(params.columnFilters)) { if (val) q[`filter[${col}]`] = val; }
     }
-    this.orgService.getAll(q).subscribe({
+    this.cs.getService({ url: '/organizations', params: q }).subscribe({
       next: (res: any) => {
         this.data.set(res.data.map((r: any) => {
           const mapped: any = { ...r, selected: false };
-          for (const [colKey, dataKey] of Object.entries(this.displayKeyMap)) {
-            mapped[colKey] = r[dataKey] ?? '-';
-          }
+          for (const [colKey, dataKey] of Object.entries(this.displayKeyMap)) { mapped[colKey] = r[dataKey] ?? '-'; }
           mapped['o.is_active'] = r.is_active ? 'Active' : 'Inactive';
           mapped['o.primary_contact_no'] = r.primary_contact_no ? `${r.primary_contact_code} ${r.primary_contact_no}` : '-';
           return mapped;
@@ -83,16 +74,14 @@ export class OrganizationListComponent implements OnInit, OnDestroy {
     });
   }
 
-  addNew() { this.router.navigate(['/settings/organization/new']); }
-
-  editSelected(row: any) { this.router.navigate(['/settings/organization', row.id, 'edit']); }
+  addNew() { this.cs.navigate({ url: '/settings/organization/new' }); }
+  editSelected(row: any) { this.cs.navigate({ url: `/settings/organization/${row.id}/edit` }); }
 
   deleteMultiple(rows: any[]) {
-    const count = rows.length;
-    if (!confirm(`Delete ${count} organization(s)?`)) return;
-    this.orgService.deleteMultiple(rows.map((r) => r.id)).subscribe({
+    if (!confirm(`Delete ${rows.length} organization(s)?`)) return;
+    this.cs.postService({ url: '/organizations/delete-multiple', payload: { ids: rows.map((r) => r.id) } }).subscribe({
       next: () => this.reloadCurrentPage(),
-      error: (err) => alert(err.error?.message || 'Delete failed'),
+      error: (err: any) => alert(err.error?.message || 'Delete failed'),
     });
   }
 
