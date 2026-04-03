@@ -124,6 +124,17 @@ async function migrate() {
       );
     `);
 
+    // Add soft delete columns to all settings tables
+    const tables = ['settings.users', 'settings.organizations', 'settings.locations'];
+    for (const table of tables) {
+      await client.query(`
+        ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS deleted_by UUID REFERENCES settings.users(id);
+      `).catch(() => {});
+      await client.query(`
+        ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+      `).catch(() => {});
+    }
+
     console.log('Migration completed successfully');
   } catch (err) {
     console.error('Migration failed:', err);

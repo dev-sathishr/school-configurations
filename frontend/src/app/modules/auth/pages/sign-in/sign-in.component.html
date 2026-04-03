@@ -77,12 +77,8 @@
 
   <!-- Submit Button -->
   <div>
-    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" [disabled]="loading">
-      @if (loading) {
-        Signing in...
-      } @else {
-        Sign in
-      }
+    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" [loading]="loading">
+      Sign in
     </app-button>
   </div>
 </form>

@@ -9,7 +9,7 @@
   }
 
   @if (loading) {
-    <p class="text-muted-foreground py-10 text-center text-sm">Loading...</p>
+    <app-loader size="large" text="Loading organization..." />
   } @else {
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
 
@@ -17,9 +17,12 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Basic Information</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted" placeholder="e.g. ABC School" />
-          <app-form-field [formGroup]="form" controlName="reg_no" label="Registration No" placeholder="e.g. REG-2024-001" />
-          <app-form-field [formGroup]="form" controlName="email" label="Email" fieldType="email" placeholder="e.g. info@school.com" />
+          <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted"
+            placeholder="e.g. ABC School" [minLength]="3" [maxLength]="100" />
+          <app-form-field [formGroup]="form" controlName="reg_no" label="Registration No"
+            placeholder="e.g. REG-2024-001" [maxLength]="50" [uppercase]="true" />
+          <app-form-field [formGroup]="form" controlName="email" label="Email" fieldType="email"
+            placeholder="e.g. info@school.com" [maxLength]="100" [submitted]="submitted" [lowercase]="true" />
         </div>
       </div>
 
@@ -27,9 +30,12 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Contact Details</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <app-form-field [formGroup]="form" controlName="primary_phone" label="Primary Contact" fieldType="phone" placeholder="Phone number" />
-          <app-form-field [formGroup]="form" controlName="alternate_phone" label="Alternate Contact" fieldType="phone" placeholder="Phone number" />
-          <app-form-field [formGroup]="form" controlName="website" label="Website" fieldType="url" placeholder="e.g. https://www.school.com" />
+          <app-form-field [formGroup]="form" controlName="primary_phone" label="Primary Contact" fieldType="phone"
+            placeholder="Phone number" [maxLength]="15" />
+          <app-form-field [formGroup]="form" controlName="alternate_phone" label="Alternate Contact" fieldType="phone"
+            placeholder="Phone number" [maxLength]="15" />
+          <app-form-field [formGroup]="form" controlName="website" label="Website" fieldType="url"
+            placeholder="e.g. https://www.school.com" [maxLength]="200" [submitted]="submitted" />
         </div>
       </div>
 
@@ -37,11 +43,16 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Social Media</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <app-form-field [formGroup]="form" controlName="social_facebook" label="Facebook" fieldType="url" placeholder="https://facebook.com/..." />
-          <app-form-field [formGroup]="form" controlName="social_instagram" label="Instagram" fieldType="url" placeholder="https://instagram.com/..." />
-          <app-form-field [formGroup]="form" controlName="social_twitter" label="Twitter / X" fieldType="url" placeholder="https://x.com/..." />
-          <app-form-field [formGroup]="form" controlName="social_linkedin" label="LinkedIn" fieldType="url" placeholder="https://linkedin.com/..." />
-          <app-form-field [formGroup]="form" controlName="social_youtube" label="YouTube" fieldType="url" placeholder="https://youtube.com/..." />
+          <app-form-field [formGroup]="form" controlName="social_facebook" label="Facebook" fieldType="url"
+            placeholder="https://facebook.com/..." [maxLength]="200" [submitted]="submitted" />
+          <app-form-field [formGroup]="form" controlName="social_instagram" label="Instagram" fieldType="url"
+            placeholder="https://instagram.com/..." [maxLength]="200" [submitted]="submitted" />
+          <app-form-field [formGroup]="form" controlName="social_twitter" label="Twitter / X" fieldType="url"
+            placeholder="https://x.com/..." [maxLength]="200" [submitted]="submitted" />
+          <app-form-field [formGroup]="form" controlName="social_linkedin" label="LinkedIn" fieldType="url"
+            placeholder="https://linkedin.com/..." [maxLength]="200" [submitted]="submitted" />
+          <app-form-field [formGroup]="form" controlName="social_youtube" label="YouTube" fieldType="url"
+            placeholder="https://youtube.com/..." [maxLength]="200" [submitted]="submitted" />
         </div>
       </div>
 
@@ -49,7 +60,8 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
-          <app-form-field [formGroup]="form" controlName="notes" label="Notes" fieldType="textarea" [rows]="3" colSpan="md:col-span-2" placeholder="Any additional notes..." />
+          <app-form-field [formGroup]="form" controlName="notes" label="Notes" fieldType="textarea" [rows]="3"
+            colSpan="md:col-span-2" placeholder="Any additional notes..." [maxLength]="500" />
         </div>
       </div>
 
@@ -58,8 +70,8 @@
         <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
           Cancel
         </app-button>
-        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [disabled]="saving">
-          {{ saving ? 'Saving...' : (editMode ? 'Update' : 'Create') }}
+        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
+          {{ editMode ? 'Update' : 'Create' }}
         </app-button>
       </div>
     </form>

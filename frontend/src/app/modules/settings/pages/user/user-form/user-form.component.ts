@@ -4,11 +4,12 @@ import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
+import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 
 @Component({
   selector: 'app-user-form',
   templateUrl: './user-form.component.html',
-  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent],
 })
 export class UserFormComponent implements OnInit {
   form!: FormGroup;

@@ -33,7 +33,7 @@ async function getById(req, resp) {
       LEFT JOIN settings.organizations org ON l.organization_id = org.id
       LEFT JOIN settings.users cb ON l.created_by = cb.id
       LEFT JOIN settings.users ub ON l.updated_by = ub.id
-      WHERE l.id = $1
+      WHERE l.id = $1 AND l.deleted_at IS NULL
     `, [req.params.id]);
 
     if (result.rows.length === 0) return res.notFound(resp, 'Location not found');
@@ -104,9 +104,9 @@ async function update(req, resp) {
 
 async function remove(req, resp) {
   try {
-    const existing = await db.query('SELECT id FROM settings.locations WHERE id = $1', [req.params.id]);
+    const existing = await db.query('SELECT id FROM settings.locations WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (existing.rows.length === 0) return res.notFound(resp, 'Location not found');
-    await db.query('DELETE FROM settings.locations WHERE id = $1', [req.params.id]);
+    await db.query('UPDATE settings.locations SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.id, req.params.id]);
     return res.success(resp, {}, 'Location deleted successfully');
   } catch (err) {
     console.error('Delete location error:', err);
@@ -118,8 +118,11 @@ async function removeMultiple(req, resp) {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) return res.badRequest(resp, 'ids array is required');
-    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
-    const result = await db.query(`DELETE FROM settings.locations WHERE id IN (${placeholders}) RETURNING id`, ids);
+    const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
+    const result = await db.query(
+      `UPDATE settings.locations SET deleted_at = NOW(), deleted_by = $1 WHERE id IN (${placeholders}) AND deleted_at IS NULL RETURNING id`,
+      [req.user.id, ...ids]
+    );
     return res.success(resp, { deleted_count: result.rowCount }, `${result.rowCount} location(s) deleted`);
   } catch (err) {
     console.error('Delete multiple locations error:', err);

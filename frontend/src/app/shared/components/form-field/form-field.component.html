@@ -22,10 +22,13 @@
       </select>
     } @else if (fieldType === 'textarea') {
       <textarea [formControlName]="controlName" [rows]="rows" [placeholder]="placeholder"
+        [attr.maxlength]="maxLength"
         [ngClass]="{ 'border-red-500!': hasError }"
         class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none"></textarea>
     } @else if (fieldType === 'phone') {
-      <div class="phone-input-wrapper border-border relative flex rounded-md border focus-within:border-primary" clickOutside (clickOutside)="showDropdown = false">
+      <div class="phone-input-wrapper border-border relative flex rounded-md border focus-within:border-primary"
+        [ngClass]="{ 'border-red-500!': phoneError }"
+        clickOutside (clickOutside)="showDropdown = false">
         <button
           type="button"
           (click)="toggleDropdown()"
@@ -36,9 +39,9 @@
         </button>
         <input
           type="tel"
-          [(ngModel)]="phoneNumber"
+          [ngModel]="phoneNumber"
           [ngModelOptions]="{ standalone: true }"
-          (ngModelChange)="emitPhoneValue()"
+          (input)="onPhoneInput($event)"
           [placeholder]="placeholder || 'Phone number'"
           class="phone-input-number text-foreground h-[34px] flex-1 px-3 text-sm focus:outline-none" />
         @if (showDropdown) {
@@ -69,10 +72,19 @@
           </div>
         }
       </div>
+      @if (phoneError) {
+        <span class="mt-1 block text-xs text-red-500">{{ phoneError }}</span>
+      }
     } @else {
       <input [type]="fieldType" [formControlName]="controlName" [placeholder]="placeholder"
-        [ngClass]="{ 'border-red-500!': hasError }"
+        [attr.maxlength]="maxLength"
+        [ngClass]="{ 'border-red-500!': hasError, 'uppercase!': uppercase, 'lowercase!': lowercase }"
+        (input)="uppercase ? toUppercase() : lowercase ? toLowercase() : null"
         class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
+    }
+
+    @if (hasError && errorMessage) {
+      <span class="mt-1 block text-xs text-red-500">{{ errorMessage }}</span>
     }
   </div>
 }

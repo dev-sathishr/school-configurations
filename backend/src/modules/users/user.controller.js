@@ -35,7 +35,7 @@ async function getById(req, resp) {
       FROM settings.users u
       LEFT JOIN settings.users cb ON u.created_by = cb.id
       LEFT JOIN settings.users ub ON u.updated_by = ub.id
-      WHERE u.id = $1
+      WHERE u.id = $1 AND u.deleted_at IS NULL
     `, [req.params.id]);
 
     if (result.rows.length === 0) {
@@ -57,7 +57,7 @@ async function create(req, resp) {
       return res.badRequest(resp, 'Username, password, and full name are required');
     }
 
-    const existing = await db.query('SELECT id FROM settings.users WHERE username = $1', [username]);
+    const existing = await db.query('SELECT id FROM settings.users WHERE username = $1 AND deleted_at IS NULL', [username]);
     if (existing.rows.length > 0) {
       return res.conflict(resp, 'Username already exists');
     }
@@ -92,7 +92,7 @@ async function update(req, resp) {
     }
 
     if (username && username !== existing.rows[0].username) {
-      const duplicate = await db.query('SELECT id FROM settings.users WHERE username = $1', [username]);
+      const duplicate = await db.query('SELECT id FROM settings.users WHERE username = $1 AND deleted_at IS NULL', [username]);
       if (duplicate.rows.length > 0) {
         return res.conflict(resp, 'Username already exists');
       }
@@ -128,12 +128,12 @@ async function update(req, resp) {
 
 async function remove(req, resp) {
   try {
-    const existing = await db.query('SELECT id FROM settings.users WHERE id = $1', [req.params.id]);
+    const existing = await db.query('SELECT id FROM settings.users WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (existing.rows.length === 0) {
       return res.notFound(resp, 'User not found');
     }
 
-    await db.query('DELETE FROM settings.users WHERE id = $1', [req.params.id]);
+    await db.query('UPDATE settings.users SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.id, req.params.id]);
 
     return res.success(resp, {}, 'User deleted successfully');
   } catch (err) {
@@ -149,10 +149,10 @@ async function removeMultiple(req, resp) {
       return res.badRequest(resp, 'ids array is required');
     }
 
-    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+    const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
     const result = await db.query(
-      `DELETE FROM settings.users WHERE id IN (${placeholders}) RETURNING id`,
-      ids
+      `UPDATE settings.users SET deleted_at = NOW(), deleted_by = $1 WHERE id IN (${placeholders}) AND deleted_at IS NULL RETURNING id`,
+      [req.user.id, ...ids]
     );
 
     return res.success(resp, { deleted_count: result.rowCount }, `${result.rowCount} user(s) deleted successfully`);

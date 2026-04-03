@@ -39,13 +39,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.routerSub?.unsubscribe();
   }
 
+  private isId(segment: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment)
+      || /^\d+$/.test(segment);
+  }
+
   private buildBreadcrumbs(url: string) {
     const parts = url.split('/').filter(Boolean);
     this.breadcrumbs = [];
     let path = '';
     for (const part of parts) {
       path += '/' + part;
-      const label = this.routeMap[path] || part.charAt(0).toUpperCase() + part.slice(1);
+      if (this.isId(part)) continue;
+      const label = this.routeMap[path] || part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
       this.breadcrumbs.push({ label, route: path });
     }
   }

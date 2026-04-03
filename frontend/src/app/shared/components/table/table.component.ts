@@ -7,6 +7,8 @@ import { TableHeaderComponent } from './components/table-header/table-header.com
 import { TableRowComponent } from './components/table-row/table-row.component';
 import { ColumnConfig, TableFilterService } from './services/table-filter.service';
 import { CommonService } from '../../services/common/common.service';
+import { LoaderComponent } from '../loader/loader.component';
+import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 
 @Component({
   standalone: true,
@@ -15,6 +17,7 @@ import { CommonService } from '../../services/common/common.service';
   imports: [
     FormsModule, AngularSvgIconModule,
     TableActionComponent, TableFooterComponent, TableHeaderComponent, TableRowComponent,
+    LoaderComponent, ConfirmDialogComponent,
   ],
 })
 export class TableComponent implements OnInit, OnDestroy {
@@ -29,6 +32,8 @@ export class TableComponent implements OnInit, OnDestroy {
   data = signal<any[]>([]);
   pagination = signal<any>({ page: 1, size: 10, total_count: 0, total_pages: 0 });
   loading = false;
+  showDeleteConfirm = false;
+  deleting = false;
 
   totalCount = () => this.pagination().total_count;
 
@@ -117,13 +122,29 @@ export class TableComponent implements OnInit, OnDestroy {
 
   deleteSelected() {
     if (this.selectedCount > 0 && this.deleteUrl) {
-      const rows = this.selectedRows;
-      if (!confirm(`Delete ${rows.length} record(s)?`)) return;
-      this.cs.postService({ url: this.deleteUrl, payload: { ids: rows.map((r) => r.id) } }).subscribe({
-        next: () => this.reloadCurrentPage(),
-        error: (err: any) => alert(err.error?.message || 'Delete failed'),
-      });
+      this.showDeleteConfirm = true;
     }
+  }
+
+  confirmDelete() {
+    this.deleting = true;
+    const rows = this.selectedRows;
+    this.cs.postService({ url: this.deleteUrl, payload: { ids: rows.map((r) => r.id) } }).subscribe({
+      next: () => {
+        this.deleting = false;
+        this.showDeleteConfirm = false;
+        this.reloadCurrentPage();
+      },
+      error: (err: any) => {
+        this.deleting = false;
+        this.showDeleteConfirm = false;
+        this.cs.showToastr({ type: 'error', message: err.error?.message || 'Delete failed' });
+      },
+    });
+  }
+
+  cancelDelete() {
+    this.showDeleteConfirm = false;
   }
 
   reloadCurrentPage() {

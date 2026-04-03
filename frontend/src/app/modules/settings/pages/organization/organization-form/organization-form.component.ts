@@ -4,11 +4,12 @@ import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
+import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 
 @Component({
   selector: 'app-organization-form',
   templateUrl: './organization-form.component.html',
-  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent],
 })
 export class OrganizationFormComponent implements OnInit {
   form!: FormGroup;
@@ -22,20 +23,21 @@ export class OrganizationFormComponent implements OnInit {
   constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
+    const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/\S*)?$/;
     this.form = this.fb.group({
-      name: ['', Validators.required],
-      reg_no: [''],
-      email: ['', Validators.email],
+      name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+      reg_no: ['', [Validators.maxLength(50)]],
+      email: ['', [Validators.email, Validators.maxLength(100)]],
       primary_phone: [{ code: '+91', number: '' }],
       alternate_phone: [{ code: '+91', number: '' }],
-      website: [''],
-      social_facebook: [''],
-      social_instagram: [''],
-      social_twitter: [''],
-      social_linkedin: [''],
-      social_youtube: [''],
+      website: ['', [Validators.maxLength(200), Validators.pattern(urlPattern)]],
+      social_facebook: ['', [Validators.maxLength(200), Validators.pattern(urlPattern)]],
+      social_instagram: ['', [Validators.maxLength(200), Validators.pattern(urlPattern)]],
+      social_twitter: ['', [Validators.maxLength(200), Validators.pattern(urlPattern)]],
+      social_linkedin: ['', [Validators.maxLength(200), Validators.pattern(urlPattern)]],
+      social_youtube: ['', [Validators.maxLength(200), Validators.pattern(urlPattern)]],
       is_active: [true],
-      notes: [''],
+      notes: ['', [Validators.maxLength(500)]],
     });
 
     const id = this.cs.getRouteParam(this.route, 'id');

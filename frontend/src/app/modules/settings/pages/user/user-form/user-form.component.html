@@ -9,7 +9,7 @@
   }
 
   @if (loading) {
-    <p class="text-muted-foreground py-10 text-center text-sm">Loading...</p>
+    <app-loader size="large" text="Loading user..." />
   } @else {
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
 
@@ -45,8 +45,8 @@
         <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
           Cancel
         </app-button>
-        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [disabled]="saving">
-          {{ saving ? 'Saving...' : (editMode ? 'Update' : 'Create') }}
+        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
+          {{ editMode ? 'Update' : 'Create' }}
         </app-button>
       </div>
     </form>

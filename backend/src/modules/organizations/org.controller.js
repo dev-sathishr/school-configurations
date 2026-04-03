@@ -30,7 +30,7 @@ async function getById(req, resp) {
       FROM settings.organizations o
       LEFT JOIN settings.users cb ON o.created_by = cb.id
       LEFT JOIN settings.users ub ON o.updated_by = ub.id
-      WHERE o.id = $1
+      WHERE o.id = $1 AND o.deleted_at IS NULL
     `, [req.params.id]);
 
     if (result.rows.length === 0) return res.notFound(resp, 'Organization not found');
@@ -96,9 +96,9 @@ async function update(req, resp) {
 
 async function remove(req, resp) {
   try {
-    const existing = await db.query('SELECT id FROM settings.organizations WHERE id = $1', [req.params.id]);
+    const existing = await db.query('SELECT id FROM settings.organizations WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (existing.rows.length === 0) return res.notFound(resp, 'Organization not found');
-    await db.query('DELETE FROM settings.organizations WHERE id = $1', [req.params.id]);
+    await db.query('UPDATE settings.organizations SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.id, req.params.id]);
     return res.success(resp, {}, 'Organization deleted successfully');
   } catch (err) {
     console.error('Delete organization error:', err);
@@ -110,8 +110,11 @@ async function removeMultiple(req, resp) {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) return res.badRequest(resp, 'ids array is required');
-    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
-    const result = await db.query(`DELETE FROM settings.organizations WHERE id IN (${placeholders}) RETURNING id`, ids);
+    const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
+    const result = await db.query(
+      `UPDATE settings.organizations SET deleted_at = NOW(), deleted_by = $1 WHERE id IN (${placeholders}) AND deleted_at IS NULL RETURNING id`,
+      [req.user.id, ...ids]
+    );
     return res.success(resp, { deleted_count: result.rowCount }, `${result.rowCount} organization(s) deleted`);
   } catch (err) {
     console.error('Delete multiple organizations error:', err);
@@ -122,7 +125,7 @@ async function removeMultiple(req, resp) {
 // Dropdown list (for location form)
 async function getDropdown(req, resp) {
   try {
-    const result = await db.query('SELECT id, name FROM settings.organizations WHERE is_active = true ORDER BY name');
+    const result = await db.query('SELECT id, name FROM settings.organizations WHERE is_active = true AND deleted_at IS NULL ORDER BY name');
     return res.success(resp, { data: result.rows });
   } catch (err) {
     console.error('Get org dropdown error:', err);

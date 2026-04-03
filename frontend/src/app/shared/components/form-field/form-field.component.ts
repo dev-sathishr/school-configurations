@@ -13,6 +13,8 @@ interface CountryCode {
   dial: string;
   flag: string;
   name: string;
+  minLen: number;
+  maxLen: number;
 }
 
 @Component({
@@ -33,6 +35,10 @@ export class FormFieldComponent implements OnInit {
   @Input() selectPlaceholder = '';
   @Input() rows = 3;
   @Input() colSpan = '';
+  @Input() maxLength: number | null = null;
+  @Input() minLength: number | null = null;
+  @Input() uppercase = false;
+  @Input() lowercase = false;
 
   // Phone field state
   phoneNumber = '';
@@ -41,35 +47,37 @@ export class FormFieldComponent implements OnInit {
   searchText = '';
 
   countries: CountryCode[] = [
-    { code: 'IN', dial: '+91', flag: '🇮🇳', name: 'India' },
-    { code: 'US', dial: '+1', flag: '🇺🇸', name: 'United States' },
-    { code: 'GB', dial: '+44', flag: '🇬🇧', name: 'United Kingdom' },
-    { code: 'AE', dial: '+971', flag: '🇦🇪', name: 'UAE' },
-    { code: 'SA', dial: '+966', flag: '🇸🇦', name: 'Saudi Arabia' },
-    { code: 'SG', dial: '+65', flag: '🇸🇬', name: 'Singapore' },
-    { code: 'MY', dial: '+60', flag: '🇲🇾', name: 'Malaysia' },
-    { code: 'AU', dial: '+61', flag: '🇦🇺', name: 'Australia' },
-    { code: 'CA', dial: '+1', flag: '🇨🇦', name: 'Canada' },
-    { code: 'DE', dial: '+49', flag: '🇩🇪', name: 'Germany' },
-    { code: 'FR', dial: '+33', flag: '🇫🇷', name: 'France' },
-    { code: 'JP', dial: '+81', flag: '🇯🇵', name: 'Japan' },
-    { code: 'CN', dial: '+86', flag: '🇨🇳', name: 'China' },
-    { code: 'KR', dial: '+82', flag: '🇰🇷', name: 'South Korea' },
-    { code: 'BD', dial: '+880', flag: '🇧🇩', name: 'Bangladesh' },
-    { code: 'LK', dial: '+94', flag: '🇱🇰', name: 'Sri Lanka' },
-    { code: 'NP', dial: '+977', flag: '🇳🇵', name: 'Nepal' },
-    { code: 'PK', dial: '+92', flag: '🇵🇰', name: 'Pakistan' },
-    { code: 'QA', dial: '+974', flag: '🇶🇦', name: 'Qatar' },
-    { code: 'KW', dial: '+965', flag: '🇰🇼', name: 'Kuwait' },
-    { code: 'OM', dial: '+968', flag: '🇴🇲', name: 'Oman' },
-    { code: 'BH', dial: '+973', flag: '🇧🇭', name: 'Bahrain' },
-    { code: 'ZA', dial: '+27', flag: '🇿🇦', name: 'South Africa' },
-    { code: 'NZ', dial: '+64', flag: '🇳🇿', name: 'New Zealand' },
-    { code: 'IT', dial: '+39', flag: '🇮🇹', name: 'Italy' },
-    { code: 'ES', dial: '+34', flag: '🇪🇸', name: 'Spain' },
-    { code: 'BR', dial: '+55', flag: '🇧🇷', name: 'Brazil' },
-    { code: 'MX', dial: '+52', flag: '🇲🇽', name: 'Mexico' },
+    { code: 'IN', dial: '+91', flag: '🇮🇳', name: 'India', minLen: 10, maxLen: 10 },
+    { code: 'US', dial: '+1', flag: '🇺🇸', name: 'United States', minLen: 10, maxLen: 10 },
+    { code: 'GB', dial: '+44', flag: '🇬🇧', name: 'United Kingdom', minLen: 10, maxLen: 11 },
+    { code: 'AE', dial: '+971', flag: '🇦🇪', name: 'UAE', minLen: 7, maxLen: 9 },
+    { code: 'SA', dial: '+966', flag: '🇸🇦', name: 'Saudi Arabia', minLen: 9, maxLen: 9 },
+    { code: 'SG', dial: '+65', flag: '🇸🇬', name: 'Singapore', minLen: 8, maxLen: 8 },
+    { code: 'MY', dial: '+60', flag: '🇲🇾', name: 'Malaysia', minLen: 9, maxLen: 10 },
+    { code: 'AU', dial: '+61', flag: '🇦🇺', name: 'Australia', minLen: 9, maxLen: 9 },
+    { code: 'CA', dial: '+1', flag: '🇨🇦', name: 'Canada', minLen: 10, maxLen: 10 },
+    { code: 'DE', dial: '+49', flag: '🇩🇪', name: 'Germany', minLen: 10, maxLen: 11 },
+    { code: 'FR', dial: '+33', flag: '🇫🇷', name: 'France', minLen: 9, maxLen: 9 },
+    { code: 'JP', dial: '+81', flag: '🇯🇵', name: 'Japan', minLen: 10, maxLen: 11 },
+    { code: 'CN', dial: '+86', flag: '🇨🇳', name: 'China', minLen: 11, maxLen: 11 },
+    { code: 'KR', dial: '+82', flag: '🇰🇷', name: 'South Korea', minLen: 9, maxLen: 10 },
+    { code: 'BD', dial: '+880', flag: '🇧🇩', name: 'Bangladesh', minLen: 10, maxLen: 10 },
+    { code: 'LK', dial: '+94', flag: '🇱🇰', name: 'Sri Lanka', minLen: 9, maxLen: 9 },
+    { code: 'NP', dial: '+977', flag: '🇳🇵', name: 'Nepal', minLen: 10, maxLen: 10 },
+    { code: 'PK', dial: '+92', flag: '🇵🇰', name: 'Pakistan', minLen: 10, maxLen: 10 },
+    { code: 'QA', dial: '+974', flag: '🇶🇦', name: 'Qatar', minLen: 7, maxLen: 8 },
+    { code: 'KW', dial: '+965', flag: '🇰🇼', name: 'Kuwait', minLen: 8, maxLen: 8 },
+    { code: 'OM', dial: '+968', flag: '🇴🇲', name: 'Oman', minLen: 8, maxLen: 8 },
+    { code: 'BH', dial: '+973', flag: '🇧🇭', name: 'Bahrain', minLen: 8, maxLen: 8 },
+    { code: 'ZA', dial: '+27', flag: '🇿🇦', name: 'South Africa', minLen: 9, maxLen: 9 },
+    { code: 'NZ', dial: '+64', flag: '🇳🇿', name: 'New Zealand', minLen: 8, maxLen: 9 },
+    { code: 'IT', dial: '+39', flag: '🇮🇹', name: 'Italy', minLen: 9, maxLen: 10 },
+    { code: 'ES', dial: '+34', flag: '🇪🇸', name: 'Spain', minLen: 9, maxLen: 9 },
+    { code: 'BR', dial: '+55', flag: '🇧🇷', name: 'Brazil', minLen: 10, maxLen: 11 },
+    { code: 'MX', dial: '+52', flag: '🇲🇽', name: 'Mexico', minLen: 10, maxLen: 10 },
   ];
+
+  phoneError = '';
 
   ngOnInit(): void {
     if (this.fieldType === 'phone') {
@@ -87,6 +95,17 @@ export class FormFieldComponent implements OnInit {
 
   get fieldId(): string {
     return `field_${this.controlName}`;
+  }
+
+  get errorMessage(): string {
+    const errors = this.control?.errors;
+    if (!errors) return '';
+    if (errors['required']) return `${this.label} is required`;
+    if (errors['minlength']) return `Minimum ${errors['minlength'].requiredLength} characters`;
+    if (errors['maxlength']) return `Maximum ${errors['maxlength'].requiredLength} characters`;
+    if (errors['email']) return 'Enter a valid email';
+    if (errors['pattern']) return `Invalid format. e.g. ${this.placeholder || 'https://example.com'}`;
+    return '';
   }
 
   // Phone helpers
@@ -110,16 +129,56 @@ export class FormFieldComponent implements OnInit {
     }
   }
 
-  emitPhoneValue(): void {
+  get phoneMaxLen(): number {
+    return this.selectedCountry?.maxLen || 15;
+  }
+
+  onPhoneInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '').slice(0, this.phoneMaxLen);
+    this.phoneNumber = digits;
+    input.value = digits;
     this.control?.setValue({ code: this.selectedCode, number: this.phoneNumber });
     this.control?.markAsTouched();
+    this.validatePhone();
+  }
+
+  validatePhone(): void {
+    if (!this.phoneNumber) {
+      this.phoneError = '';
+      return;
+    }
+    const country = this.selectedCountry;
+    if (!country) { this.phoneError = ''; return; }
+    if (this.phoneNumber.length < country.minLen) {
+      this.phoneError = `Minimum ${country.minLen} digits for ${country.name}`;
+    } else if (this.phoneNumber.length > country.maxLen) {
+      this.phoneError = `Maximum ${country.maxLen} digits for ${country.name}`;
+    } else {
+      this.phoneError = '';
+    }
   }
 
   selectCountry(country: CountryCode): void {
     this.selectedCode = country.dial;
     this.showDropdown = false;
     this.searchText = '';
-    this.emitPhoneValue();
+    if (this.phoneNumber.length > country.maxLen) {
+      this.phoneNumber = this.phoneNumber.slice(0, country.maxLen);
+    }
+    this.control?.setValue({ code: this.selectedCode, number: this.phoneNumber });
+    this.control?.markAsTouched();
+    this.validatePhone();
+  }
+
+  toUppercase(): void {
+    const val = this.control?.value;
+    if (val) this.control?.setValue(val.toUpperCase(), { emitEvent: false });
+  }
+
+  toLowercase(): void {
+    const val = this.control?.value;
+    if (val) this.control?.setValue(val.toLowerCase(), { emitEvent: false });
   }
 
   toggleDropdown(): void {

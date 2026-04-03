@@ -27,6 +27,7 @@ async function paginate(options, query = {}) {
     sortableColumns = [],
     defaultSortBy = `${alias}.created_at`,
     defaultSortOrder = 'DESC',
+    baseCondition = `${alias}.deleted_at IS NULL`,
   } = options;
 
   const page = Math.max(1, parseInt(query.page) || 1);
@@ -49,6 +50,11 @@ async function paginate(options, query = {}) {
 
   const params = [];
   const conditions = [];
+
+  // Exclude soft-deleted rows
+  if (baseCondition) {
+    conditions.push(baseCondition);
+  }
 
   // Global search
   if (search && searchColumns.length > 0) {
