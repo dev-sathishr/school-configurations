@@ -26,20 +26,23 @@ export class LocationListComponent {
       'hostel': { label: 'Hostel', class: 'bg-orange-500/10 text-orange-700' },
       'other': { label: 'Other', class: 'bg-muted text-muted-foreground' },
     }},
-    { key: 'l.city', label: 'City', sortable: true, searchable: true },
+    { key: 'primary_contact_no', label: 'Primary Mobile', sortable: true, searchable: true },
     { key: 'l.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: {
       'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
       'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
     }},
+    { key: 'updated_by_name', label: 'Updated By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'organization_name': 'organization_name', 'l.name': 'name', 'l.code': 'code',
-    'l.type': 'type', 'l.city': 'city', 'l.is_active': 'is_active',
+    'l.type': 'type', 'primary_contact_no': 'primary_contact_no', 'l.is_active': 'is_active',
+    'updated_by_name': 'updated_by_name',
   };
 
   rowTransform = (row: any, mapped: any) => {
     mapped['l.is_active'] = row.is_active ? 'Active' : 'Inactive';
+    mapped['primary_contact_no'] = row.primary_contact_no ? `${row.primary_contact_code || '+91'} ${row.primary_contact_no}` : '-';
     return mapped;
   };
 

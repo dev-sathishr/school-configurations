@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ClickOutsideDirective } from '../../directives/click-outside.directive';
@@ -23,7 +23,7 @@ interface CountryCode {
   styleUrl: './form-field.component.css',
   imports: [NgClass, ReactiveFormsModule, FormsModule, ClickOutsideDirective],
 })
-export class FormFieldComponent implements OnInit {
+export class FormFieldComponent implements OnInit, OnChanges {
   @Input({ required: true }) formGroup!: FormGroup;
   @Input({ required: true }) controlName!: string;
   @Input({ required: true }) label!: string;
@@ -83,6 +83,12 @@ export class FormFieldComponent implements OnInit {
   ngOnInit(): void {
     if (this.fieldType === 'phone') {
       this.initPhone();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['submitted'] && this.fieldType === 'phone') {
+      this.validatePhone();
     }
   }
 
@@ -149,7 +155,7 @@ export class FormFieldComponent implements OnInit {
 
   validatePhone(): void {
     if (!this.phoneNumber) {
-      this.phoneError = '';
+      this.phoneError = this.required && this.submitted ? `${this.label} is required` : '';
       return;
     }
     const country = this.selectedCountry;

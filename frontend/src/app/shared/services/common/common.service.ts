@@ -1,15 +1,17 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subject } from 'rxjs';
-import { toast } from 'ngx-sonner';
 import { ApiService } from '../api/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../toast/toast.service';
 
 @Injectable({ providedIn: 'root' })
 export class CommonService {
 
   public userDetails: any = {};
   public userDetailsObs = new Subject();
+
+  private toastService = inject(ToastService);
 
   constructor(
     private router: Router,
@@ -81,15 +83,7 @@ export class CommonService {
 
   showToastr({ type = 'info', message = '', description = '' }:
     { type?: 'success' | 'error' | 'info' | 'warning'; message: string; description?: string }) {
-    if (type === 'success') {
-      toast.success(message, { description, position: 'bottom-right' });
-    } else if (type === 'error') {
-      toast.error(message, { description, position: 'bottom-right' });
-    } else if (type === 'warning') {
-      toast.warning(message, { description, position: 'bottom-right' });
-    } else {
-      toast.info(message, { description, position: 'bottom-right' });
-    }
+    this.toastService.show({ type, message, description });
   }
 
   // ─── Navigation ──────────────────────────────────────

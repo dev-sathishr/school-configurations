@@ -133,6 +133,7 @@ export class TableComponent implements OnInit, OnDestroy {
       next: () => {
         this.deleting = false;
         this.showDeleteConfirm = false;
+        this.cs.showToastr({ type: 'success', message: 'Deleted successfully', description: `${rows.length} record${rows.length > 1 ? 's' : ''} removed` });
         this.reloadCurrentPage();
       },
       error: (err: any) => {

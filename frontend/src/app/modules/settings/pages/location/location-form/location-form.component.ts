@@ -5,11 +5,12 @@ import { CommonService } from '../../../../../shared/services/common/common.serv
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent, SelectOption } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
+import { AddressComponent, Address } from '../../../../../shared/components/address/address.component';
 
 @Component({
   selector: 'app-location-form',
   templateUrl: './location-form.component.html',
-  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, AddressComponent],
 })
 export class LocationFormComponent implements OnInit {
   form!: FormGroup;
@@ -19,8 +20,10 @@ export class LocationFormComponent implements OnInit {
   saving = false;
   loading = false;
   errorMessage = '';
+  addressError = '';
   organizations: any[] = [];
   organizationOptions: SelectOption[] = [];
+  addresses: Address[] = [];
 
   locationTypes = [
     { value: 'main_branch', label: 'Main Branch' },
@@ -37,20 +40,14 @@ export class LocationFormComponent implements OnInit {
   ngOnInit(): void {
     this.form = this.fb.group({
       organization_id: ['', Validators.required],
-      name: ['', Validators.required],
-      code: [''],
-      type: ['branch'],
-      email: [''],
+      name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+      code: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(5)]],
+      type: ['branch', Validators.required],
+      email: ['', [Validators.maxLength(100), Validators.email]],
       primary_phone: [{ code: '+91', number: '' }],
       alternate_phone: [{ code: '+91', number: '' }],
-      address_line1: [''],
-      address_line2: [''],
-      city: [''],
-      state: [''],
-      pincode: [''],
-      country: ['India'],
       is_active: [true],
-      notes: [''],
+      notes: ['', [Validators.maxLength(500)]],
     });
 
     this.cs.getService({ url: '/organizations/dropdown' }).subscribe({
@@ -73,6 +70,7 @@ export class LocationFormComponent implements OnInit {
             primary_phone: { code: d.primary_contact_code || '+91', number: d.primary_contact_no || '' },
             alternate_phone: { code: d.alternate_contact_code || '+91', number: d.alternate_contact_no || '' },
           });
+          this.addresses = d.addresses || [];
           this.loading = false;
           this.cdr.detectChanges();
         },
@@ -86,7 +84,8 @@ export class LocationFormComponent implements OnInit {
   onSubmit() {
     this.submitted = true;
     this.errorMessage = '';
-    if (this.form.invalid) return;
+    this.addressError = this.addresses.length === 0 ? 'At least one address is required' : '';
+    if (this.form.invalid || this.addressError) return;
 
     this.saving = true;
     const val = this.form.value;
@@ -96,6 +95,7 @@ export class LocationFormComponent implements OnInit {
       primary_contact_no: val.primary_phone?.number || null,
       alternate_contact_code: val.alternate_phone?.code || '+91',
       alternate_contact_no: val.alternate_phone?.number || null,
+      addresses: this.addresses,
     };
     delete data.primary_phone;
     delete data.alternate_phone;
@@ -108,6 +108,11 @@ export class LocationFormComponent implements OnInit {
       next: () => { this.saving = false; this.cs.navigate({ url: '/settings/location' }); },
       error: (err: any) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
     });
+  }
+
+  onAddressesChange(addresses: Address[]): void {
+    this.addresses = addresses;
+    if (addresses.length > 0) this.addressError = '';
   }
 
   cancel() { this.cs.navigate({ url: '/settings/location' }); }

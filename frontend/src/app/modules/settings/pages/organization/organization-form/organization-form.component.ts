@@ -20,6 +20,7 @@ export class OrganizationFormComponent implements OnInit {
   saving = false;
   loading = false;
   errorMessage = '';
+  addressError = '';
   addresses: Address[] = [];
 
   constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
@@ -69,7 +70,12 @@ export class OrganizationFormComponent implements OnInit {
   onSubmit() {
     this.submitted = true;
     this.errorMessage = '';
-    if (this.form.invalid) return;
+    this.addressError = this.addresses.length === 0 ? 'At least one address is required' : '';
+
+    if (this.form.invalid || this.addressError) {
+      this.cs.showToastr({ type: 'error', message: 'Please fix the errors', description: 'Fill all required fields before submitting' });
+      return;
+    }
 
     this.saving = true;
     const val = this.form.value;
@@ -89,9 +95,22 @@ export class OrganizationFormComponent implements OnInit {
       : this.cs.postService({ url: '/organizations', payload: data });
 
     req.subscribe({
-      next: () => { this.saving = false; this.cs.navigate({ url: '/settings/organization' }); },
-      error: (err: any) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
+      next: () => {
+        this.saving = false;
+        this.cs.showToastr({ type: 'success', message: this.editMode ? 'Organization updated' : 'Organization created', description: this.editMode ? 'Changes saved successfully' : 'New organization has been added' });
+        this.cs.navigate({ url: '/settings/organization' });
+      },
+      error: (err: any) => {
+        this.saving = false;
+        this.errorMessage = err.error?.message || 'Something went wrong';
+        this.cs.showToastr({ type: 'error', message: 'Failed to save', description: this.errorMessage });
+      },
     });
+  }
+
+  onAddressesChange(addresses: Address[]): void {
+    this.addresses = addresses;
+    if (addresses.length > 0) this.addressError = '';
   }
 
   cancel() { this.cs.navigate({ url: '/settings/organization' }); }

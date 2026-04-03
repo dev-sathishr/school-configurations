@@ -19,10 +19,14 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <app-form-field [formGroup]="form" controlName="organization_id" label="Organization" fieldType="select"
             [required]="true" [submitted]="submitted" [options]="organizationOptions" selectPlaceholder="Select Organization" />
-          <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted" placeholder="e.g. Main Campus" />
-          <app-form-field [formGroup]="form" controlName="code" label="Code" placeholder="e.g. LOC-001" />
-          <app-form-field [formGroup]="form" controlName="type" label="Type" fieldType="select" [options]="locationTypes" />
-          <app-form-field [formGroup]="form" controlName="email" label="Email" fieldType="email" placeholder="e.g. campus@school.com" />
+          <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted"
+            placeholder="e.g. Main Campus" [minLength]="3" [maxLength]="100" />
+          <app-form-field [formGroup]="form" controlName="code" label="Code"
+            placeholder="e.g. LOC" [maxLength]="5" [minLength]="3" [uppercase]="true" [required]="true" [submitted]="submitted" />
+          <app-form-field [formGroup]="form" controlName="type" label="Type" fieldType="select"
+            [options]="locationTypes" [required]="true" [submitted]="submitted" />
+          <app-form-field [formGroup]="form" controlName="email" label="Email" fieldType="email"
+            placeholder="e.g. campus@school.com" [maxLength]="100" [submitted]="submitted" [lowercase]="true" />
         </div>
       </div>
 
@@ -30,29 +34,25 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Contact Details</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <app-form-field [formGroup]="form" controlName="primary_phone" label="Primary Contact" fieldType="phone" placeholder="Phone number" />
-          <app-form-field [formGroup]="form" controlName="alternate_phone" label="Alternate Contact" fieldType="phone" placeholder="Phone number" />
+          <app-form-field [formGroup]="form" controlName="primary_phone" label="Primary Contact" fieldType="phone"
+            placeholder="Phone number" [maxLength]="15" [required]="true" [submitted]="submitted" />
+          <app-form-field [formGroup]="form" controlName="alternate_phone" label="Alternate Contact" fieldType="phone"
+            placeholder="Phone number" [maxLength]="15" />
         </div>
       </div>
 
-      <!-- Address -->
-      <div class="bg-background border-muted/30 rounded-lg border p-5">
-        <h4 class="text-foreground mb-4 text-sm font-semibold">Address</h4>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <app-form-field [formGroup]="form" controlName="address_line1" label="Address Line 1" colSpan="md:col-span-3" placeholder="e.g. 123, Main Street" />
-          <app-form-field [formGroup]="form" controlName="address_line2" label="Address Line 2" colSpan="md:col-span-3" placeholder="e.g. Near Bus Stand" />
-          <app-form-field [formGroup]="form" controlName="city" label="City" placeholder="e.g. Chennai" />
-          <app-form-field [formGroup]="form" controlName="state" label="State" placeholder="e.g. Tamil Nadu" />
-          <app-form-field [formGroup]="form" controlName="pincode" label="Pincode" placeholder="e.g. 600001" />
-          <app-form-field [formGroup]="form" controlName="country" label="Country" placeholder="e.g. India" />
-        </div>
-      </div>
+      <!-- Addresses -->
+      <app-address [addresses]="addresses" (addressesChange)="onAddressesChange($event)" />
+      @if (addressError) {
+        <p class="-mt-4 text-xs text-red-500">{{ addressError }}</p>
+      }
 
       <!-- Status & Notes -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
-        <div class="grid grid-cols-1 gap-4">
+        <div class="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
           <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
-          <app-form-field [formGroup]="form" controlName="notes" label="Notes" fieldType="textarea" [rows]="3" placeholder="Any additional notes..." />
+          <app-form-field [formGroup]="form" controlName="notes" label="Notes" fieldType="textarea" [rows]="3"
+            placeholder="Any additional notes..." [maxLength]="500" />
         </div>
       </div>
 
