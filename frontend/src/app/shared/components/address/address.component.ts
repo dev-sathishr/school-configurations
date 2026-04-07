@@ -94,6 +94,8 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
     this.submitted = false;
 
     this.form.get('pincode')?.valueChanges.subscribe((val: string) => {
+      this.form.patchValue({ post_office: '' });
+      this.postOfficeOptions = [];
       if (val && val.length === 6) this.lookupPincode(val);
     });
 
@@ -192,9 +194,17 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
     this.map = new google.maps.Map(container, {
       center: this.defaultCenter,
       zoom: this.defaultZoom,
-      mapTypeControl: false,
+      mapTypeControl: true,
+      mapTypeControlOptions: {
+        style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+        position: google.maps.ControlPosition.TOP_RIGHT,
+        mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE],
+      },
       streetViewControl: false,
-      fullscreenControl: false,
+      fullscreenControl: true,
+      fullscreenControlOptions: {
+        position: google.maps.ControlPosition.TOP_LEFT,
+      },
       zoomControl: true,
       gestureHandling: 'greedy',
       styles: [

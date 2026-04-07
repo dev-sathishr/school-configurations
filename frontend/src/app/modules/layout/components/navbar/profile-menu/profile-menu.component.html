@@ -70,21 +70,21 @@
       @if (activeTab === 'appearance') {
         <!-- Menu Style -->
         <div class="mb-4">
-          <span class="text-foreground mb-2 block text-xs font-semibold">Navigation</span>
+          <span class="text-foreground mb-2 block text-xs font-semibold">Menu</span>
           <div class="grid grid-cols-2 gap-2">
             <div
               (click)="setMenuStyle('sidebar')"
               [ngClass]="{ 'border-primary bg-primary/5 text-primary': themeService.theme().menuStyle === 'sidebar' }"
               class="border-border text-muted-foreground hover:bg-card hover:text-foreground inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border text-xs font-medium transition-colors">
               <svg-icon src="assets/icons/heroicons/outline/menu.svg" [svgClass]="'h-4 w-4'"></svg-icon>
-              <span>Sidebar</span>
+              <span>Vertical</span>
             </div>
             <div
               (click)="setMenuStyle('header')"
               [ngClass]="{ 'border-primary bg-primary/5 text-primary': themeService.theme().menuStyle === 'header' }"
               class="border-border text-muted-foreground hover:bg-card hover:text-foreground inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border text-xs font-medium transition-colors">
               <svg-icon src="assets/icons/heroicons/outline/view-grid.svg" [svgClass]="'h-4 w-4'"></svg-icon>
-              <span>Header</span>
+              <span>Horizontal</span>
             </div>
           </div>
         </div>

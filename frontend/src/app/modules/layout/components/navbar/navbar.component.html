@@ -1,61 +1,120 @@
-@if (themeService.theme().menuStyle === 'sidebar') {
-  <!-- Sidebar mode: mobile menu button on the left, profile on the right -->
-  <div class="bg-background">
-    <div class="mx-auto px-5">
-      <div class="flex items-center justify-between py-3.5">
-        <!-- Mobile menu button -->
-        <div class="md:hidden">
-          <button
-            (click)="toggleMobileMenu()"
-            type="button"
-            class="bg-muted text-muted-foreground focus:ring-primary hover:bg-muted-foreground hover:text-muted inline-flex items-center justify-center rounded-md p-2 focus:outline-hidden focus:ring-2 focus:ring-inset">
-            <svg-icon src="assets/icons/heroicons/outline/menu.svg" [svgClass]="'h-6 w-6'"> </svg-icon>
-          </button>
-        </div>
-
-        <!-- Spacer -->
-        <div class="flex-1"></div>
-
-        <!-- Profile menu -->
-        <app-profile-menu></app-profile-menu>
+<div class="bg-background">
+  <div class="mx-auto px-5">
+    <div class="flex items-center justify-between py-3.5">
+      <!-- Mobile menu button -->
+      <div class="md:hidden">
+        <button
+          (click)="toggleMobileMenu()"
+          type="button"
+          class="bg-muted text-muted-foreground focus:ring-primary hover:bg-muted-foreground hover:text-muted inline-flex items-center justify-center rounded-md p-2 focus:outline-hidden focus:ring-2 focus:ring-inset">
+          <svg-icon src="assets/icons/heroicons/outline/menu.svg" [svgClass]="'h-6 w-6'"> </svg-icon>
+        </button>
       </div>
-    </div>
-    <app-navbar-mobile></app-navbar-mobile>
-  </div>
-} @else {
-  <!-- Header mode: full navbar with logo, menu links, and profile -->
-  <div class="bg-background">
-    <div class="mx-auto px-5">
-      <div class="flex items-center justify-between py-3.5 md:justify-start">
-        <!-- Mobile menu button -->
-        <div class="sm:order-1 md:hidden">
-          <button
-            (click)="toggleMobileMenu()"
-            type="button"
-            class="bg-muted text-muted-foreground focus:ring-primary hover:bg-muted-foreground hover:text-muted inline-flex items-center justify-center rounded-md p-2 focus:outline-hidden focus:ring-2 focus:ring-inset">
-            <svg-icon src="assets/icons/heroicons/outline/menu.svg" [svgClass]="'h-6 w-6'"> </svg-icon>
-          </button>
-        </div>
 
-        <!-- Logo -->
-        <div class="flex items-center justify-start gap-3 sm:order-2 ltr:md:mr-10 rtl:md:ml-10">
+      <!-- Logo (header mode only) -->
+      @if (themeService.theme().menuStyle !== 'sidebar') {
+        <div class="flex items-center justify-start gap-3 ltr:mr-8 rtl:ml-8">
           <a class="flex items-center justify-center rounded-sm focus:outline-hidden focus:ring-1">
             <img src="assets/icons/shaanthi-logo.png" alt="ShaanthiEd" class="h-10 w-auto object-contain" />
           </a>
           <b class="text-foreground hidden text-sm font-bold sm:block">ShaanthiEd</b>
         </div>
+      }
 
-        <!-- Desktop Menu -->
-        <div class="hidden space-x-10 sm:order-3 md:flex">
-          <app-navbar-menu></app-navbar-menu>
+      <!-- Search bar & Favorites -->
+      <div class="hidden items-center gap-4 md:flex">
+        <!-- Search -->
+        <div class="border-border relative flex items-center rounded-md border">
+          <input type="text" placeholder="Type to search..."
+            class="text-foreground placeholder:text-muted-foreground h-9 w-64 rounded-md border-0 bg-transparent py-1.5 pl-3 pr-9 text-sm focus:outline-hidden" />
+          <svg-icon src="assets/icons/heroicons/outline/magnifying-glass.svg"
+            [svgClass]="'absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'"> </svg-icon>
         </div>
 
-        <!-- Profile menu -->
-        <div class="items-center justify-end sm:order-4 md:flex md:flex-1 lg:w-0">
-          <app-profile-menu></app-profile-menu>
+        <!-- Divider -->
+        <div class="bg-border h-6 w-px"></div>
+
+        <!-- Favorite icons -->
+        @for (fav of favorites; track fav.route) {
+          <a [routerLink]="fav.route" class="group relative">
+            <svg-icon [src]="fav.icon!" [svgClass]="'h-5 w-5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer'"> </svg-icon>
+            <span
+              class="bg-foreground text-background pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 scale-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-bold shadow-md transition-all duration-200 group-hover:scale-100">
+              {{ fav.label }}
+            </span>
+          </a>
+        }
+
+        <!-- Choose favorites -->
+        <div class="relative" clickOutside (clickOutside)="favoritesOpen = false">
+          <button (click)="favoritesOpen = !favoritesOpen"
+            class="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors">
+            @if (favorites.length === 0) {
+              <span>Choose favorites</span>
+            }
+            <svg-icon src="assets/icons/heroicons/outline/heart.svg" [svgClass]="'h-5 w-5 text-red-500'"> </svg-icon>
+          </button>
+
+          <!-- Favorites dropdown -->
+          @if (favoritesOpen) {
+            <div class="bg-background border-border shadow-custom absolute top-full z-30 mt-3 w-64 rounded-lg border ltr:left-0 rtl:right-0">
+              <!-- Header -->
+              <div class="border-border border-b px-4 py-3 text-center">
+                <p class="text-muted-foreground text-sm">
+                  @if (favorites.length === 0) {
+                    Select favorite menu items
+                  } @else {
+                    {{ favorites.length }} menu item{{ favorites.length > 1 ? 's' : '' }} selected
+                  }
+                </p>
+              </div>
+
+              <!-- Search -->
+              <div class="border-border flex items-center gap-2 border-b px-3 py-2">
+                <svg-icon src="assets/icons/heroicons/outline/magnifying-glass.svg"
+                  [svgClass]="'h-4 w-4 text-muted-foreground shrink-0'"> </svg-icon>
+                <input type="text" placeholder="Find menu item..." [(ngModel)]="favoriteSearch"
+                  class="text-foreground placeholder:text-muted-foreground w-full border-0 bg-transparent text-sm focus:outline-hidden" />
+              </div>
+
+              <!-- Menu items list -->
+              <div class="max-h-64 overflow-y-auto py-1">
+                @for (item of filteredMenuItems; track item.route) {
+                  <button (click)="toggleFavorite(item)"
+                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                    [class]="isFavorite(item)
+                      ? 'bg-primary/5 text-foreground font-medium'
+                      : 'text-muted-foreground hover:bg-card hover:text-foreground'">
+                    @if (isFavorite(item)) {
+                      <svg class="h-4 w-4 shrink-0 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                    } @else {
+                      <span class="h-4 w-4 shrink-0"></span>
+                    }
+                    {{ item.label }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
         </div>
       </div>
+
+      <!-- Spacer -->
+      <div class="flex-1"></div>
+
+      <!-- Action icons & Profile -->
+      <div class="flex items-center gap-1">
+        <button class="text-muted-foreground hover:text-foreground hover:bg-muted hidden rounded-md p-2 transition-colors md:inline-flex">
+          <svg-icon src="assets/icons/heroicons/outline/view-grid.svg" [svgClass]="'h-5 w-5'"> </svg-icon>
+        </button>
+        <button class="text-muted-foreground hover:text-foreground hover:bg-muted hidden rounded-md p-2 transition-colors md:inline-flex">
+          <svg-icon src="assets/icons/heroicons/outline/bell.svg" [svgClass]="'h-5 w-5'"> </svg-icon>
+        </button>
+        <app-profile-menu></app-profile-menu>
+      </div>
     </div>
-    <app-navbar-mobile></app-navbar-mobile>
   </div>
-}
+  <app-navbar-mobile></app-navbar-mobile>
+</div>
