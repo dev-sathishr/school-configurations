@@ -85,7 +85,10 @@ export class LocationFormComponent implements OnInit {
     this.submitted = true;
     this.errorMessage = '';
     this.addressError = this.addresses.length === 0 ? 'At least one address is required' : '';
-    if (this.form.invalid || this.addressError) return;
+    if (this.form.invalid || this.addressError) {
+      this.cs.showToastr({ type: 'error', message: 'Please fix the errors', description: 'Fill all required fields before submitting' });
+      return;
+    }
 
     this.saving = true;
     const val = this.form.value;
@@ -105,8 +108,16 @@ export class LocationFormComponent implements OnInit {
       : this.cs.postService({ url: '/locations', payload: data });
 
     req.subscribe({
-      next: () => { this.saving = false; this.cs.navigate({ url: '/settings/location' }); },
-      error: (err: any) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
+      next: () => {
+        this.saving = false;
+        this.cs.showToastr({ type: 'success', message: this.editMode ? 'Location updated' : 'Location created', description: this.editMode ? 'Changes saved successfully' : 'New location has been added' });
+        this.cs.navigate({ url: '/settings/location' });
+      },
+      error: (err: any) => {
+        this.saving = false;
+        this.errorMessage = err.error?.message || 'Something went wrong';
+        this.cs.showToastr({ type: 'error', message: 'Failed to save', description: this.errorMessage });
+      },
     });
   }
 

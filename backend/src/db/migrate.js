@@ -169,6 +169,23 @@ async function migrate() {
       );
     `);
 
+    // Unique indexes (partial - only non-deleted records)
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_org_name_unique ON settings.organizations (LOWER(name)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_org_name_unique already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_org_email_unique ON settings.organizations (LOWER(email)) WHERE deleted_at IS NULL AND email IS NOT NULL AND email != '';
+    `).catch(() => console.log('Index idx_org_email_unique already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_org_reg_no_unique ON settings.organizations (LOWER(reg_no)) WHERE deleted_at IS NULL AND reg_no IS NOT NULL AND reg_no != '';
+    `).catch(() => console.log('Index idx_org_reg_no_unique already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_loc_code_org_unique ON settings.locations (LOWER(code), organization_id) WHERE deleted_at IS NULL AND code IS NOT NULL AND code != '';
+    `).catch(() => console.log('Index idx_loc_code_org_unique already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_loc_email_unique ON settings.locations (LOWER(email)) WHERE deleted_at IS NULL AND email IS NOT NULL AND email != '';
+    `).catch(() => console.log('Index idx_loc_email_unique already exists'));
+
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];
     for (const table of tables) {

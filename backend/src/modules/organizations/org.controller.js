@@ -2,6 +2,21 @@ const db = require('../../db');
 const { paginate } = require('../../shared/helpers/pagination.helper');
 const res = require('../../shared/helpers/response.helper');
 const { saveAddresses, getAddresses } = require('../../shared/helpers/address.helper');
+const { validate } = require('../../shared/helpers/validate.helper');
+
+const ORG_RULES = {
+  name: { required: true, min: 3, max: 100, label: 'Name' },
+  reg_no: { max: 50, label: 'Registration No' },
+  email: { max: 100, email: true, label: 'Email' },
+  primary_contact_no: { required: true, label: 'Primary Contact' },
+  website: { max: 200, label: 'Website' },
+  social_facebook: { max: 200, label: 'Facebook' },
+  social_instagram: { max: 200, label: 'Instagram' },
+  social_twitter: { max: 200, label: 'Twitter' },
+  social_linkedin: { max: 200, label: 'LinkedIn' },
+  social_youtube: { max: 200, label: 'YouTube' },
+  notes: { max: 500, label: 'Notes' },
+};
 
 async function getAll(req, resp) {
   try {
@@ -45,17 +60,36 @@ async function getById(req, resp) {
 
 async function create(req, resp) {
   try {
-    const { name, reg_no, email, primary_contact_code, primary_contact_no, alternate_contact_code, alternate_contact_no, website, social_facebook, social_instagram, social_twitter, social_linkedin, social_youtube, is_active, notes, addresses } = req.body;
+    const b = req.body;
 
-    if (!name) return res.badRequest(resp, 'Organization name is required');
+    // Validate fields
+    const errors = validate(b, ORG_RULES);
+    if (!b.addresses || !Array.isArray(b.addresses) || b.addresses.length === 0) {
+      errors.push('At least one address is required');
+    }
+    if (errors.length) return res.badRequest(resp, errors.join(', '));
+
+    // Unique checks (among non-deleted records)
+    if (b.name) {
+      const dup = await db.query('SELECT id FROM settings.organizations WHERE LOWER(name) = LOWER($1) AND deleted_at IS NULL', [b.name.trim()]);
+      if (dup.rows.length) return res.conflict(resp, 'Organization name already exists');
+    }
+    if (b.email) {
+      const dup = await db.query('SELECT id FROM settings.organizations WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL', [b.email.trim()]);
+      if (dup.rows.length) return res.conflict(resp, 'Email already exists');
+    }
+    if (b.reg_no) {
+      const dup = await db.query('SELECT id FROM settings.organizations WHERE LOWER(reg_no) = LOWER($1) AND deleted_at IS NULL', [b.reg_no.trim()]);
+      if (dup.rows.length) return res.conflict(resp, 'Registration number already exists');
+    }
 
     const result = await db.query(`
       INSERT INTO settings.organizations (name, reg_no, email, primary_contact_code, primary_contact_no, alternate_contact_code, alternate_contact_no, website, social_facebook, social_instagram, social_twitter, social_linkedin, social_youtube, is_active, notes, created_by, updated_by)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING *
-    `, [name, reg_no||null, email||null, primary_contact_code||'+91', primary_contact_no||null, alternate_contact_code||'+91', alternate_contact_no||null, website||null, social_facebook||null, social_instagram||null, social_twitter||null, social_linkedin||null, social_youtube||null, is_active!==undefined?is_active:true, notes||null, req.user.id, req.user.id]);
+    `, [b.name, b.reg_no||null, b.email||null, b.primary_contact_code||'+91', b.primary_contact_no||null, b.alternate_contact_code||'+91', b.alternate_contact_no||null, b.website||null, b.social_facebook||null, b.social_instagram||null, b.social_twitter||null, b.social_linkedin||null, b.social_youtube||null, b.is_active!==undefined?b.is_active:true, b.notes||null, req.user.id, req.user.id]);
 
-    await saveAddresses('organization', result.rows[0].id, addresses, req.user.id);
+    await saveAddresses('organization', result.rows[0].id, b.addresses, req.user.id);
 
     return res.created(resp, { data: result.rows[0] }, 'Organization created successfully');
   } catch (err) {
@@ -66,11 +100,30 @@ async function create(req, resp) {
 
 async function update(req, resp) {
   try {
-    const existing = await db.query('SELECT * FROM settings.organizations WHERE id = $1', [req.params.id]);
+    const existing = await db.query('SELECT * FROM settings.organizations WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (existing.rows.length === 0) return res.notFound(resp, 'Organization not found');
 
     const c = existing.rows[0];
     const b = req.body;
+
+    // Validate fields
+    const merged = { ...c, ...b };
+    const errors = validate(merged, ORG_RULES);
+    if (errors.length) return res.badRequest(resp, errors.join(', '));
+
+    // Unique checks (exclude self)
+    if (b.name && b.name.trim().toLowerCase() !== c.name?.toLowerCase()) {
+      const dup = await db.query('SELECT id FROM settings.organizations WHERE LOWER(name) = LOWER($1) AND deleted_at IS NULL AND id != $2', [b.name.trim(), req.params.id]);
+      if (dup.rows.length) return res.conflict(resp, 'Organization name already exists');
+    }
+    if (b.email && b.email.trim().toLowerCase() !== c.email?.toLowerCase()) {
+      const dup = await db.query('SELECT id FROM settings.organizations WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL AND id != $2', [b.email.trim(), req.params.id]);
+      if (dup.rows.length) return res.conflict(resp, 'Email already exists');
+    }
+    if (b.reg_no && b.reg_no.trim().toLowerCase() !== c.reg_no?.toLowerCase()) {
+      const dup = await db.query('SELECT id FROM settings.organizations WHERE LOWER(reg_no) = LOWER($1) AND deleted_at IS NULL AND id != $2', [b.reg_no.trim(), req.params.id]);
+      if (dup.rows.length) return res.conflict(resp, 'Registration number already exists');
+    }
 
     const result = await db.query(`
       UPDATE settings.organizations SET
