@@ -12,6 +12,10 @@ import { TableFilterService, ColumnConfig } from '../../services/table-filter.se
 export class TableHeaderComponent {
   @Input() columns: ColumnConfig[] = [];
   @Input() showActions = true;
+
+  get orderedColumns(): ColumnConfig[] {
+    return this.filterService.getOrderedColumns(this.columns);
+  }
   @Output() onCheck = new EventEmitter<boolean>();
 
   constructor(public filterService: TableFilterService) {}

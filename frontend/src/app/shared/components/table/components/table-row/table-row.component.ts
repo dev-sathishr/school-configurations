@@ -15,6 +15,10 @@ export class TableRowComponent {
 
   constructor(public filterService: TableFilterService) {}
 
+  get orderedColumns(): ColumnConfig[] {
+    return this.filterService.getOrderedColumns(this.columns);
+  }
+
   isVisible(col: ColumnConfig): boolean {
     return this.filterService.isColumnVisible(col.key);
   }

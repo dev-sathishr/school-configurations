@@ -43,17 +43,35 @@
         }
       </button>
       @if (showColumnsDropdown) {
-        <div class="bg-background border-muted absolute left-0 z-50 mt-1 w-48 rounded-md border shadow-lg sm:left-auto sm:right-0">
-          <div class="max-h-60 overflow-y-auto p-2">
-            @for (col of columns; track col.key) {
-              <label class="hover:bg-card flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs">
-                <input
-                  type="checkbox"
-                  [checked]="isColumnVisible(col)"
-                  (change)="toggleColumn(col)"
-                  class="rounded" />
-                <span class="text-foreground">{{ col.label }}</span>
-              </label>
+        <div class="bg-background border-muted absolute left-0 z-50 mt-1 w-56 rounded-md border shadow-lg sm:left-auto sm:right-0">
+          <div class="border-border border-b px-3 py-2">
+            <p class="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">Drag to reorder columns</p>
+          </div>
+          <div class="max-h-64 overflow-y-auto p-1.5">
+            @for (col of orderedColumns; track col.key; let i = $index) {
+              <div
+                draggable="true"
+                (dragstart)="onDragStart(i)"
+                (dragover)="onDragOver($event, i)"
+                (dragleave)="onDragLeave()"
+                (drop)="onDrop(i)"
+                (dragend)="onDragEnd()"
+                class="flex cursor-grab items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors active:cursor-grabbing"
+                [class.bg-primary/10]="dragOverIndex === i && dragIndex !== i"
+                [class.opacity-40]="dragIndex === i"
+                [class.hover:bg-card]="dragIndex === null">
+                <svg-icon src="./assets/icons/heroicons/outline/ellipsis-vertical.svg"
+                  [svgClass]="'h-3.5 w-3.5 text-muted-foreground/40 shrink-0'"></svg-icon>
+                <label class="flex flex-1 cursor-grab items-center gap-2">
+                  <input
+                    type="checkbox"
+                    [checked]="isColumnVisible(col)"
+                    (change)="toggleColumn(col)"
+                    (click)="$event.stopPropagation()"
+                    class="cursor-pointer rounded" />
+                  <span class="text-foreground select-none">{{ col.label }}</span>
+                </label>
+              </div>
             }
           </div>
         </div>

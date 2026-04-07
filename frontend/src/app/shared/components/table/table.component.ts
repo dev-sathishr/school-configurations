@@ -90,6 +90,10 @@ export class TableComponent implements OnInit, OnDestroy {
     return this.columns.filter((c) => this.filterService.isColumnVisible(c.key)).length + 1;
   }
 
+  get orderedColumns(): ColumnConfig[] {
+    return this.filterService.getOrderedColumns(this.columns);
+  }
+
   get hasVisibleColumns(): boolean {
     return this.columns.some((c) => this.filterService.isColumnVisible(c.key));
   }

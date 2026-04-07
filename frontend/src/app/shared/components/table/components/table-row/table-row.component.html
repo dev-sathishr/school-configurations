@@ -6,7 +6,7 @@
       data-datatable-row-check="true"
       type="checkbox" />
   </td>
-  @for (col of columns; track col.key) {
+  @for (col of orderedColumns; track col.key) {
     @if (isVisible(col)) {
       <td>
         @if (col.type === 'badge' && col.badgeMap) {

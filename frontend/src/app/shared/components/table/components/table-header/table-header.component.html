@@ -2,7 +2,7 @@
   <th class="w-[50px]">
     <input (change)="toggle($event)" class="checkbox checkbox-sm" data-datatable-check="true" type="checkbox" />
   </th>
-  @for (col of columns; track col.key) {
+  @for (col of orderedColumns; track col.key) {
     @if (isVisible(col)) {
       <th
         [class.cursor-pointer]="col.sortable"

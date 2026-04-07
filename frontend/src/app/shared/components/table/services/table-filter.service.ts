@@ -33,6 +33,9 @@ export class TableFilterService {
   // Column visibility: { 'username': true, 'email': false }
   columnVisibility = signal<Record<string, boolean>>({});
 
+  // Column order (array of keys)
+  columnOrder = signal<string[]>([]);
+
   // Show/hide filter row
   showFilters = signal(false);
 
@@ -74,6 +77,23 @@ export class TableFilterService {
       vis[col.key] = col.visible !== false;
     });
     this.columnVisibility.set(vis);
+    this.columnOrder.set(columns.map((c) => c.key));
+  }
+
+  reorderColumn(fromIndex: number, toIndex: number) {
+    this.columnOrder.update((order) => {
+      const updated = [...order];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      return updated;
+    });
+  }
+
+  getOrderedColumns(columns: ColumnConfig[]): ColumnConfig[] {
+    const order = this.columnOrder();
+    if (!order.length) return columns;
+    const map = new Map(columns.map((c) => [c.key, c]));
+    return order.map((key) => map.get(key)).filter(Boolean) as ColumnConfig[];
   }
 
   reset() {
@@ -85,5 +105,6 @@ export class TableFilterService {
     this.sortByField.set('');
     this.sortOrderField.set('');
     this.columnFilters.set({});
+    this.columnOrder.set([]);
   }
 }

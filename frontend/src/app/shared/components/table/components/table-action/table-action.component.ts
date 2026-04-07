@@ -19,6 +19,8 @@ export class TableActionComponent {
   @Output() onDeleteSelected = new EventEmitter<void>();
 
   showColumnsDropdown = false;
+  dragIndex: number | null = null;
+  dragOverIndex: number | null = null;
 
   constructor(public filterService: TableFilterService, private elementRef: ElementRef) {}
 
@@ -53,5 +55,35 @@ export class TableActionComponent {
 
   isColumnVisible(col: ColumnConfig): boolean {
     return this.filterService.isColumnVisible(col.key);
+  }
+
+  get orderedColumns(): ColumnConfig[] {
+    return this.filterService.getOrderedColumns(this.columns);
+  }
+
+  onDragStart(index: number) {
+    this.dragIndex = index;
+  }
+
+  onDragOver(event: DragEvent, index: number) {
+    event.preventDefault();
+    this.dragOverIndex = index;
+  }
+
+  onDragLeave() {
+    this.dragOverIndex = null;
+  }
+
+  onDrop(index: number) {
+    if (this.dragIndex !== null && this.dragIndex !== index) {
+      this.filterService.reorderColumn(this.dragIndex, index);
+    }
+    this.dragIndex = null;
+    this.dragOverIndex = null;
+  }
+
+  onDragEnd() {
+    this.dragIndex = null;
+    this.dragOverIndex = null;
   }
 }
