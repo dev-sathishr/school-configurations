@@ -1,8 +1,5 @@
-<div class="mb-4 flex justify-between">
-  <div>
-    <h3 class="text-foreground font-semibold">Locations</h3>
-    <p class="text-muted-foreground text-xs">Total: {{ table.totalCount() }}</p>
-  </div>
+<div class="mb-4 flex items-center justify-between">
+  <app-breadcrumb></app-breadcrumb>
   <app-button impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="addNew()">
     + Add Location
   </app-button>

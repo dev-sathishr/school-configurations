@@ -3,11 +3,12 @@ import { CommonService } from '../../../../../shared/services/common/common.serv
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
+import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-organization-list',
   templateUrl: './organization-list.component.html',
-  imports: [TableComponent, ButtonComponent],
+  imports: [TableComponent, ButtonComponent, BreadcrumbComponent],
 })
 export class OrganizationListComponent {
   @ViewChild(TableComponent) table!: TableComponent;

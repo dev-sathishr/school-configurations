@@ -6,11 +6,12 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 import { FormFieldComponent, SelectOption } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { AddressComponent, Address } from '../../../../../shared/components/address/address.component';
+import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-location-form',
   templateUrl: './location-form.component.html',
-  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, AddressComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, AddressComponent, BreadcrumbComponent],
 })
 export class LocationFormComponent implements OnInit {
   form!: FormGroup;

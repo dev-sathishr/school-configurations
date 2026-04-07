@@ -1,5 +1,5 @@
 @if (themeService.theme().menuStyle === 'sidebar') {
-  <!-- Sidebar mode: breadcrumb on the left, profile on the right -->
+  <!-- Sidebar mode: mobile menu button on the left, profile on the right -->
   <div class="bg-background">
     <div class="mx-auto px-5">
       <div class="flex items-center justify-between py-3.5">
@@ -11,20 +11,6 @@
             class="bg-muted text-muted-foreground focus:ring-primary hover:bg-muted-foreground hover:text-muted inline-flex items-center justify-center rounded-md p-2 focus:outline-hidden focus:ring-2 focus:ring-inset">
             <svg-icon src="assets/icons/heroicons/outline/menu.svg" [svgClass]="'h-6 w-6'"> </svg-icon>
           </button>
-        </div>
-
-        <!-- Breadcrumb -->
-        <div class="hidden items-center gap-1.5 md:flex">
-          @for (crumb of breadcrumbs; track crumb.route; let last = $last) {
-            @if (!last) {
-              <a [routerLink]="crumb.route" class="text-muted-foreground hover:text-primary text-sm font-medium">
-                {{ crumb.label }}
-              </a>
-              <span class="text-muted-foreground/40 text-sm">/</span>
-            } @else {
-              <span class="text-foreground text-sm font-semibold">{{ crumb.label }}</span>
-            }
-          }
         </div>
 
         <!-- Spacer -->
@@ -71,22 +57,5 @@
       </div>
     </div>
     <app-navbar-mobile></app-navbar-mobile>
-    <!-- Breadcrumb bar below header nav -->
-    @if (breadcrumbs.length > 0) {
-      <div class="border-border bg-card/50 border-t px-5 py-2">
-        <div class="flex items-center gap-1.5">
-          @for (crumb of breadcrumbs; track crumb.route; let last = $last) {
-            @if (!last) {
-              <a [routerLink]="crumb.route" class="text-muted-foreground hover:text-primary text-sm font-medium">
-                {{ crumb.label }}
-              </a>
-              <span class="text-muted-foreground/40 text-sm">/</span>
-            } @else {
-              <span class="text-foreground text-sm font-semibold">{{ crumb.label }}</span>
-            }
-          }
-        </div>
-      </div>
-    }
   </div>
 }

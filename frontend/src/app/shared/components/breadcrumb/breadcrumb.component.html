@@ -1,0 +1,14 @@
+@if (breadcrumbs.length > 0) {
+  <nav class="flex items-center gap-1.5">
+    @for (crumb of breadcrumbs; track crumb.route; let last = $last) {
+      @if (!last) {
+        <a [routerLink]="crumb.route" class="text-muted-foreground hover:text-primary text-sm font-medium">
+          {{ crumb.label }}
+        </a>
+        <span class="text-muted-foreground/40 text-sm">/</span>
+      } @else {
+        <span class="text-foreground text-sm font-semibold">{{ crumb.label }}</span>
+      }
+    }
+  </nav>
+}

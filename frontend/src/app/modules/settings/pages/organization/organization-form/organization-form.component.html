@@ -1,7 +1,6 @@
-<div class="mx-auto max-w-4xl">
+<div>
   <div class="mb-6">
-    <h3 class="text-foreground text-xl font-semibold">{{ editMode ? 'Edit Organization' : 'New Organization' }}</h3>
-    <p class="text-muted-foreground text-sm">{{ editMode ? 'Update organization details' : 'Create a new organization' }}</p>
+    <app-breadcrumb></app-breadcrumb>
   </div>
 
   @if (errorMessage) {
@@ -29,7 +28,7 @@
       <!-- Contact -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Contact Details</h4>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <app-form-field [formGroup]="form" controlName="primary_phone" label="Primary Contact" fieldType="phone"
             placeholder="Phone number" [maxLength]="15" [required]="true" [submitted]="submitted" />
           <app-form-field [formGroup]="form" controlName="alternate_phone" label="Alternate Contact" fieldType="phone"

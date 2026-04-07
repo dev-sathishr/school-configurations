@@ -3,11 +3,12 @@ import { CommonService } from '../../../../../shared/services/common/common.serv
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
+import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-user-list',
   templateUrl: './user-list.component.html',
-  imports: [TableComponent, ButtonComponent],
+  imports: [TableComponent, ButtonComponent, BreadcrumbComponent],
 })
 export class UserListComponent {
   @ViewChild(TableComponent) table!: TableComponent;
