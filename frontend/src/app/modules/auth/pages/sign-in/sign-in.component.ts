@@ -1,16 +1,16 @@
-import { NgClass } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-sign-in',
   templateUrl: './sign-in.component.html',
   styleUrls: ['./sign-in.component.css'],
-  imports: [FormsModule, ReactiveFormsModule, AngularSvgIconModule, ButtonComponent, NgClass],
+  imports: [FormsModule, ReactiveFormsModule, AngularSvgIconModule, ButtonComponent, FormFieldComponent],
 })
 export class SignInComponent implements OnInit {
   form!: FormGroup;
