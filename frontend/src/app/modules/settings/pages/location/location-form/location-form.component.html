@@ -16,8 +16,8 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Basic Information</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <app-form-field [formGroup]="form" controlName="organization_id" label="Organization" fieldType="select"
-            [required]="true" [submitted]="submitted" [options]="organizationOptions" selectPlaceholder="Select Organization" />
+          <app-form-field [formGroup]="form" controlName="organization_id" label="Organization" fieldType="async-select"
+            [required]="true" [submitted]="submitted" asyncUrl="/organizations/dropdown" selectPlaceholder="Select Organization" [initialLabel]="orgLabel" />
           <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted"
             placeholder="e.g. Main Campus" [minLength]="3" [maxLength]="100" />
           <app-form-field [formGroup]="form" controlName="code" label="Code"

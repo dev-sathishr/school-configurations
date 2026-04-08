@@ -5,26 +5,31 @@ import { MenuService } from '../../services/menu.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { NavbarMobileComponent } from './navbar-mobile/navbar-mobilecomponent';
 import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
-import { ClickOutsideDirective } from '../../../../shared/directives/click-outside.directive';
 import { SubMenuItem } from '../../../../core/models/menu.model';
-import { FormsModule } from '@angular/forms';
+import { SelectDropdownComponent } from '../../../../shared/components/select-dropdown/select-dropdown.component';
+import type { DropdownOption } from '../../../../shared/components/select-dropdown/select-dropdown.component';
 
 @Component({
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css'],
-  imports: [AngularSvgIconModule, ProfileMenuComponent, NavbarMobileComponent, ClickOutsideDirective, RouterLink, FormsModule],
+  imports: [AngularSvgIconModule, ProfileMenuComponent, NavbarMobileComponent, RouterLink, SelectDropdownComponent],
 })
 export class NavbarComponent implements OnInit {
-  favoritesOpen = false;
-  favoriteSearch = '';
   favorites: SubMenuItem[] = [];
   allMenuItems: SubMenuItem[] = [];
+  favoriteOptions: DropdownOption[] = [];
+  selectedFavoriteValues: string[] = [];
 
   constructor(private menuService: MenuService, public themeService: ThemeService) {}
 
   ngOnInit(): void {
     this.allMenuItems = this.menuService.pagesMenu.flatMap((m) => this.flattenItems(m.items));
+    this.favoriteOptions = this.allMenuItems.map((item) => ({
+      value: item.route || '',
+      label: item.label || '',
+      icon: item.icon,
+    }));
     this.loadFavorites();
   }
 
@@ -37,23 +42,14 @@ export class NavbarComponent implements OnInit {
     return result;
   }
 
-  get filteredMenuItems(): SubMenuItem[] {
-    if (!this.favoriteSearch) return this.allMenuItems;
-    const q = this.favoriteSearch.toLowerCase();
-    return this.allMenuItems.filter((i) => i.label?.toLowerCase().includes(q));
+  get favoritesHeader(): string {
+    if (this.favorites.length === 0) return 'Select favorite menu items';
+    return `${this.favorites.length} menu item${this.favorites.length > 1 ? 's' : ''} selected`;
   }
 
-  isFavorite(item: SubMenuItem): boolean {
-    return this.favorites.some((f) => f.route === item.route);
-  }
-
-  toggleFavorite(item: SubMenuItem): void {
-    const idx = this.favorites.findIndex((f) => f.route === item.route);
-    if (idx >= 0) {
-      this.favorites.splice(idx, 1);
-    } else {
-      this.favorites.push(item);
-    }
+  onFavoritesChange(values: string[]): void {
+    this.selectedFavoriteValues = values;
+    this.favorites = this.allMenuItems.filter((item) => values.includes(item.route || ''));
     this.saveFavorites();
   }
 
@@ -67,6 +63,7 @@ export class NavbarComponent implements OnInit {
     if (stored) {
       const data = JSON.parse(stored) as SubMenuItem[];
       this.favorites = data.filter((d) => this.allMenuItems.some((m) => m.route === d.route));
+      this.selectedFavoriteValues = this.favorites.map((f) => f.route || '');
     }
   }
 

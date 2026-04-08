@@ -45,60 +45,23 @@
           </a>
         }
 
-        <!-- Choose favorites -->
-        <div class="relative" clickOutside (clickOutside)="favoritesOpen = false">
-          <button (click)="favoritesOpen = !favoritesOpen"
-            class="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors">
+        <!-- Choose favorites (using shared select-dropdown) -->
+        <app-select-dropdown
+          triggerType="custom"
+          [options]="favoriteOptions"
+          [multiSelect]="true"
+          [selectedValues]="selectedFavoriteValues"
+          (selectedValuesChange)="onFavoritesChange($event)"
+          [headerText]="favoritesHeader"
+          searchPlaceholder="Find menu item...">
+          <button trigger type="button"
+            class="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors">
             @if (favorites.length === 0) {
               <span>Choose favorites</span>
             }
             <svg-icon src="assets/icons/heroicons/solid/heart.svg" [svgClass]="'h-5 w-5 text-red-500'"> </svg-icon>
           </button>
-
-          <!-- Favorites dropdown -->
-          @if (favoritesOpen) {
-            <div class="bg-background border-border shadow-custom absolute top-full z-30 mt-3 w-64 rounded-lg border ltr:left-0 rtl:right-0">
-              <!-- Header -->
-              <div class="border-border border-b px-4 py-3 text-center">
-                <p class="text-muted-foreground text-sm">
-                  @if (favorites.length === 0) {
-                    Select favorite menu items
-                  } @else {
-                    {{ favorites.length }} menu item{{ favorites.length > 1 ? 's' : '' }} selected
-                  }
-                </p>
-              </div>
-
-              <!-- Search -->
-              <div class="border-border flex items-center gap-2 border-b px-3 py-2">
-                <svg-icon src="assets/icons/heroicons/outline/magnifying-glass.svg"
-                  [svgClass]="'h-4 w-4 text-muted-foreground shrink-0'"> </svg-icon>
-                <input type="text" placeholder="Find menu item..." [(ngModel)]="favoriteSearch"
-                  class="text-foreground placeholder:text-muted-foreground w-full border-0 bg-transparent text-sm focus:outline-hidden" />
-              </div>
-
-              <!-- Menu items list -->
-              <div class="max-h-64 overflow-y-auto py-1">
-                @for (item of filteredMenuItems; track item.route) {
-                  <button (click)="toggleFavorite(item)"
-                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors"
-                    [class]="isFavorite(item)
-                      ? 'bg-primary/5 text-foreground font-medium'
-                      : 'text-muted-foreground hover:bg-card hover:text-foreground'">
-                    @if (isFavorite(item)) {
-                      <svg class="h-4 w-4 shrink-0 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
-                    } @else {
-                      <span class="h-4 w-4 shrink-0"></span>
-                    }
-                    {{ item.label }}
-                  </button>
-                }
-              </div>
-            </div>
-          }
-        </div>
+        </app-select-dropdown>
       </div>
 
       <!-- Spacer -->

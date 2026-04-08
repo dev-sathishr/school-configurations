@@ -80,7 +80,7 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
   private createForm(data: any = {}): void {
     this.form = this.fb.group({
       id: [data.id || null],
-      address_type: [data.address_type || 'primary', [Validators.required]],
+      address_type: [data.address_type || '', [Validators.required]],
       address_line1: [data.address_line1 || '', [Validators.required, Validators.maxLength(300)]],
       address_line2: [data.address_line2 || '', [Validators.maxLength(300)]],
       pincode: [data.pincode || '', [Validators.required, Validators.minLength(6), Validators.maxLength(6), Validators.pattern(/^\d{6}$/)]],
@@ -107,7 +107,8 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
 
   openAdd(): void {
     this.editIndex = null;
-    this.createForm();
+    const defaultType = this.availableAddressTypes[0]?.value || '';
+    this.createForm({ address_type: defaultType });
     this.showModal = true;
     this.mapError = '';
     this.initMapAfterOpen();
@@ -132,6 +133,14 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
 
     const value = this.form.getRawValue();
     const updated = [...this.addresses];
+
+    // Check for duplicate address type
+    const duplicateIndex = updated.findIndex((a, i) => a.address_type === value.address_type && i !== this.editIndex);
+    if (duplicateIndex >= 0) {
+      const typeLabel = this.getTypeLabel(value.address_type);
+      this.cs.showToastr({ type: 'error', message: 'Duplicate address type', description: `A "${typeLabel}" address already exists` });
+      return;
+    }
 
     if (this.editIndex !== null) {
       updated[this.editIndex] = value;
@@ -168,6 +177,13 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
 
   getTypeLabel(type: string): string {
     return this.addressTypes.find(t => t.value === type)?.label || type;
+  }
+
+  get availableAddressTypes(): SelectOption[] {
+    const usedTypes = this.addresses
+      .filter((_, i) => i !== this.editIndex)
+      .map((a) => a.address_type);
+    return this.addressTypes.filter((t) => !usedTypes.includes(t.value));
   }
 
   // --- Map Methods ---

@@ -88,7 +88,7 @@
     <!-- Form Fields -->
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3" [formGroup]="form">
       <app-form-field [formGroup]="form" controlName="address_type" label="Address Type" fieldType="select"
-        [options]="addressTypes" [required]="true" [submitted]="submitted" />
+        [options]="availableAddressTypes" [required]="true" [submitted]="submitted" />
       <app-form-field [formGroup]="form" controlName="address_line1" label="Address Line 1"
         placeholder="e.g. 123, Main Street" [maxLength]="300" colSpan="md:col-span-2"
         [required]="true" [submitted]="submitted" />

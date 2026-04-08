@@ -1,7 +1,7 @@
 import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ClickOutsideDirective } from '../../directives/click-outside.directive';
+import { SelectDropdownComponent } from '../select-dropdown/select-dropdown.component';
 
 export interface SelectOption {
   value: string;
@@ -21,13 +21,13 @@ interface CountryCode {
   selector: 'app-form-field',
   templateUrl: './form-field.component.html',
   styleUrl: './form-field.component.css',
-  imports: [NgClass, ReactiveFormsModule, FormsModule, ClickOutsideDirective],
+  imports: [NgClass, ReactiveFormsModule, FormsModule, SelectDropdownComponent],
 })
 export class FormFieldComponent implements OnInit, OnChanges {
   @Input({ required: true }) formGroup!: FormGroup;
   @Input({ required: true }) controlName!: string;
   @Input({ required: true }) label!: string;
-  @Input() fieldType: 'text' | 'email' | 'password' | 'url' | 'number' | 'select' | 'textarea' | 'checkbox' | 'phone' = 'text';
+  @Input() fieldType: 'text' | 'email' | 'password' | 'url' | 'number' | 'select' | 'async-select' | 'textarea' | 'checkbox' | 'phone' = 'text';
   @Input() placeholder = '';
   @Input() required = false;
   @Input() submitted = false;
@@ -41,11 +41,15 @@ export class FormFieldComponent implements OnInit, OnChanges {
   @Input() lowercase = false;
   @Input() digitsOnly = false;
 
+  // Async select
+  @Input() asyncUrl = '';
+  @Input() asyncValueKey = 'id';
+  @Input() asyncLabelKey = 'name';
+  @Input() initialLabel = '';
+
   // Phone field state
   phoneNumber = '';
   selectedCode = '+91';
-  showDropdown = false;
-  searchText = '';
 
   countries: CountryCode[] = [
     { code: 'IN', dial: '+91', flag: '🇮🇳', name: 'India', minLen: 10, maxLen: 10 },
@@ -81,28 +85,20 @@ export class FormFieldComponent implements OnInit, OnChanges {
   phoneError = '';
 
   ngOnInit(): void {
-    if (this.fieldType === 'phone') {
-      this.initPhone();
-    }
+    if (this.fieldType === 'phone') this.initPhone();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['submitted'] && this.fieldType === 'phone') {
-      this.validatePhone();
-    }
+    if (changes['submitted'] && this.fieldType === 'phone') this.validatePhone();
   }
 
-  get control() {
-    return this.formGroup.get(this.controlName);
-  }
+  get control() { return this.formGroup.get(this.controlName); }
 
   get hasError(): boolean {
     return !!this.control?.errors && (this.submitted || !!this.control?.touched);
   }
 
-  get fieldId(): string {
-    return `field_${this.controlName}`;
-  }
+  get fieldId(): string { return `field_${this.controlName}`; }
 
   get errorMessage(): string {
     const errors = this.control?.errors;
@@ -118,13 +114,31 @@ export class FormFieldComponent implements OnInit, OnChanges {
     return '';
   }
 
-  // Phone helpers
-  get filteredCountries(): CountryCode[] {
-    if (!this.searchText) return this.countries;
-    const s = this.searchText.toLowerCase();
-    return this.countries.filter(
-      (c) => c.name.toLowerCase().includes(s) || c.dial.includes(s) || c.code.toLowerCase().includes(s)
-    );
+  // Select bridge
+  onSelectChange(value: string): void {
+    this.control?.setValue(value);
+    this.control?.markAsTouched();
+  }
+
+  onSelectClosed(): void {
+    this.control?.markAsTouched();
+  }
+
+  // Phone: country options for select-dropdown
+  get countryOptions(): SelectOption[] {
+    return this.countries.map((c) => ({ value: c.dial, label: `${c.flag} ${c.name} (${c.dial})` }));
+  }
+
+  onCountrySelect(dial: string): void {
+    const country = this.countries.find((c) => c.dial === dial);
+    if (!country) return;
+    this.selectedCode = country.dial;
+    if (this.phoneNumber.length > country.maxLen) {
+      this.phoneNumber = this.phoneNumber.slice(0, country.maxLen);
+    }
+    this.control?.setValue({ code: this.selectedCode, number: this.phoneNumber });
+    this.control?.markAsTouched();
+    this.validatePhone();
   }
 
   get selectedCountry(): CountryCode | undefined {
@@ -169,18 +183,6 @@ export class FormFieldComponent implements OnInit, OnChanges {
     }
   }
 
-  selectCountry(country: CountryCode): void {
-    this.selectedCode = country.dial;
-    this.showDropdown = false;
-    this.searchText = '';
-    if (this.phoneNumber.length > country.maxLen) {
-      this.phoneNumber = this.phoneNumber.slice(0, country.maxLen);
-    }
-    this.control?.setValue({ code: this.selectedCode, number: this.phoneNumber });
-    this.control?.markAsTouched();
-    this.validatePhone();
-  }
-
   toUppercase(): void {
     const val = this.control?.value;
     if (val) this.control?.setValue(val.toUpperCase(), { emitEvent: false });
@@ -194,10 +196,5 @@ export class FormFieldComponent implements OnInit, OnChanges {
   toDigits(): void {
     const val = this.control?.value;
     if (val) this.control?.setValue(val.replace(/\D/g, ''), { emitEvent: false });
-  }
-
-  toggleDropdown(): void {
-    this.showDropdown = !this.showDropdown;
-    if (this.showDropdown) this.searchText = '';
   }
 }

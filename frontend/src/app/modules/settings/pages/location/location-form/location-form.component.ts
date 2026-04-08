@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
-import { FormFieldComponent, SelectOption } from '../../../../../shared/components/form-field/form-field.component';
+import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { AddressComponent, Address } from '../../../../../shared/components/address/address.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
@@ -22,8 +22,7 @@ export class LocationFormComponent implements OnInit {
   loading = false;
   errorMessage = '';
   addressError = '';
-  organizations: any[] = [];
-  organizationOptions: SelectOption[] = [];
+  orgLabel = '';
   addresses: Address[] = [];
 
   locationTypes = [
@@ -51,13 +50,6 @@ export class LocationFormComponent implements OnInit {
       notes: ['', [Validators.maxLength(500)]],
     });
 
-    this.cs.getService({ url: '/organizations/dropdown' }).subscribe({
-      next: (res: any) => {
-        this.organizations = res.data;
-        this.organizationOptions = res.data.map((o: any) => ({ value: o.id, label: o.name }));
-      },
-    });
-
     const id = this.cs.getRouteParam(this.route, 'id');
     if (id) {
       this.editMode = true;
@@ -68,9 +60,11 @@ export class LocationFormComponent implements OnInit {
           const d = res.data;
           this.form.patchValue({
             ...d,
+            organization_id: d.organization?.id || '',
             primary_phone: { code: d.primary_contact_code || '+91', number: d.primary_contact_no || '' },
             alternate_phone: { code: d.alternate_contact_code || '+91', number: d.alternate_contact_no || '' },
           });
+          this.orgLabel = d.organization?.name || '';
           this.addresses = d.addresses || [];
           this.loading = false;
           this.cdr.detectChanges();

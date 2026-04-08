@@ -2,13 +2,13 @@
   <!-- Backdrop -->
   <div class="fixed inset-0 z-50 bg-black/50" (click)="onBackdropClick()"></div>
   <!-- Dialog -->
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-    <div class="bg-background max-h-[90vh] w-full overflow-y-auto rounded-xl border border-muted/30 shadow-xl pointer-events-auto"
+  <div class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-background pointer-events-auto flex max-h-[90vh] w-full flex-col rounded-xl border border-muted/30 shadow-xl"
       [ngClass]="sizeClass"
       (click)="$event.stopPropagation()">
 
-      <!-- Header -->
-      <div class="border-muted/20 flex items-center justify-between border-b px-6 py-4">
+      <!-- Header (sticky) -->
+      <div class="border-muted/20 flex shrink-0 items-center justify-between border-b px-6 py-4">
         <h3 class="text-foreground text-lg font-semibold">{{ title }}</h3>
         @if (showClose) {
           <button type="button" (click)="close()"
@@ -20,13 +20,13 @@
         }
       </div>
 
-      <!-- Body -->
-      <div class="px-6 py-5">
+      <!-- Body (scrollable) -->
+      <div class="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-y-auto px-6 py-5">
         <ng-content></ng-content>
       </div>
 
-      <!-- Footer -->
-      <div class="border-muted/20 border-t px-6 py-4">
+      <!-- Footer (sticky) -->
+      <div class="border-muted/20 shrink-0 border-t px-6 py-4">
         <ng-content select="[modal-footer]"></ng-content>
       </div>
     </div>

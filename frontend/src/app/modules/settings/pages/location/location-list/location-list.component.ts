@@ -42,6 +42,7 @@ export class LocationListComponent {
   };
 
   rowTransform = (row: any, mapped: any) => {
+    mapped['organization_name'] = row.organization?.name || '-';
     mapped['l.is_active'] = row.is_active ? 'Active' : 'Inactive';
     mapped['primary_contact_no'] = row.primary_contact_no ? `${row.primary_contact_code || '+91'} ${row.primary_contact_no}` : '-';
     return mapped;

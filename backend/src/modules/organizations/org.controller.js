@@ -181,11 +181,35 @@ async function removeMultiple(req, resp) {
   }
 }
 
-// Dropdown list (for location form)
+// Dropdown list (for location form) — supports search & pagination
 async function getDropdown(req, resp) {
   try {
-    const result = await db.query('SELECT id, name FROM settings.organizations WHERE is_active = true AND deleted_at IS NULL ORDER BY name');
-    return res.success(resp, { data: result.rows });
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 20;
+    const search = (req.query.search || '').trim();
+    const offset = (page - 1) * size;
+
+    let where = 'WHERE is_active = true AND deleted_at IS NULL';
+    const params = [];
+
+    if (search) {
+      params.push(`%${search}%`);
+      where += ` AND name ILIKE $${params.length}`;
+    }
+
+    const countResult = await db.query(`SELECT COUNT(*) FROM settings.organizations ${where}`, params);
+    const totalCount = parseInt(countResult.rows[0].count);
+
+    params.push(size, offset);
+    const result = await db.query(
+      `SELECT id, name FROM settings.organizations ${where} ORDER BY name LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+
+    return res.success(resp, {
+      data: result.rows,
+      pagination: { page, size, total_count: totalCount, total_pages: Math.ceil(totalCount / size) },
+    });
   } catch (err) {
     console.error('Get org dropdown error:', err);
     return res.error(resp);

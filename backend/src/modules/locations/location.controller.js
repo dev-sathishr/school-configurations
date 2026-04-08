@@ -19,16 +19,28 @@ async function getAll(req, resp) {
     const result = await paginate({
       table: 'settings.locations',
       alias: 'l',
-      selectFields: `l.*, org.name AS organization_name, cb.full_name AS created_by_name, ub.full_name AS updated_by_name`,
+      selectFields: `l.id, l.name, l.code, l.type, l.email,
+        l.primary_contact_code, l.primary_contact_no, l.alternate_contact_code, l.alternate_contact_no,
+        l.is_active, l.notes, l.created_at, l.updated_at,
+        org.id AS org_id, org.name AS org_name,
+        cb.full_name AS created_by_name, ub.full_name AS updated_by_name`,
       joins: `LEFT JOIN settings.organizations org ON l.organization_id = org.id
               LEFT JOIN settings.users cb ON l.created_by = cb.id
               LEFT JOIN settings.users ub ON l.updated_by = ub.id`,
-      searchColumns: ['l.name', 'l.code', 'l.email', 'l.city', 'org.name'],
-      filterableColumns: ['l.name', 'l.code', 'l.type', 'l.city', 'l.is_active', 'l.organization_id'],
-      sortableColumns: ['l.name', 'l.code', 'l.type', 'l.city', 'l.is_active', 'l.created_at', 'org.name'],
+      searchColumns: ['l.name', 'l.code', 'l.email', 'org.name'],
+      filterableColumns: ['l.name', 'l.code', 'l.type', 'l.is_active', 'l.organization_id'],
+      sortableColumns: ['l.name', 'l.code', 'l.type', 'l.is_active', 'l.created_at', 'org.name'],
       defaultSortBy: 'l.created_at',
       defaultSortOrder: 'DESC',
     }, req.query);
+
+    result.data = result.data.map((row) => ({
+      id: row.id, name: row.name, code: row.code, type: row.type, email: row.email,
+      primary_contact_code: row.primary_contact_code, primary_contact_no: row.primary_contact_no,
+      is_active: row.is_active, created_at: row.created_at, updated_at: row.updated_at,
+      organization: { id: row.org_id, name: row.org_name },
+      created_by_name: row.created_by_name, updated_by_name: row.updated_by_name,
+    }));
 
     return res.success(resp, result);
   } catch (err) {
@@ -40,7 +52,11 @@ async function getAll(req, resp) {
 async function getById(req, resp) {
   try {
     const result = await db.query(`
-      SELECT l.*, org.name AS organization_name, cb.full_name AS created_by_name, ub.full_name AS updated_by_name
+      SELECT l.id, l.organization_id, l.name, l.code, l.type, l.email,
+        l.primary_contact_code, l.primary_contact_no, l.alternate_contact_code, l.alternate_contact_no,
+        l.is_active, l.notes, l.created_by, l.updated_by, l.created_at, l.updated_at,
+        org.id AS org_id, org.name AS org_name,
+        cb.full_name AS created_by_name, ub.full_name AS updated_by_name
       FROM settings.locations l
       LEFT JOIN settings.organizations org ON l.organization_id = org.id
       LEFT JOIN settings.users cb ON l.created_by = cb.id
@@ -49,8 +65,19 @@ async function getById(req, resp) {
     `, [req.params.id]);
 
     if (result.rows.length === 0) return res.notFound(resp, 'Location not found');
+    const row = result.rows[0];
     const addresses = await getAddresses('location', req.params.id);
-    return res.success(resp, { data: { ...result.rows[0], addresses } });
+    const data = {
+      id: row.id, name: row.name, code: row.code, type: row.type,
+      email: row.email, primary_contact_code: row.primary_contact_code, primary_contact_no: row.primary_contact_no,
+      alternate_contact_code: row.alternate_contact_code, alternate_contact_no: row.alternate_contact_no,
+      is_active: row.is_active, notes: row.notes, created_by: row.created_by, updated_by: row.updated_by,
+      created_at: row.created_at, updated_at: row.updated_at,
+      created_by_name: row.created_by_name, updated_by_name: row.updated_by_name,
+      organization: { id: row.org_id, name: row.org_name },
+      addresses,
+    };
+    return res.success(resp, { data });
   } catch (err) {
     console.error('Get location error:', err);
     return res.error(resp);
