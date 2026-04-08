@@ -1,0 +1,48 @@
+<div>
+  <div class="mb-6">
+    <app-breadcrumb></app-breadcrumb>
+  </div>
+
+  @if (errorMessage) {
+    <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <app-loader size="large" text="Loading permission..." />
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+
+      <!-- Group & Menu Selection -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Permission Assignment</h4>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <app-form-field [formGroup]="form" controlName="group_id" label="Group" fieldType="async-select"
+            asyncUrl="/groups/dropdown" [required]="true" [submitted]="submitted" [initialLabel]="groupLabel" placeholder="Select group" />
+          <app-form-field [formGroup]="form" controlName="module_id" label="Module" fieldType="async-select"
+            asyncUrl="/modules/dropdown" [required]="true" [submitted]="submitted" [initialLabel]="moduleLabel" placeholder="Select module" />
+        </div>
+      </div>
+
+      <!-- Permission Flags -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Access Permissions</h4>
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <app-form-field [formGroup]="form" controlName="can_view" label="Can View" fieldType="checkbox" />
+          <app-form-field [formGroup]="form" controlName="can_create" label="Can Create" fieldType="checkbox" />
+          <app-form-field [formGroup]="form" controlName="can_edit" label="Can Edit" fieldType="checkbox" />
+          <app-form-field [formGroup]="form" controlName="can_delete" label="Can Delete" fieldType="checkbox" />
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-3">
+        <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
+          Cancel
+        </app-button>
+        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
+          {{ editMode ? 'Update' : 'Create' }}
+        </app-button>
+      </div>
+    </form>
+  }
+</div>

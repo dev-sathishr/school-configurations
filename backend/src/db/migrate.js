@@ -186,6 +186,142 @@ async function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_loc_email_unique ON settings.locations (LOWER(email)) WHERE deleted_at IS NULL AND email IS NOT NULL AND email != '';
     `).catch(() => console.log('Index idx_loc_email_unique already exists'));
 
+    // Drop old tables from reverted commit (may exist with different schema)
+    await client.query('DROP TABLE IF EXISTS settings.permissions CASCADE').catch(() => {});
+    await client.query('DROP TABLE IF EXISTS settings.group_modules CASCADE').catch(() => {});
+    await client.query('DROP TABLE IF EXISTS settings.menu_modules CASCADE').catch(() => {});
+    await client.query('DROP TABLE IF EXISTS settings.groups CASCADE').catch(() => {});
+    await client.query('DROP TABLE IF EXISTS settings.menus CASCADE').catch(() => {});
+    await client.query('DROP TABLE IF EXISTS settings.modules CASCADE').catch(() => {});
+
+    // Modules table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.modules (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        icon VARCHAR(300),
+        route_path VARCHAR(300),
+        display_order INT DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        description TEXT,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_module_code_unique ON settings.modules (LOWER(code)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_module_code_unique already exists'));
+
+    // Menus table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.menus (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        icon VARCHAR(300),
+        route_path VARCHAR(300),
+        display_order INT DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        description TEXT,
+        parent_id UUID REFERENCES settings.menus(id),
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_menu_code_unique ON settings.menus (LOWER(code)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_menu_code_unique already exists'));
+
+    // Menu Modules table (links menus to modules)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.menu_modules (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        menu_id UUID NOT NULL REFERENCES settings.menus(id),
+        module_id UUID NOT NULL REFERENCES settings.modules(id),
+        display_order INT DEFAULT 0,
+        created_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_menu_module_unique ON settings.menu_modules (menu_id, module_id) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_menu_module_unique already exists'));
+
+    // Groups table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.groups (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_group_code_unique ON settings.groups (LOWER(code)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_group_code_unique already exists'));
+
+    // Group Modules table (links groups to menus/sidebar items)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.group_modules (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        group_id UUID NOT NULL REFERENCES settings.groups(id),
+        menu_id UUID NOT NULL REFERENCES settings.menus(id),
+        created_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_group_module_unique ON settings.group_modules (group_id, menu_id) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_group_module_unique already exists'));
+
+    // Permissions table (group + module level CRUD permissions)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.permissions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        group_id UUID NOT NULL REFERENCES settings.groups(id),
+        module_id UUID NOT NULL REFERENCES settings.modules(id),
+        can_view BOOLEAN DEFAULT false,
+        can_create BOOLEAN DEFAULT false,
+        can_edit BOOLEAN DEFAULT false,
+        can_delete BOOLEAN DEFAULT false,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_permission_group_module_unique ON settings.permissions (group_id, module_id) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_permission_group_menu_unique already exists'));
+
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];
     for (const table of tables) {

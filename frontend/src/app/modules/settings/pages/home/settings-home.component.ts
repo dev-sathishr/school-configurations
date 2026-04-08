@@ -38,6 +38,48 @@ export class SettingsHomeComponent {
       route: '/settings/user',
       color: 'bg-blue-500/10 text-blue-600',
     },
+    {
+      icon: 'assets/icons/heroicons/outline/cube.svg',
+      label: 'Modules',
+      description: 'Manage application modules',
+      route: '/settings/module',
+      color: 'bg-indigo-500/10 text-indigo-600',
+    },
+    {
+      icon: 'assets/icons/heroicons/outline/bookmark.svg',
+      label: 'Menus',
+      description: 'Manage navigation menu items',
+      route: '/settings/menu',
+      color: 'bg-teal-500/10 text-teal-600',
+    },
+    {
+      icon: 'assets/icons/heroicons/outline/bookmark.svg',
+      label: 'Menu Modules',
+      description: 'Link menus to modules',
+      route: '/settings/menu-module',
+      color: 'bg-cyan-500/10 text-cyan-600',
+    },
+    {
+      icon: 'assets/icons/heroicons/outline/users.svg',
+      label: 'Groups',
+      description: 'Manage user groups',
+      route: '/settings/group',
+      color: 'bg-orange-500/10 text-orange-600',
+    },
+    {
+      icon: 'assets/icons/heroicons/outline/users.svg',
+      label: 'Group Modules',
+      description: 'Link groups to modules',
+      route: '/settings/group-module',
+      color: 'bg-amber-500/10 text-amber-600',
+    },
+    {
+      icon: 'assets/icons/heroicons/outline/users.svg',
+      label: 'Permissions',
+      description: 'Manage group menu permissions',
+      route: '/settings/permission',
+      color: 'bg-red-500/10 text-red-600',
+    },
   ];
 
   constructor(private router: Router) {}

@@ -1,0 +1,17 @@
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <app-breadcrumb></app-breadcrumb>
+  <app-button impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="addNew()">
+    <span class="mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">+</span>
+    Add Menu
+  </app-button>
+</div>
+
+<app-table
+  #table
+  [apiUrl]="apiUrl"
+  [deleteUrl]="deleteUrl"
+  [columns]="columns"
+  [displayKeyMap]="displayKeyMap"
+  [rowTransform]="rowTransform"
+  (onEdit)="editSelected($event)">
+</app-table>

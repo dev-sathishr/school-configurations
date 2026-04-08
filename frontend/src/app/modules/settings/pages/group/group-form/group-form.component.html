@@ -1,0 +1,46 @@
+<div>
+  <div class="mb-6">
+    <app-breadcrumb></app-breadcrumb>
+  </div>
+
+  @if (errorMessage) {
+    <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <app-loader size="large" text="Loading group..." />
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+
+      <!-- Group Info -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Group Information</h4>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted" placeholder="e.g. Admin Group" />
+          <app-form-field [formGroup]="form" controlName="code" label="Code" [required]="true" [submitted]="submitted" placeholder="e.g. ADMIN_GROUP" />
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Details</h4>
+        <app-form-field [formGroup]="form" controlName="description" label="Description" fieldType="textarea" placeholder="Brief description of the group" />
+      </div>
+
+      <!-- Status -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-3">
+        <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
+          Cancel
+        </app-button>
+        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
+          {{ editMode ? 'Update' : 'Create' }}
+        </app-button>
+      </div>
+    </form>
+  }
+</div>
