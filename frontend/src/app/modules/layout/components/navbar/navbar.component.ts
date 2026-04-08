@@ -8,7 +8,6 @@ import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
 import { SubMenuItem } from '../../../../core/models/menu.model';
 import { SelectDropdownComponent } from '../../../../shared/components/select-dropdown/select-dropdown.component';
 import type { DropdownOption } from '../../../../shared/components/select-dropdown/select-dropdown.component';
-import { LocationService } from '../../../../core/services/location.service';
 
 @Component({
   selector: 'app-navbar',
@@ -22,7 +21,7 @@ export class NavbarComponent implements OnInit {
   favoriteOptions: DropdownOption[] = [];
   selectedFavoriteValues: string[] = [];
 
-  constructor(private menuService: MenuService, public themeService: ThemeService, public locationService: LocationService) {}
+  constructor(private menuService: MenuService, public themeService: ThemeService) {}
 
   ngOnInit(): void {
     this.allMenuItems = this.menuService.pagesMenu.flatMap((m) => this.flattenItems(m.items));
@@ -66,17 +65,6 @@ export class NavbarComponent implements OnInit {
       this.favorites = data.filter((d) => this.allMenuItems.some((m) => m.route === d.route));
       this.selectedFavoriteValues = this.favorites.map((f) => f.route || '');
     }
-  }
-
-  get locationOptions(): DropdownOption[] {
-    return this.locationService.locations.map((l) => ({
-      value: l.location_id,
-      label: l.name,
-    }));
-  }
-
-  onLocationSwitch(locationId: string): void {
-    this.locationService.switchLocation(locationId);
   }
 
   public toggleMobileMenu(): void {

@@ -10,14 +10,11 @@ export class AuthInterceptor implements HttpInterceptor {
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = this.authService.getToken();
-    const activeLocation = localStorage.getItem('active_location');
 
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    if (activeLocation) headers['X-Active-Location'] = activeLocation;
-
-    if (Object.keys(headers).length) {
-      req = req.clone({ setHeaders: headers });
+    if (token) {
+      req = req.clone({
+        setHeaders: { Authorization: `Bearer ${token}` },
+      });
     }
 
     return next.handle(req).pipe(
