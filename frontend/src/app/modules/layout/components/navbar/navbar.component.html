@@ -67,8 +67,30 @@
       <!-- Spacer -->
       <div class="flex-1"></div>
 
-      <!-- Action icons & Profile -->
+      <!-- Location Switcher & Action icons & Profile -->
       <div class="flex items-center gap-1">
+        @if (locationService.locations.length > 1) {
+          <div class="hidden md:block">
+            <app-select-dropdown
+              triggerType="custom"
+              [options]="locationOptions"
+              [value]="locationService.activeLocationId || ''"
+              (valueChange)="onLocationSwitch($event)"
+              [showSearch]="false">
+              <button trigger type="button"
+                class="text-muted-foreground hover:text-foreground hover:bg-muted flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors">
+                <svg-icon src="assets/icons/heroicons/outline/folder.svg" [svgClass]="'h-4 w-4'"> </svg-icon>
+                <span class="max-w-[120px] truncate">{{ locationService.activeLocation?.name || 'Location' }}</span>
+                <span class="text-muted-foreground/50 text-[10px]">▼</span>
+              </button>
+            </app-select-dropdown>
+          </div>
+        } @else if (locationService.locations.length === 1) {
+          <span class="text-muted-foreground hidden items-center gap-1.5 px-2.5 text-xs font-medium md:flex">
+            <svg-icon src="assets/icons/heroicons/outline/folder.svg" [svgClass]="'h-4 w-4'"> </svg-icon>
+            {{ locationService.activeLocation?.name }}
+          </span>
+        }
         <button class="text-muted-foreground hover:text-foreground hover:bg-muted hidden rounded-md p-2 transition-colors md:inline-flex">
           <svg-icon src="assets/icons/heroicons/outline/view-grid.svg" [svgClass]="'h-5 w-5'"> </svg-icon>
         </button>

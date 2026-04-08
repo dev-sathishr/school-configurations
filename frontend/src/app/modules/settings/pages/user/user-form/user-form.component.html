@@ -3,6 +3,7 @@
     <app-breadcrumb></app-breadcrumb>
   </div>
 
+  <div class="max-w-6xl">
   @if (errorMessage) {
     <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
   }
@@ -34,6 +35,51 @@
         </div>
       </div>
 
+      <!-- User Group -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">User Group</h4>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <app-form-field [formGroup]="form" controlName="user_group_id" label="User Group" fieldType="async-select"
+            asyncUrl="/user-groups/dropdown" selectPlaceholder="Select User Group" [initialLabel]="groupLabel" />
+        </div>
+      </div>
+
+      <!-- Location Access -->
+      @if (allLocations.length > 0) {
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <h4 class="text-foreground mb-4 text-sm font-semibold">Location Access</h4>
+          <p class="text-muted-foreground mb-3 text-xs">Select locations this user can access. One location must be set as default.</p>
+          <div class="space-y-2">
+            @for (loc of allLocations; track loc.id) {
+              <div class="border-muted/20 flex items-center justify-between rounded-lg border px-4 py-3"
+                [ngClass]="{ 'bg-primary/5 border-primary/20': isLocationAssigned(loc.id) }">
+                <div class="flex items-center gap-3">
+                  <input type="checkbox" [checked]="isLocationAssigned(loc.id)" (change)="toggleLocation(loc.id)" class="rounded" />
+                  <div>
+                    <span class="text-foreground text-sm font-medium">{{ loc.name }}</span>
+                    @if (loc.code) {
+                      <span class="text-muted-foreground ml-2 text-xs">({{ loc.code }})</span>
+                    }
+                    @if (loc.organization?.name) {
+                      <p class="text-muted-foreground text-xs">{{ loc.organization.name }}</p>
+                    }
+                  </div>
+                </div>
+                @if (isLocationAssigned(loc.id)) {
+                  <button type="button" (click)="setDefaultLocation(loc.id)"
+                    class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
+                    [ngClass]="isDefaultLocation(loc.id)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'">
+                    {{ isDefaultLocation(loc.id) ? 'Default' : 'Set Default' }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
       <!-- Status -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
@@ -50,4 +96,5 @@
       </div>
     </form>
   }
+  </div>
 </div>

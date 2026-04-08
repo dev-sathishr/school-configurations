@@ -8,6 +8,8 @@ import { OrganizationListComponent } from './pages/organization/organization-lis
 import { OrganizationFormComponent } from './pages/organization/organization-form/organization-form.component';
 import { LocationListComponent } from './pages/location/location-list/location-list.component';
 import { LocationFormComponent } from './pages/location/location-form/location-form.component';
+import { UserGroupListComponent } from './pages/user-group/user-group-list/user-group-list.component';
+import { UserGroupFormComponent } from './pages/user-group/user-group-form/user-group-form.component';
 
 const routes: Routes = [
   {
@@ -24,6 +26,9 @@ const routes: Routes = [
       { path: 'location', component: LocationListComponent },
       { path: 'location/new', component: LocationFormComponent },
       { path: 'location/:id/edit', component: LocationFormComponent },
+      { path: 'user-group', component: UserGroupListComponent },
+      { path: 'user-group/new', component: UserGroupFormComponent },
+      { path: 'user-group/:id/edit', component: UserGroupFormComponent },
     ],
   },
 ];

@@ -169,6 +169,120 @@ async function migrate() {
       );
     `);
 
+    // Menus table (top-level navigation containers)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.menus (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        icon VARCHAR(300),
+        display_order INT DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    // Modules table (pages/features under menus)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.modules (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        menu_id UUID NOT NULL REFERENCES settings.menus(id),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        icon VARCHAR(300),
+        route VARCHAR(300),
+        display_order INT DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    // User groups table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.user_groups (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_system BOOLEAN DEFAULT false,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    // Group permissions (group ↔ module with CRUD flags)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.group_permissions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_group_id UUID NOT NULL REFERENCES settings.user_groups(id) ON DELETE CASCADE,
+        module_id UUID NOT NULL REFERENCES settings.modules(id) ON DELETE CASCADE,
+        can_view BOOLEAN DEFAULT false,
+        can_create BOOLEAN DEFAULT false,
+        can_edit BOOLEAN DEFAULT false,
+        can_delete BOOLEAN DEFAULT false,
+        created_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // User locations (user ↔ location for multi-location access)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.user_locations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES settings.users(id) ON DELETE CASCADE,
+        location_id UUID NOT NULL REFERENCES settings.locations(id) ON DELETE CASCADE,
+        is_default BOOLEAN DEFAULT false,
+        created_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // Add user_group_id to users
+    await client.query(`
+      ALTER TABLE settings.users ADD COLUMN IF NOT EXISTS user_group_id UUID REFERENCES settings.user_groups(id);
+    `).catch(() => {});
+
+    // Indexes for new tables
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_menus_code ON settings.menus(LOWER(code)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_menus_code already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_modules_code ON settings.modules(LOWER(code)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_modules_code already exists'));
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_modules_menu ON settings.modules(menu_id) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_modules_menu already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_user_groups_name ON settings.user_groups(LOWER(name)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_user_groups_name already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_user_groups_code ON settings.user_groups(LOWER(code)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_user_groups_code already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_group_perms_unique ON settings.group_permissions(user_group_id, module_id);
+    `).catch(() => console.log('Index idx_group_perms_unique already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_user_locations_unique ON settings.user_locations(user_id, location_id);
+    `).catch(() => console.log('Index idx_user_locations_unique already exists'));
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_user_locations_default ON settings.user_locations(user_id) WHERE is_default = true;
+    `).catch(() => console.log('Index idx_user_locations_default already exists'));
+
     // Unique indexes (partial - only non-deleted records)
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_org_name_unique ON settings.organizations (LOWER(name)) WHERE deleted_at IS NULL;

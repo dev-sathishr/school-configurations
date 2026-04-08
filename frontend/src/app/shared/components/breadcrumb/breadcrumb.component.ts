@@ -17,6 +17,7 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
     '/settings/user': 'User',
     '/settings/organization': 'Organization',
     '/settings/location': 'Location',
+    '/settings/user-group': 'User Group',
   };
 
   constructor(private router: Router) {}
