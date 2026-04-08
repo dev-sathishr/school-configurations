@@ -1,47 +1,16 @@
-const db = require('../../db');
-const { paginate } = require('../../shared/helpers/pagination.helper');
+const locationService = require('./location.service');
 const res = require('../../shared/helpers/response.helper');
-const { validate } = require('../../shared/helpers/validate.helper');
-const { saveAddresses, getAddresses } = require('../../shared/helpers/address.helper');
 
-const LOC_RULES = {
-  organization_id: { required: true, label: 'Organization' },
-  name: { required: true, min: 3, max: 100, label: 'Name' },
-  code: { required: true, min: 3, max: 5, label: 'Code' },
-  type: { required: true, label: 'Type' },
-  email: { max: 100, email: true, label: 'Email' },
-  primary_contact_no: { required: true, label: 'Primary Contact' },
-  notes: { max: 500, label: 'Notes' },
-};
+function handleError(resp, result) {
+  if (result.error === 'notFound') return res.notFound(resp, result.message);
+  if (result.error === 'badRequest') return res.badRequest(resp, result.message);
+  if (result.error === 'conflict') return res.conflict(resp, result.message);
+  return null;
+}
 
 async function getAll(req, resp) {
   try {
-    const result = await paginate({
-      table: 'settings.locations',
-      alias: 'l',
-      selectFields: `l.id, l.name, l.code, l.type, l.email,
-        l.primary_contact_code, l.primary_contact_no, l.alternate_contact_code, l.alternate_contact_no,
-        l.is_active, l.notes, l.created_at, l.updated_at,
-        org.id AS org_id, org.name AS org_name,
-        cb.full_name AS created_by_name, ub.full_name AS updated_by_name`,
-      joins: `LEFT JOIN settings.organizations org ON l.organization_id = org.id
-              LEFT JOIN settings.users cb ON l.created_by = cb.id
-              LEFT JOIN settings.users ub ON l.updated_by = ub.id`,
-      searchColumns: ['l.name', 'l.code', 'l.email', 'org.name'],
-      filterableColumns: ['l.name', 'l.code', 'l.type', 'l.is_active', 'l.organization_id'],
-      sortableColumns: ['l.name', 'l.code', 'l.type', 'l.is_active', 'l.created_at', 'org.name'],
-      defaultSortBy: 'l.created_at',
-      defaultSortOrder: 'DESC',
-    }, req.query);
-
-    result.data = result.data.map((row) => ({
-      id: row.id, name: row.name, code: row.code, type: row.type, email: row.email,
-      primary_contact_code: row.primary_contact_code, primary_contact_no: row.primary_contact_no,
-      is_active: row.is_active, created_at: row.created_at, updated_at: row.updated_at,
-      organization: { id: row.org_id, name: row.org_name },
-      created_by_name: row.created_by_name, updated_by_name: row.updated_by_name,
-    }));
-
+    const result = await locationService.getAll(req.query);
     return res.success(resp, result);
   } catch (err) {
     console.error('Get locations error:', err);
@@ -51,33 +20,9 @@ async function getAll(req, resp) {
 
 async function getById(req, resp) {
   try {
-    const result = await db.query(`
-      SELECT l.id, l.organization_id, l.name, l.code, l.type, l.email,
-        l.primary_contact_code, l.primary_contact_no, l.alternate_contact_code, l.alternate_contact_no,
-        l.is_active, l.notes, l.created_by, l.updated_by, l.created_at, l.updated_at,
-        org.id AS org_id, org.name AS org_name,
-        cb.full_name AS created_by_name, ub.full_name AS updated_by_name
-      FROM settings.locations l
-      LEFT JOIN settings.organizations org ON l.organization_id = org.id
-      LEFT JOIN settings.users cb ON l.created_by = cb.id
-      LEFT JOIN settings.users ub ON l.updated_by = ub.id
-      WHERE l.id = $1 AND l.deleted_at IS NULL
-    `, [req.params.id]);
-
-    if (result.rows.length === 0) return res.notFound(resp, 'Location not found');
-    const row = result.rows[0];
-    const addresses = await getAddresses('location', req.params.id);
-    const data = {
-      id: row.id, name: row.name, code: row.code, type: row.type,
-      email: row.email, primary_contact_code: row.primary_contact_code, primary_contact_no: row.primary_contact_no,
-      alternate_contact_code: row.alternate_contact_code, alternate_contact_no: row.alternate_contact_no,
-      is_active: row.is_active, notes: row.notes, created_by: row.created_by, updated_by: row.updated_by,
-      created_at: row.created_at, updated_at: row.updated_at,
-      created_by_name: row.created_by_name, updated_by_name: row.updated_by_name,
-      organization: { id: row.org_id, name: row.org_name },
-      addresses,
-    };
-    return res.success(resp, { data });
+    const result = await locationService.getById(req.params.id);
+    if (result.error) return handleError(resp, result);
+    return res.success(resp, { data: result.data });
   } catch (err) {
     console.error('Get location error:', err);
     return res.error(resp);
@@ -86,39 +31,9 @@ async function getById(req, resp) {
 
 async function create(req, resp) {
   try {
-    const b = req.body;
-
-    // Validate fields
-    const errors = validate(b, LOC_RULES);
-    if (!b.addresses || !Array.isArray(b.addresses) || b.addresses.length === 0) {
-      errors.push('At least one address is required');
-    }
-    if (errors.length) return res.badRequest(resp, errors.join(', '));
-
-    // Unique checks: code must be unique within the same organization
-    if (b.code) {
-      const dup = await db.query('SELECT id FROM settings.locations WHERE LOWER(code) = LOWER($1) AND organization_id = $2 AND deleted_at IS NULL', [b.code.trim(), b.organization_id]);
-      if (dup.rows.length) return res.conflict(resp, 'Location code already exists in this organization');
-    }
-    if (b.email) {
-      const dup = await db.query('SELECT id FROM settings.locations WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL', [b.email.trim()]);
-      if (dup.rows.length) return res.conflict(resp, 'Email already exists');
-    }
-
-    const result = await db.query(`
-      INSERT INTO settings.locations (organization_id, name, code, type, email, primary_contact_code, primary_contact_no, alternate_contact_code, alternate_contact_no, is_active, notes, created_by, updated_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-      RETURNING *
-    `, [
-      b.organization_id, b.name, b.code||null, b.type||'branch', b.email||null,
-      b.primary_contact_code||'+91', b.primary_contact_no||null,
-      b.alternate_contact_code||'+91', b.alternate_contact_no||null,
-      b.is_active!==undefined?b.is_active:true, b.notes||null, req.user.id, req.user.id
-    ]);
-
-    await saveAddresses('location', result.rows[0].id, b.addresses, req.user.id);
-
-    return res.created(resp, { data: result.rows[0] }, 'Location created successfully');
+    const result = await locationService.create(req.body, req.user.id);
+    if (result.error) return handleError(resp, result);
+    return res.created(resp, { data: result.data }, 'Location created successfully');
   } catch (err) {
     console.error('Create location error:', err);
     return res.error(resp);
@@ -127,46 +42,9 @@ async function create(req, resp) {
 
 async function update(req, resp) {
   try {
-    const existing = await db.query('SELECT * FROM settings.locations WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
-    if (existing.rows.length === 0) return res.notFound(resp, 'Location not found');
-
-    const c = existing.rows[0];
-    const b = req.body;
-
-    // Validate fields
-    const merged = { ...c, ...b };
-    const errors = validate(merged, LOC_RULES);
-    if (errors.length) return res.badRequest(resp, errors.join(', '));
-
-    // Unique checks (exclude self)
-    const orgId = b.organization_id || c.organization_id;
-    if (b.code && b.code.trim().toLowerCase() !== c.code?.toLowerCase()) {
-      const dup = await db.query('SELECT id FROM settings.locations WHERE LOWER(code) = LOWER($1) AND organization_id = $2 AND deleted_at IS NULL AND id != $3', [b.code.trim(), orgId, req.params.id]);
-      if (dup.rows.length) return res.conflict(resp, 'Location code already exists in this organization');
-    }
-    if (b.email && b.email.trim().toLowerCase() !== c.email?.toLowerCase()) {
-      const dup = await db.query('SELECT id FROM settings.locations WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL AND id != $2', [b.email.trim(), req.params.id]);
-      if (dup.rows.length) return res.conflict(resp, 'Email already exists');
-    }
-
-    const result = await db.query(`
-      UPDATE settings.locations SET
-        organization_id=$1, name=$2, code=$3, type=$4, email=$5,
-        primary_contact_code=$6, primary_contact_no=$7, alternate_contact_code=$8, alternate_contact_no=$9,
-        is_active=$10, notes=$11, updated_by=$12, updated_at=NOW()
-      WHERE id=$13 RETURNING *
-    `, [
-      b.organization_id||c.organization_id, b.name||c.name, b.code!==undefined?b.code:c.code,
-      b.type||c.type, b.email!==undefined?b.email:c.email,
-      b.primary_contact_code||c.primary_contact_code, b.primary_contact_no!==undefined?b.primary_contact_no:c.primary_contact_no,
-      b.alternate_contact_code||c.alternate_contact_code, b.alternate_contact_no!==undefined?b.alternate_contact_no:c.alternate_contact_no,
-      b.is_active!==undefined?b.is_active:c.is_active, b.notes!==undefined?b.notes:c.notes,
-      req.user.id, req.params.id
-    ]);
-
-    await saveAddresses('location', req.params.id, b.addresses, req.user.id);
-
-    return res.success(resp, { data: result.rows[0] }, 'Location updated successfully');
+    const result = await locationService.update(req.params.id, req.body, req.user.id);
+    if (result.error) return handleError(resp, result);
+    return res.success(resp, { data: result.data }, 'Location updated successfully');
   } catch (err) {
     console.error('Update location error:', err);
     return res.error(resp);
@@ -175,9 +53,8 @@ async function update(req, resp) {
 
 async function remove(req, resp) {
   try {
-    const existing = await db.query('SELECT id FROM settings.locations WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
-    if (existing.rows.length === 0) return res.notFound(resp, 'Location not found');
-    await db.query('UPDATE settings.locations SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.id, req.params.id]);
+    const result = await locationService.remove(req.params.id, req.user.id);
+    if (result.error) return handleError(resp, result);
     return res.success(resp, {}, 'Location deleted successfully');
   } catch (err) {
     console.error('Delete location error:', err);
@@ -187,14 +64,9 @@ async function remove(req, resp) {
 
 async function removeMultiple(req, resp) {
   try {
-    const { ids } = req.body;
-    if (!ids || !Array.isArray(ids) || ids.length === 0) return res.badRequest(resp, 'ids array is required');
-    const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
-    const result = await db.query(
-      `UPDATE settings.locations SET deleted_at = NOW(), deleted_by = $1 WHERE id IN (${placeholders}) AND deleted_at IS NULL RETURNING id`,
-      [req.user.id, ...ids]
-    );
-    return res.success(resp, { deleted_count: result.rowCount }, `${result.rowCount} location(s) deleted`);
+    const result = await locationService.removeMultiple(req.body.ids, req.user.id);
+    if (result.error) return handleError(resp, result);
+    return res.success(resp, { deleted_count: result.deleted_count }, `${result.deleted_count} location(s) deleted`);
   } catch (err) {
     console.error('Delete multiple locations error:', err);
     return res.error(resp);

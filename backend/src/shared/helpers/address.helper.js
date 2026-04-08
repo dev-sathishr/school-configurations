@@ -1,4 +1,4 @@
-const db = require('../../db');
+const db = require('../../config/database');
 
 /**
  * Save addresses for an entity (create or update)

@@ -1,48 +1,16 @@
-const db = require('../../db');
-const password = require('../../shared/helpers/password.helper');
-const jwt = require('../../shared/helpers/jwt.helper');
+const authService = require('./auth.service');
 const res = require('../../shared/helpers/response.helper');
 
 async function login(req, resp) {
   try {
-    const { username, password: pwd } = req.body;
+    const { username, password } = req.body;
+    const result = await authService.login(username, password);
 
-    if (!username || !pwd) {
-      return res.badRequest(resp, 'Username and password are required');
-    }
+    if (result.error === 'badRequest') return res.badRequest(resp, result.message);
+    if (result.error === 'unauthorized') return res.unauthorized(resp, result.message);
+    if (result.error === 'forbidden') return res.forbidden(resp, result.message);
 
-    const result = await db.query('SELECT * FROM settings.users WHERE username = $1', [username]);
-    const user = result.rows[0];
-
-    if (!user) {
-      return res.unauthorized(resp, 'Invalid username or password');
-    }
-
-    if (!user.is_active) {
-      return res.forbidden(resp, 'Account is disabled. Contact administrator.');
-    }
-
-    const isValid = await password.compare(pwd, user.password);
-    if (!isValid) {
-      return res.unauthorized(resp, 'Invalid username or password');
-    }
-
-    await db.query('UPDATE settings.users SET last_login = NOW() WHERE id = $1', [user.id]);
-
-    const tokenPayload = { id: user.id, username: user.username, role: user.role };
-
-    return res.success(resp, {
-      access_token: jwt.generateAccessToken(tokenPayload),
-      refresh_token: jwt.generateRefreshToken({ id: user.id }),
-      user: {
-        id: user.id,
-        username: user.username,
-        full_name: user.full_name,
-        email: user.email,
-        role: user.role,
-        last_login: user.last_login,
-      },
-    }, 'Login successful');
+    return res.success(resp, result.data, result.message);
   } catch (err) {
     console.error('Login error:', err);
     return res.error(resp);
@@ -51,22 +19,12 @@ async function login(req, resp) {
 
 async function refresh(req, resp) {
   try {
-    const { refresh_token } = req.body;
-    if (!refresh_token) {
-      return res.badRequest(resp, 'Refresh token is required');
-    }
+    const result = await authService.refresh(req.body.refresh_token);
 
-    const decoded = jwt.verifyRefreshToken(refresh_token);
-    const result = await db.query('SELECT * FROM settings.users WHERE id = $1', [decoded.id]);
-    const user = result.rows[0];
+    if (result.error === 'badRequest') return res.badRequest(resp, result.message);
+    if (result.error === 'unauthorized') return res.unauthorized(resp, result.message);
 
-    if (!user || !user.is_active) {
-      return res.unauthorized(resp, 'Invalid refresh token');
-    }
-
-    return res.success(resp, {
-      access_token: jwt.generateAccessToken({ id: user.id, username: user.username, role: user.role }),
-    });
+    return res.success(resp, result.data);
   } catch (err) {
     return res.unauthorized(resp, 'Invalid or expired refresh token');
   }
@@ -74,16 +32,11 @@ async function refresh(req, resp) {
 
 async function me(req, resp) {
   try {
-    const result = await db.query(
-      'SELECT id, username, full_name, email, phone, role, is_active, last_login, created_at FROM settings.users WHERE id = $1',
-      [req.user.id]
-    );
+    const result = await authService.me(req.user.id);
 
-    if (result.rows.length === 0) {
-      return res.notFound(resp, 'User not found');
-    }
+    if (result.error === 'notFound') return res.notFound(resp, result.message);
 
-    return res.success(resp, { user: result.rows[0] });
+    return res.success(resp, result.data);
   } catch (err) {
     console.error('Me error:', err);
     return res.error(resp);
