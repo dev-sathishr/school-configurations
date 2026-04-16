@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { getAll, getById, create, update, remove, removeMultiple } = require('./permission.controller');
+const { getAll, getById, getDropdown, create, update, remove, removeMultiple } = require('./permission.controller');
 const { authenticate, authorize } = require('../../shared/middleware/auth.middleware');
 const { ADMIN_ROLES, ROLES } = require('../../shared/constants/roles');
 
 router.use(authenticate);
 
+router.get('/dropdown', getDropdown);
 router.get('/', getAll);
 router.get('/:id', getById);
 router.post('/', authorize(...ADMIN_ROLES), create);

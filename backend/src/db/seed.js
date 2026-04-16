@@ -45,12 +45,32 @@ async function seed() {
     console.log(inserted > 0 ? `${inserted} organization(s) seeded` : 'All organizations already exist, skipping');
 
     // Clear old seed data from these tables (re-seed fresh)
-    await client.query('DELETE FROM settings.permissions');
+    await client.query('DELETE FROM settings.group_permissions');
     await client.query('DELETE FROM settings.group_modules');
     await client.query('DELETE FROM settings.menu_modules');
+    await client.query('DELETE FROM settings.permissions');
     await client.query('DELETE FROM settings.groups');
     await client.query('DELETE FROM settings.menus');
     await client.query('DELETE FROM settings.modules');
+
+    // Seed Permission types (master data)
+    const permissionTypes = [
+      { name: 'View', code: 'VIEW', description: 'Can view records' },
+      { name: 'Create', code: 'CREATE', description: 'Can create new records' },
+      { name: 'Edit', code: 'EDIT', description: 'Can edit existing records' },
+      { name: 'Delete', code: 'DELETE', description: 'Can delete records' },
+    ];
+
+    const permissionIds = {};
+    for (const perm of permissionTypes) {
+      const result = await client.query(
+        `INSERT INTO settings.permissions (name, code, description, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, true, $4, $5) RETURNING id`,
+        [perm.name, perm.code, perm.description, adminId, adminId]
+      );
+      permissionIds[perm.code] = result.rows[0].id;
+    }
+    console.log(`Permissions seeded (${Object.keys(permissionIds).length} types)`);
 
     // Seed Menus (top-level sidebar navigation groups)
     const menus = [
@@ -79,10 +99,8 @@ async function seed() {
       { name: 'Users', code: 'USERS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/settings/user', display_order: 3 },
       { name: 'Modules', code: 'MODULES', icon: 'assets/icons/heroicons/outline/cube.svg', route_path: '/settings/module', display_order: 4 },
       { name: 'Menus', code: 'MENUS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/menu', display_order: 5 },
-      { name: 'Menu Modules', code: 'MENU_MODULES', icon: 'assets/icons/heroicons/outline/link.svg', route_path: '/settings/menu-module', display_order: 6 },
-      { name: 'Groups', code: 'GROUPS', icon: 'assets/icons/heroicons/outline/user-group.svg', route_path: '/settings/group', display_order: 7 },
-      { name: 'Group Modules', code: 'GROUP_MODULES', icon: 'assets/icons/heroicons/outline/link.svg', route_path: '/settings/group-module', display_order: 8 },
-      { name: 'Permissions', code: 'PERMISSIONS', icon: 'assets/icons/heroicons/outline/shield-check.svg', route_path: '/settings/permission', display_order: 9 },
+      { name: 'Groups', code: 'GROUPS', icon: 'assets/icons/heroicons/outline/user-group.svg', route_path: '/settings/group', display_order: 6 },
+      { name: 'Permissions', code: 'PERMISSIONS', icon: 'assets/icons/heroicons/outline/shield-check.svg', route_path: '/settings/permission', display_order: 7 },
     ];
 
     const moduleIds = {};
@@ -98,16 +116,13 @@ async function seed() {
 
     // Seed Menu Modules (link modules under their parent menu)
     const menuModuleMappings = [
-      // Settings menu modules
       { menu: 'SETTINGS', module: 'ORGANIZATIONS', display_order: 1 },
       { menu: 'SETTINGS', module: 'LOCATIONS', display_order: 2 },
       { menu: 'SETTINGS', module: 'USERS', display_order: 3 },
       { menu: 'SETTINGS', module: 'MODULES', display_order: 4 },
       { menu: 'SETTINGS', module: 'MENUS', display_order: 5 },
-      { menu: 'SETTINGS', module: 'MENU_MODULES', display_order: 6 },
-      { menu: 'SETTINGS', module: 'GROUPS', display_order: 7 },
-      { menu: 'SETTINGS', module: 'GROUP_MODULES', display_order: 8 },
-      { menu: 'SETTINGS', module: 'PERMISSIONS', display_order: 9 },
+      { menu: 'SETTINGS', module: 'GROUPS', display_order: 6 },
+      { menu: 'SETTINGS', module: 'PERMISSIONS', display_order: 7 },
     ];
 
     let mmInserted = 0;
@@ -146,6 +161,10 @@ async function seed() {
     }
     console.log(`Groups seeded (${Object.keys(groupIds).length} total)`);
 
+    // Assign super admin user to SUPER_ADMIN group
+    await client.query('UPDATE settings.users SET group_id = $1 WHERE id = $2', [groupIds['SUPER_ADMIN'], adminId]);
+    console.log('Super admin user assigned to SUPER_ADMIN group');
+
     // Seed Group Modules (which menus each group can access)
     const groupModuleMappings = [
       { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'SETTINGS', 'ACADEMICS', 'FINANCE', 'TRANSPORT'] },
@@ -173,31 +192,35 @@ async function seed() {
     }
     console.log(`Group Modules seeded (${gmInserted} mappings)`);
 
-    // Seed Permissions (group + module level CRUD)
-    const permissionData = [
-      // Super Admin: full access to all modules
-      ...Object.keys(moduleIds).map(code => ({ group: 'SUPER_ADMIN', module: code, can_view: true, can_create: true, can_edit: true, can_delete: true })),
-      // Admin: full CRUD (no delete) on settings modules
-      ...['ORGANIZATIONS', 'LOCATIONS', 'USERS', 'MODULES', 'MENUS', 'MENU_MODULES', 'GROUPS', 'GROUP_MODULES', 'PERMISSIONS']
-        .map(code => ({ group: 'ADMIN', module: code, can_view: true, can_create: true, can_edit: true, can_delete: false })),
-      // Principal: view-only on some settings modules
-      { group: 'PRINCIPAL', module: 'USERS', can_view: true, can_create: false, can_edit: false, can_delete: false },
-      { group: 'PRINCIPAL', module: 'ORGANIZATIONS', can_view: true, can_create: false, can_edit: false, can_delete: false },
+    // Seed Group Permissions (group + module + permission type)
+    const allPermCodes = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
+    const groupPermData = [
+      // Super Admin: all permissions on all modules
+      ...Object.keys(moduleIds).flatMap(modCode =>
+        allPermCodes.map(permCode => ({ group: 'SUPER_ADMIN', module: modCode, permission: permCode }))
+      ),
+      // Admin: all permissions except DELETE on settings modules
+      ...Object.keys(moduleIds).flatMap(modCode =>
+        ['VIEW', 'CREATE', 'EDIT'].map(permCode => ({ group: 'ADMIN', module: modCode, permission: permCode }))
+      ),
+      // Principal: view-only on some modules
+      { group: 'PRINCIPAL', module: 'USERS', permission: 'VIEW' },
+      { group: 'PRINCIPAL', module: 'ORGANIZATIONS', permission: 'VIEW' },
     ];
 
-    let permInserted = 0;
-    for (const perm of permissionData) {
-      const groupId = groupIds[perm.group];
-      const modId = moduleIds[perm.module];
-      if (!groupId || !modId) continue;
+    let gpInserted = 0;
+    for (const gp of groupPermData) {
+      const groupId = groupIds[gp.group];
+      const modId = moduleIds[gp.module];
+      const permId = permissionIds[gp.permission];
+      if (!groupId || !modId || !permId) continue;
       await client.query(
-        `INSERT INTO settings.permissions (group_id, module_id, can_view, can_create, can_edit, can_delete, created_by, updated_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [groupId, modId, perm.can_view, perm.can_create, perm.can_edit, perm.can_delete, adminId, adminId]
+        `INSERT INTO settings.group_permissions (group_id, module_id, permission_id, created_by) VALUES ($1, $2, $3, $4)`,
+        [groupId, modId, permId, adminId]
       );
-      permInserted++;
+      gpInserted++;
     }
-    console.log(`Permissions seeded (${permInserted} permissions)`);
+    console.log(`Group Permissions seeded (${gpInserted} assignments)`);
 
   } catch (err) {
     console.error('Seed failed:', err);

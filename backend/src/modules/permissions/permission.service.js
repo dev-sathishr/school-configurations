@@ -10,12 +10,16 @@ async function getById(id) {
   return { permission };
 }
 
-async function create(body, userId) {
-  const { group_id, module_id } = body;
-  if (!group_id || !module_id) return { error: 'badRequest', message: 'Group and Module are required' };
+async function getDropdown(query) {
+  return permissionRepo.getDropdown(query);
+}
 
-  const existing = await permissionRepo.findByGroupAndModule(group_id, module_id);
-  if (existing) return { error: 'conflict', message: 'Permission already exists for this group and menu' };
+async function create(body, userId) {
+  const { name, code } = body;
+  if (!name || !code) return { error: 'badRequest', message: 'Name and code are required' };
+
+  const existing = await permissionRepo.findByCodeActive(code);
+  if (existing) return { error: 'conflict', message: 'Permission code already exists' };
 
   const permission = await permissionRepo.create(body, userId);
   return { permission };
@@ -25,11 +29,9 @@ async function update(id, body, userId) {
   const current = await permissionRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Permission not found' };
 
-  const groupId = body.group_id || current.group_id;
-  const menuId = body.module_id || current.module_id;
-  if (groupId !== current.group_id || menuId !== current.module_id) {
-    const duplicate = await permissionRepo.findByGroupAndModule(groupId, moduleId);
-    if (duplicate && duplicate.id !== id) return { error: 'conflict', message: 'Permission already exists for this group and menu' };
+  if (body.code && body.code.toLowerCase() !== current.code.toLowerCase()) {
+    const duplicate = await permissionRepo.findByCodeActive(body.code);
+    if (duplicate) return { error: 'conflict', message: 'Permission code already exists' };
   }
 
   const permission = await permissionRepo.update(id, body, current, userId);
@@ -51,4 +53,4 @@ async function removeMultiple(ids, userId) {
   return { deleted_count: deletedCount };
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple };
+module.exports = { getAll, getById, getDropdown, create, update, remove, removeMultiple };

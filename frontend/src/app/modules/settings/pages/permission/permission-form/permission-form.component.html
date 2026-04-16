@@ -1,4 +1,4 @@
-<div>
+<div class="mx-auto max-w-4xl">
   <div class="mb-6">
     <app-breadcrumb></app-breadcrumb>
   </div>
@@ -12,26 +12,24 @@
   } @else {
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
 
-      <!-- Group & Menu Selection -->
+      <!-- Permission Info -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
-        <h4 class="text-foreground mb-4 text-sm font-semibold">Permission Assignment</h4>
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Permission Information</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <app-form-field [formGroup]="form" controlName="group_id" label="Group" fieldType="async-select"
-            asyncUrl="/groups/dropdown" [required]="true" [submitted]="submitted" [initialLabel]="groupLabel" placeholder="Select group" />
-          <app-form-field [formGroup]="form" controlName="module_id" label="Module" fieldType="async-select"
-            asyncUrl="/modules/dropdown" [required]="true" [submitted]="submitted" [initialLabel]="moduleLabel" placeholder="Select module" />
+          <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted" placeholder="e.g. View" />
+          <app-form-field [formGroup]="form" controlName="code" label="Code" [required]="true" [submitted]="submitted" placeholder="e.g. VIEW" />
         </div>
       </div>
 
-      <!-- Permission Flags -->
+      <!-- Description -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
-        <h4 class="text-foreground mb-4 text-sm font-semibold">Access Permissions</h4>
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <app-form-field [formGroup]="form" controlName="can_view" label="Can View" fieldType="checkbox" />
-          <app-form-field [formGroup]="form" controlName="can_create" label="Can Create" fieldType="checkbox" />
-          <app-form-field [formGroup]="form" controlName="can_edit" label="Can Edit" fieldType="checkbox" />
-          <app-form-field [formGroup]="form" controlName="can_delete" label="Can Delete" fieldType="checkbox" />
-        </div>
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Details</h4>
+        <app-form-field [formGroup]="form" controlName="description" label="Description" fieldType="textarea" placeholder="Brief description of the permission" />
+      </div>
+
+      <!-- Status -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
       </div>
 
       <!-- Actions -->

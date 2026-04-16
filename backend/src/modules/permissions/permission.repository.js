@@ -1,16 +1,11 @@
 const db = require('../../config/database');
 const { paginate } = require('../../shared/helpers/pagination.helper');
 
-const SELECT_FIELDS = `p.id, p.group_id, p.module_id, p.can_view, p.can_create, p.can_edit, p.can_delete,
-  g.name AS group_name, g.code AS group_code,
-  mod.name AS module_name, mod.code AS module_code,
+const SELECT_FIELDS = `p.id, p.name, p.code, p.description, p.is_active,
   p.created_by, p.updated_by, p.created_at, p.updated_at,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
 
-const JOINS = `LEFT JOIN settings.groups g ON p.group_id = g.id
-  LEFT JOIN settings.modules mod ON p.module_id = mod.id
-  LEFT JOIN settings.users cb ON p.created_by = cb.id
-  LEFT JOIN settings.users ub ON p.updated_by = ub.id`;
+const JOINS = 'LEFT JOIN settings.users cb ON p.created_by = cb.id LEFT JOIN settings.users ub ON p.updated_by = ub.id';
 
 async function findAll(query) {
   return paginate({
@@ -18,9 +13,9 @@ async function findAll(query) {
     alias: 'p',
     selectFields: SELECT_FIELDS,
     joins: JOINS,
-    searchColumns: ['g.name', 'mod.name'],
-    filterableColumns: ['p.group_id', 'p.module_id', 'p.can_view', 'p.can_create', 'p.can_edit', 'p.can_delete'],
-    sortableColumns: ['g.name', 'mod.name', 'p.created_at'],
+    searchColumns: ['p.name', 'p.code', 'p.description'],
+    filterableColumns: ['p.name', 'p.code', 'p.is_active'],
+    sortableColumns: ['p.name', 'p.code', 'p.is_active', 'p.created_at'],
     defaultSortBy: 'p.created_at',
     defaultSortOrder: 'DESC',
   }, query);
@@ -36,23 +31,33 @@ async function findById(id) {
   return result.rows[0] || null;
 }
 
-async function findByGroupAndModule(groupId, moduleId) {
-  const result = await db.query(
-    'SELECT * FROM settings.permissions WHERE group_id = $1 AND module_id = $2 AND deleted_at IS NULL',
-    [groupId, moduleId]
-  );
+async function findByCodeActive(code) {
+  const result = await db.query('SELECT * FROM settings.permissions WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL', [code]);
   return result.rows[0] || null;
+}
+
+async function getDropdown(query) {
+  return paginate({
+    table: 'settings.permissions',
+    alias: 'p',
+    selectFields: 'p.id, p.name, p.code',
+    searchColumns: ['p.name'],
+    filterableColumns: [],
+    sortableColumns: ['p.name'],
+    defaultSortBy: 'p.name',
+    defaultSortOrder: 'ASC',
+    extraWhere: "p.is_active = true",
+  }, query);
 }
 
 async function create(data, userId) {
   const result = await db.query(`
-    INSERT INTO settings.permissions (group_id, module_id, can_view, can_create, can_edit, can_delete, created_by, updated_by)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING id, group_id, module_id, can_view, can_create, can_edit, can_delete, created_at
+    INSERT INTO settings.permissions (name, code, description, is_active, created_by, updated_by)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING id, name, code, description, is_active, created_at
   `, [
-    data.group_id, data.module_id,
-    data.can_view || false, data.can_create || false,
-    data.can_edit || false, data.can_delete || false,
+    data.name, data.code, data.description || null,
+    data.is_active !== undefined ? data.is_active : true,
     userId, userId,
   ]);
   return result.rows[0];
@@ -61,17 +66,15 @@ async function create(data, userId) {
 async function update(id, data, current, userId) {
   const result = await db.query(`
     UPDATE settings.permissions SET
-      group_id = $1, module_id = $2, can_view = $3, can_create = $4,
-      can_edit = $5, can_delete = $6, updated_by = $7, updated_at = NOW()
-    WHERE id = $8
-    RETURNING id, group_id, module_id, can_view, can_create, can_edit, can_delete, updated_at
+      name = $1, code = $2, description = $3, is_active = $4,
+      updated_by = $5, updated_at = NOW()
+    WHERE id = $6
+    RETURNING id, name, code, description, is_active, updated_at
   `, [
-    data.group_id || current.group_id,
-    data.module_id || current.module_id,
-    data.can_view !== undefined ? data.can_view : current.can_view,
-    data.can_create !== undefined ? data.can_create : current.can_create,
-    data.can_edit !== undefined ? data.can_edit : current.can_edit,
-    data.can_delete !== undefined ? data.can_delete : current.can_delete,
+    data.name || current.name,
+    data.code || current.code,
+    data.description !== undefined ? (data.description || null) : current.description,
+    data.is_active !== undefined ? data.is_active : current.is_active,
     userId, id,
   ]);
   return result.rows[0];
@@ -90,4 +93,4 @@ async function softDeleteMultiple(ids, userId) {
   return result.rowCount;
 }
 
-module.exports = { findAll, findById, findByGroupAndModule, create, update, softDelete, softDeleteMultiple };
+module.exports = { findAll, findById, findByCodeActive, getDropdown, create, update, softDelete, softDeleteMultiple };

@@ -39,6 +39,16 @@ async function getDropdown(req, resp) {
   }
 }
 
+async function getMenusWithModules(req, resp) {
+  try {
+    const result = await menuService.getMenusWithModules();
+    return res.success(resp, result);
+  } catch (err) {
+    console.error('Get menus with modules error:', err);
+    return res.error(resp);
+  }
+}
+
 async function create(req, resp) {
   try {
     const result = await menuService.create(req.body, req.user.id);
@@ -83,4 +93,4 @@ async function removeMultiple(req, resp) {
   }
 }
 
-module.exports = { getAll, getById, getDropdown, create, update, remove, removeMultiple };
+module.exports = { getAll, getById, getDropdown, getMenusWithModules, create, update, remove, removeMultiple };

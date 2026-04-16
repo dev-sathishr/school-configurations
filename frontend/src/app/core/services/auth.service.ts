@@ -16,7 +16,9 @@ export interface User {
   username: string;
   full_name: string;
   email: string;
-  role: string;
+  group_id: string;
+  group_code: string;
+  group_name: string;
   last_login: string;
 }
 

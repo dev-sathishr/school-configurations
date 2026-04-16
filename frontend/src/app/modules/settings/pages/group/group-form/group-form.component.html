@@ -1,4 +1,4 @@
-<div>
+<div class="mx-auto max-w-5xl">
   <div class="mb-6">
     <app-breadcrumb></app-breadcrumb>
   </div>
@@ -25,6 +25,91 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Details</h4>
         <app-form-field [formGroup]="form" controlName="description" label="Description" fieldType="textarea" placeholder="Brief description of the group" />
+      </div>
+
+      <!-- Permission Matrix -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Menu Access & Permissions</h4>
+        <p class="text-muted-foreground mb-4 text-xs">Select which menus this group can access and set permissions for each module</p>
+
+        @if (matrixLoading) {
+          <app-loader size="small" text="Loading permission matrix..." />
+        } @else if (menuTree.length === 0) {
+          <p class="text-muted-foreground text-sm">No menus with modules found. Create menus and assign modules first.</p>
+        } @else {
+          <div class="space-y-4">
+            @for (menu of menuTree; track menu.id) {
+              <div class="border-muted/30 overflow-hidden rounded-lg border">
+                <!-- Menu Header -->
+                <div
+                  class="flex items-center gap-3 px-4 py-3 transition-colors"
+                  [class.bg-primary/5]="menu.selected"
+                  [class.bg-muted/20]="!menu.selected">
+                  <label class="flex flex-1 cursor-pointer items-center gap-3 select-none">
+                    <input type="checkbox" [checked]="menu.selected" (change)="toggleMenu(menu)"
+                      class="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300" />
+                    <span class="text-foreground text-sm font-semibold">{{ menu.name }}</span>
+                    <span class="text-muted-foreground text-xs">({{ menu.code }})</span>
+                  </label>
+                  @if (menu.modules.length > 0) {
+                    <span class="text-muted-foreground text-xs">{{ menu.modules.length }} module{{ menu.modules.length > 1 ? 's' : '' }}</span>
+                  }
+                </div>
+
+                <!-- Modules with Permissions -->
+                @if (menu.selected && menu.modules.length > 0) {
+                  <div class="border-muted/20 border-t">
+                    <!-- Header Row (dynamic columns) -->
+                    <div class="text-muted-foreground hidden items-center gap-2 bg-muted/10 px-4 py-2 text-xs font-medium sm:flex">
+                      <div class="min-w-0 flex-1">Module</div>
+                      @for (pt of permissionTypes; track pt.id) {
+                        <div class="w-20 text-center">{{ pt.name }}</div>
+                      }
+                      <div class="w-20 text-center">All</div>
+                    </div>
+
+                    @for (mod of menu.modules; track mod.module_id) {
+                      <div class="border-muted/10 flex flex-wrap items-center gap-2 border-t px-4 py-3 sm:flex-nowrap">
+                        <!-- Module name -->
+                        <div class="min-w-0 flex-1">
+                          <span class="text-foreground text-sm">{{ mod.module_name }}</span>
+                          <span class="text-muted-foreground ml-1 text-xs">({{ mod.module_code }})</span>
+                        </div>
+
+                        <!-- Permission checkboxes (dynamic) -->
+                        @for (pt of permissionTypes; track pt.id) {
+                          <label class="flex w-20 cursor-pointer items-center justify-center gap-1.5 rounded py-1.5 transition-colors select-none"
+                            [class.bg-green-50]="mod.permissions[pt.id]" [class.dark:bg-green-950/30]="mod.permissions[pt.id]">
+                            <input type="checkbox" [checked]="mod.permissions[pt.id]"
+                              (change)="mod.permissions[pt.id] = !mod.permissions[pt.id]; onPermissionChange(menu)"
+                              class="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300" />
+                            <span class="text-xs sm:hidden">{{ pt.name }}</span>
+                          </label>
+                        }
+
+                        <!-- Select All button -->
+                        <button type="button" (click)="toggleAllForModule(mod, menu)"
+                          class="w-20 rounded px-2 py-1.5 text-center text-xs transition-colors"
+                          [class.bg-primary/10]="isAllCheckedForModule(mod)"
+                          [class.text-primary]="isAllCheckedForModule(mod)"
+                          [class.bg-muted/30]="!isAllCheckedForModule(mod)"
+                          [class.text-muted-foreground]="!isAllCheckedForModule(mod)">
+                          {{ isAllCheckedForModule(mod) ? 'Clear' : 'All' }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (menu.selected && menu.modules.length === 0) {
+                  <div class="border-muted/20 border-t px-4 py-3">
+                    <p class="text-muted-foreground text-xs italic">No modules assigned to this menu yet.</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
       </div>
 
       <!-- Status -->

@@ -34,16 +34,6 @@ async function migrate() {
     await client.query('CREATE SCHEMA IF NOT EXISTS settings');
 
     await client.query(`
-      CREATE TYPE settings.user_role AS ENUM (
-        'super_admin', 'admin', 'principal', 'vice_principal', 'hod',
-        'teacher', 'class_teacher', 'accountant', 'librarian', 'clerk',
-        'lab_assistant', 'transport_manager', 'student', 'parent'
-      );
-    `).catch(() => {
-      console.log('Enum user_role already exists, skipping...');
-    });
-
-    await client.query(`
       CREATE TABLE IF NOT EXISTS settings.users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         username VARCHAR(100) UNIQUE NOT NULL,
@@ -51,7 +41,6 @@ async function migrate() {
         full_name VARCHAR(200) NOT NULL,
         email VARCHAR(200),
         phone VARCHAR(20),
-        role settings.user_role DEFAULT 'clerk',
         is_active BOOLEAN DEFAULT true,
         last_login TIMESTAMPTZ,
         created_by UUID REFERENCES settings.users(id),
@@ -60,6 +49,10 @@ async function migrate() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
+
+    // Drop legacy role column and enum if they exist
+    await client.query('ALTER TABLE settings.users DROP COLUMN IF EXISTS role').catch(() => {});
+    await client.query('DROP TYPE IF EXISTS settings.user_role').catch(() => {});
 
     // Organizations table
     await client.query(`
@@ -187,6 +180,7 @@ async function migrate() {
     `).catch(() => console.log('Index idx_loc_email_unique already exists'));
 
     // Drop old tables from reverted commit (may exist with different schema)
+    await client.query('DROP TABLE IF EXISTS settings.group_permissions CASCADE').catch(() => {});
     await client.query('DROP TABLE IF EXISTS settings.permissions CASCADE').catch(() => {});
     await client.query('DROP TABLE IF EXISTS settings.group_modules CASCADE').catch(() => {});
     await client.query('DROP TABLE IF EXISTS settings.menu_modules CASCADE').catch(() => {});
@@ -282,6 +276,11 @@ async function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_group_code_unique ON settings.groups (LOWER(code)) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_group_code_unique already exists'));
 
+    // Add group_id FK to users table (maps user to a group instead of enum role)
+    await client.query(`
+      ALTER TABLE settings.users ADD COLUMN IF NOT EXISTS group_id UUID REFERENCES settings.groups(id);
+    `).catch(() => {});
+
     // Group Modules table (links groups to menus/sidebar items)
     await client.query(`
       CREATE TABLE IF NOT EXISTS settings.group_modules (
@@ -299,16 +298,14 @@ async function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_group_module_unique ON settings.group_modules (group_id, menu_id) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_group_module_unique already exists'));
 
-    // Permissions table (group + module level CRUD permissions)
+    // Permissions master table (permission types like View, Create, Edit, Delete)
     await client.query(`
       CREATE TABLE IF NOT EXISTS settings.permissions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        group_id UUID NOT NULL REFERENCES settings.groups(id),
-        module_id UUID NOT NULL REFERENCES settings.modules(id),
-        can_view BOOLEAN DEFAULT false,
-        can_create BOOLEAN DEFAULT false,
-        can_edit BOOLEAN DEFAULT false,
-        can_delete BOOLEAN DEFAULT false,
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT true,
         created_by UUID REFERENCES settings.users(id),
         updated_by UUID REFERENCES settings.users(id),
         created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -319,8 +316,26 @@ async function migrate() {
     `);
 
     await client.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_permission_group_module_unique ON settings.permissions (group_id, module_id) WHERE deleted_at IS NULL;
-    `).catch(() => console.log('Index idx_permission_group_menu_unique already exists'));
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_permission_code_unique ON settings.permissions (LOWER(code)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_permission_code_unique already exists'));
+
+    // Group permissions table (group + module + permission type mapping)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.group_permissions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        group_id UUID NOT NULL REFERENCES settings.groups(id),
+        module_id UUID NOT NULL REFERENCES settings.modules(id),
+        permission_id UUID NOT NULL REFERENCES settings.permissions(id),
+        created_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_group_permission_unique ON settings.group_permissions (group_id, module_id, permission_id) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_group_permission_unique already exists'));
 
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];

@@ -17,51 +17,27 @@ export class PermissionListComponent {
   deleteUrl = '/permissions/delete-multiple';
 
   columns: ColumnConfig[] = [
-    { key: 'g.name', label: 'Group', sortable: true, searchable: true },
-    { key: 'mod.name', label: 'Module', sortable: true, searchable: true },
+    { key: 'p.name', label: 'Name', sortable: true, searchable: true },
+    { key: 'p.code', label: 'Code', sortable: true, searchable: true },
+    { key: 'p.description', label: 'Description', searchable: true },
     {
-      key: 'p.can_view', label: 'View', sortable: true, type: 'badge',
+      key: 'p.is_active', label: 'Status', sortable: true, type: 'badge',
       badgeMap: {
-        'Yes': { label: 'Yes', class: 'bg-green-500/10 text-green-700' },
-        'No': { label: 'No', class: 'bg-red-500/10 text-red-700' },
-      },
-    },
-    {
-      key: 'p.can_create', label: 'Create', sortable: true, type: 'badge',
-      badgeMap: {
-        'Yes': { label: 'Yes', class: 'bg-green-500/10 text-green-700' },
-        'No': { label: 'No', class: 'bg-red-500/10 text-red-700' },
-      },
-    },
-    {
-      key: 'p.can_edit', label: 'Edit', sortable: true, type: 'badge',
-      badgeMap: {
-        'Yes': { label: 'Yes', class: 'bg-green-500/10 text-green-700' },
-        'No': { label: 'No', class: 'bg-red-500/10 text-red-700' },
-      },
-    },
-    {
-      key: 'p.can_delete', label: 'Delete', sortable: true, type: 'badge',
-      badgeMap: {
-        'Yes': { label: 'Yes', class: 'bg-green-500/10 text-green-700' },
-        'No': { label: 'No', class: 'bg-red-500/10 text-red-700' },
+        'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
+        'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
       },
     },
     { key: 'created_by_name', label: 'Created By' },
   ];
 
   displayKeyMap: Record<string, string> = {
-    'g.name': 'group_name', 'mod.name': 'module_name',
-    'p.can_view': 'can_view', 'p.can_create': 'can_create',
-    'p.can_edit': 'can_edit', 'p.can_delete': 'can_delete',
-    'created_by_name': 'created_by_name',
+    'p.name': 'name', 'p.code': 'code', 'p.description': 'description',
+    'p.is_active': 'is_active', 'created_by_name': 'created_by_name',
   };
 
   rowTransform = (row: any, mapped: any) => {
-    mapped['p.can_view'] = row.can_view ? 'Yes' : 'No';
-    mapped['p.can_create'] = row.can_create ? 'Yes' : 'No';
-    mapped['p.can_edit'] = row.can_edit ? 'Yes' : 'No';
-    mapped['p.can_delete'] = row.can_delete ? 'Yes' : 'No';
+    mapped['p.is_active'] = row.is_active ? 'Active' : 'Inactive';
+    mapped['p.description'] = row.description || '-';
     return mapped;
   };
 

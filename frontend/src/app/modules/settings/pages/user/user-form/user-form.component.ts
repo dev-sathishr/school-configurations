@@ -20,14 +20,7 @@ export class UserFormComponent implements OnInit {
   saving = false;
   loading = false;
   errorMessage = '';
-
-  roles = [
-    'super_admin', 'admin', 'principal', 'vice_principal', 'hod',
-    'teacher', 'class_teacher', 'accountant', 'librarian', 'clerk',
-    'lab_assistant', 'transport_manager', 'student', 'parent',
-  ];
-
-  roleOptions = this.roles.map(r => ({ value: r, label: r.replace(/_/g, ' ') }));
+  groupLabel = '';
 
   constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
@@ -38,7 +31,7 @@ export class UserFormComponent implements OnInit {
       full_name: ['', Validators.required],
       email: [''],
       phone: [''],
-      role: ['clerk', Validators.required],
+      group_id: ['', Validators.required],
       is_active: [true],
     });
 
@@ -49,7 +42,9 @@ export class UserFormComponent implements OnInit {
       this.loading = true;
       this.cs.getService({ url: `/users/${id}` }).subscribe({
         next: (res: any) => {
-          this.form.patchValue(res.user || res.data || res);
+          const user = res.user || res.data || res;
+          this.form.patchValue(user);
+          this.groupLabel = user.group_name || '';
           this.form.get('password')?.clearValidators();
           this.form.get('password')?.updateValueAndValidity();
           this.loading = false;

@@ -16,9 +16,9 @@ function authenticate(req, res, next) {
   }
 }
 
-function authorize(...roles) {
+function authorize(...groupCodes) {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!groupCodes.includes(req.user.group_code)) {
       return forbidden(res, 'Insufficient permissions');
     }
     next();

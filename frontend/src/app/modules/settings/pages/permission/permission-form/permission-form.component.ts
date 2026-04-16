@@ -20,19 +20,15 @@ export class PermissionFormComponent implements OnInit {
   saving = false;
   loading = false;
   errorMessage = '';
-  groupLabel = '';
-  moduleLabel = '';
 
   constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
-      group_id: ['', Validators.required],
-      module_id: ['', Validators.required],
-      can_view: [false],
-      can_create: [false],
-      can_edit: [false],
-      can_delete: [false],
+      name: ['', Validators.required],
+      code: ['', Validators.required],
+      description: [''],
+      is_active: [true],
     });
 
     const id = this.cs.getRouteParam(this.route, 'id');
@@ -42,10 +38,7 @@ export class PermissionFormComponent implements OnInit {
       this.loading = true;
       this.cs.getService({ url: `/permissions/${id}` }).subscribe({
         next: (res: any) => {
-          const data = res.permission || res.data || res;
-          this.form.patchValue(data);
-          this.groupLabel = data.group_name || '';
-          this.moduleLabel = data.module_name || '';
+          this.form.patchValue(res.permission || res.data || res);
           this.loading = false;
           this.cdr.detectChanges();
         },

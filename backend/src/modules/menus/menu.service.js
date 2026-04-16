@@ -5,13 +5,18 @@ async function getAll(query) {
 }
 
 async function getById(id) {
-  const menu = await menuRepo.findById(id);
+  const menu = await menuRepo.findByIdWithModules(id);
   if (!menu) return { error: 'notFound', message: 'Menu not found' };
   return { menu };
 }
 
 async function getDropdown(query) {
   return menuRepo.getDropdown(query);
+}
+
+async function getMenusWithModules() {
+  const data = await menuRepo.getMenusWithModules();
+  return { data };
 }
 
 async function create(body, userId) {
@@ -53,4 +58,4 @@ async function removeMultiple(ids, userId) {
   return { deleted_count: deletedCount };
 }
 
-module.exports = { getAll, getById, getDropdown, create, update, remove, removeMultiple };
+module.exports = { getAll, getById, getDropdown, getMenusWithModules, create, update, remove, removeMultiple };

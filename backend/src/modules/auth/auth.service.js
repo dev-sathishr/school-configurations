@@ -16,7 +16,7 @@ async function login(username, pwd) {
 
   await userRepo.updateLastLogin(user.id);
 
-  const tokenPayload = { id: user.id, username: user.username, role: user.role };
+  const tokenPayload = { id: user.id, username: user.username, group_code: user.group_code || '' };
 
   return {
     data: {
@@ -27,7 +27,9 @@ async function login(username, pwd) {
         username: user.username,
         full_name: user.full_name,
         email: user.email,
-        role: user.role,
+        group_id: user.group_id,
+        group_code: user.group_code || '',
+        group_name: user.group_name || '',
         last_login: user.last_login,
       },
     },
@@ -40,21 +42,13 @@ async function refresh(refreshToken) {
 
   try {
     const decoded = jwt.verifyRefreshToken(refreshToken);
-    const user = await userRepo.findByUsername(decoded.id);
 
-    // Use direct query since we need by id, not username
-    const userById = await userRepo.findProfileById(decoded.id);
-    if (!userById) return { error: 'unauthorized', message: 'Invalid refresh token' };
-
-    // Check if active via raw query
-    const db = require('../../config/database');
-    const result = await db.query('SELECT * FROM settings.users WHERE id = $1', [decoded.id]);
-    const fullUser = result.rows[0];
+    const fullUser = await userRepo.findProfileById(decoded.id);
     if (!fullUser || !fullUser.is_active) return { error: 'unauthorized', message: 'Invalid refresh token' };
 
     return {
       data: {
-        access_token: jwt.generateAccessToken({ id: fullUser.id, username: fullUser.username, role: fullUser.role }),
+        access_token: jwt.generateAccessToken({ id: fullUser.id, username: fullUser.username, group_code: fullUser.group_code || '' }),
       },
     };
   } catch (err) {

@@ -29,6 +29,16 @@ async function getById(req, resp) {
   }
 }
 
+async function getDropdown(req, resp) {
+  try {
+    const result = await permissionService.getDropdown(req.query);
+    return res.success(resp, result);
+  } catch (err) {
+    console.error('Get permissions dropdown error:', err);
+    return res.error(resp);
+  }
+}
+
 async function create(req, resp) {
   try {
     const result = await permissionService.create(req.body, req.user.id);
@@ -73,4 +83,4 @@ async function removeMultiple(req, resp) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple };
+module.exports = { getAll, getById, getDropdown, create, update, remove, removeMultiple };

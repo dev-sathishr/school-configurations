@@ -1,4 +1,4 @@
-<div>
+<div class="mx-auto max-w-4xl">
   <div class="mb-6">
     <app-breadcrumb></app-breadcrumb>
   </div>
@@ -19,8 +19,8 @@
           <app-form-field [formGroup]="form" controlName="username" label="Username" [required]="true" [submitted]="submitted" placeholder="e.g. john_doe" />
           <app-form-field [formGroup]="form" controlName="password" label="Password" fieldType="password"
             [required]="!editMode" [submitted]="submitted" [placeholder]="editMode ? 'Leave blank to keep current' : 'Enter password'" />
-          <app-form-field [formGroup]="form" controlName="role" label="Role" fieldType="select"
-            [required]="true" [submitted]="submitted" [options]="roleOptions" />
+          <app-form-field [formGroup]="form" controlName="group_id" label="Group" fieldType="async-select"
+            asyncUrl="/groups/dropdown" [required]="true" [submitted]="submitted" [initialLabel]="groupLabel" selectPlaceholder="Select group" />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 <div class="bg-background">
   <div class="mx-auto px-5">
-    <div class="flex items-center justify-between py-3.5">
+    <div class="relative flex items-center justify-between py-1.5">
       <!-- Mobile menu button -->
       <div class="md:hidden">
         <button
@@ -11,13 +11,20 @@
         </button>
       </div>
 
-      <!-- Logo (header mode only) -->
+      <!-- Mobile centered logo -->
+      <div class="pointer-events-none absolute inset-0 flex items-center justify-center md:hidden">
+        <a class="pointer-events-auto">
+          <img src="assets/icons/shaanthi-logo.png" alt="ShaanthiEd" class="h-10 w-auto object-contain" />
+        </a>
+      </div>
+
+      <!-- Logo (header mode only, desktop) -->
       @if (themeService.theme().menuStyle !== 'sidebar') {
-        <div class="flex items-center justify-start gap-3 ltr:mr-8 rtl:ml-8">
+        <div class="hidden items-center justify-start gap-3 md:flex ltr:mr-8 rtl:ml-8">
           <a class="flex items-center justify-center rounded-sm focus:outline-hidden focus:ring-1">
             <img src="assets/icons/shaanthi-logo.png" alt="ShaanthiEd" class="h-10 w-auto object-contain" />
           </a>
-          <b class="text-foreground hidden text-sm font-bold sm:block">ShaanthiEd</b>
+          <b class="text-foreground text-sm font-bold">ShaanthiEd</b>
         </div>
       }
 
@@ -53,7 +60,7 @@
           [selectedValues]="selectedFavoriteValues"
           (selectedValuesChange)="onFavoritesChange($event)"
           [headerText]="favoritesHeader"
-          searchPlaceholder="Find menu item...">
+          searchPlaceholder="Find module...">
           <button trigger type="button"
             class="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors">
             @if (favorites.length === 0) {

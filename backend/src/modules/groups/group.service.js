@@ -5,7 +5,7 @@ async function getAll(query) {
 }
 
 async function getById(id) {
-  const group = await groupRepo.findById(id);
+  const group = await groupRepo.findByIdWithPermissions(id);
   if (!group) return { error: 'notFound', message: 'Group not found' };
   return { group };
 }
