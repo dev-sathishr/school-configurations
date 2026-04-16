@@ -43,8 +43,21 @@ async function me(req, resp) {
   }
 }
 
+async function myPermissions(req, resp) {
+  try {
+    const result = await authService.getMyPermissions(req.user.id);
+
+    if (result.error === 'notFound') return res.notFound(resp, result.message);
+
+    return res.success(resp, result.data);
+  } catch (err) {
+    console.error('My permissions error:', err);
+    return res.error(resp);
+  }
+}
+
 async function logout(req, resp) {
   return res.success(resp, {}, 'Logout successful');
 }
 
-module.exports = { login, refresh, me, logout };
+module.exports = { login, refresh, me, myPermissions, logout };

@@ -83,7 +83,7 @@
   <div class="flex items-center gap-2">
     @if (selectedCount() > 0) {
       <span class="text-muted-foreground text-xs font-medium">{{ selectedCount() }} selected</span>
-      @if (isSingleSelected()) {
+      @if (isSingleSelected() && canEdit) {
         <button
           (click)="onEditSelected.emit()"
           title="Edit selected"
@@ -91,12 +91,14 @@
           <svg-icon src="./assets/icons/heroicons/outline/pencil.svg" [svgClass]="'h-4 w-4'"></svg-icon>
         </button>
       }
-      <button
-        (click)="onDeleteSelected.emit()"
-        title="Delete selected"
-        class="flex h-[34px] w-[34px] items-center justify-center rounded-md border border-muted/50 bg-background text-red-500 hover:bg-red-50">
-        <svg-icon src="./assets/icons/heroicons/outline/trash.svg" [svgClass]="'h-4 w-4'"></svg-icon>
-      </button>
+      @if (canDelete) {
+        <button
+          (click)="onDeleteSelected.emit()"
+          title="Delete selected"
+          class="flex h-[34px] w-[34px] items-center justify-center rounded-md border border-muted/50 bg-background text-red-500 hover:bg-red-50">
+          <svg-icon src="./assets/icons/heroicons/outline/trash.svg" [svgClass]="'h-4 w-4'"></svg-icon>
+        </button>
+      }
     }
   </div>
 </div>

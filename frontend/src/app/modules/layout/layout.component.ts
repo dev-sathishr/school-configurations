@@ -5,6 +5,7 @@ import { NavbarComponent } from './components/navbar/navbar.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { SubheaderComponent } from './components/subheader/subheader.component';
 import { ThemeService } from '../../core/services/theme.service';
+import { MenuService } from './services/menu.service';
 
 @Component({
   selector: 'app-layout',
@@ -15,7 +16,7 @@ import { ThemeService } from '../../core/services/theme.service';
 export class LayoutComponent implements OnInit {
   private mainContent: HTMLElement | null = null;
 
-  constructor(private router: Router, public themeService: ThemeService) {
+  constructor(private router: Router, public themeService: ThemeService, public menuService: MenuService) {
     this.router.events.subscribe((event: Event) => {
       if (event instanceof NavigationEnd) {
         if (this.mainContent) {

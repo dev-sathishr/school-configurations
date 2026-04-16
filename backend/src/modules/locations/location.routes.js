@@ -1,16 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { getAll, getById, create, update, remove, removeMultiple } = require('./location.controller');
-const { authenticate, authorize } = require('../../shared/middleware/auth.middleware');
-const { ADMIN_ROLES, ROLES } = require('../../shared/constants/roles');
+const { authenticate, authorizeModule, checkModuleView, checkRecordOwnership } = require('../../shared/middleware/auth.middleware');
 
 router.use(authenticate);
 
-router.get('/', getAll);
-router.get('/:id', getById);
-router.post('/', authorize(...ADMIN_ROLES), create);
-router.post('/delete-multiple', authorize(ROLES.SUPER_ADMIN), removeMultiple);
-router.put('/:id', authorize(...ADMIN_ROLES), update);
-router.delete('/:id', authorize(ROLES.SUPER_ADMIN), remove);
+router.get('/', checkModuleView('LOCATIONS'), getAll);
+router.get('/:id', checkRecordOwnership('settings.locations', 'LOCATIONS'), getById);
+router.post('/', authorizeModule('LOCATIONS', 'CREATE'), create);
+router.post('/delete-multiple', authorizeModule('LOCATIONS', 'DELETE'), removeMultiple);
+router.put('/:id', authorizeModule('LOCATIONS', 'EDIT'), checkRecordOwnership('settings.locations', 'LOCATIONS'), update);
+router.delete('/:id', authorizeModule('LOCATIONS', 'DELETE'), checkRecordOwnership('settings.locations', 'LOCATIONS'), remove);
 
 module.exports = router;

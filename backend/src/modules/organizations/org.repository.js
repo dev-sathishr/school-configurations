@@ -4,7 +4,7 @@ const { paginate } = require('../../shared/helpers/pagination.helper');
 const SELECT_FIELDS = `o.*, cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
 const JOINS = 'LEFT JOIN settings.users cb ON o.created_by = cb.id LEFT JOIN settings.users ub ON o.updated_by = ub.id';
 
-async function findAll(query) {
+async function findAll(query, viewOwnUserId) {
   return paginate({
     table: 'settings.organizations',
     alias: 'o',
@@ -15,6 +15,7 @@ async function findAll(query) {
     sortableColumns: ['o.name', 'o.reg_no', 'o.email', 'o.is_active', 'o.created_at'],
     defaultSortBy: 'o.created_at',
     defaultSortOrder: 'DESC',
+    ...(viewOwnUserId ? { extraWhere: 'o.created_by = ?', extraWhereParams: [viewOwnUserId] } : {}),
   }, query);
 }
 

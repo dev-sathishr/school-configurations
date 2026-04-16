@@ -1,16 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { getAll, getById, create, update, remove, removeMultiple } = require('./user.controller');
-const { authenticate, authorize } = require('../../shared/middleware/auth.middleware');
-const { ADMIN_ROLES, ROLES } = require('../../shared/constants/roles');
+const { authenticate, authorizeModule, checkModuleView, checkRecordOwnership } = require('../../shared/middleware/auth.middleware');
 
 router.use(authenticate);
 
-router.get('/', getAll);
-router.get('/:id', getById);
-router.post('/', authorize(...ADMIN_ROLES), create);
-router.post('/delete-multiple', authorize(ROLES.SUPER_ADMIN), removeMultiple);
-router.put('/:id', authorize(...ADMIN_ROLES), update);
-router.delete('/:id', authorize(ROLES.SUPER_ADMIN), remove);
+router.get('/', checkModuleView('USERS'), getAll);
+router.get('/:id', checkRecordOwnership('settings.users', 'USERS'), getById);
+router.post('/', authorizeModule('USERS', 'CREATE'), create);
+router.post('/delete-multiple', authorizeModule('USERS', 'DELETE'), removeMultiple);
+router.put('/:id', authorizeModule('USERS', 'EDIT'), checkRecordOwnership('settings.users', 'USERS'), update);
+router.delete('/:id', authorizeModule('USERS', 'DELETE'), checkRecordOwnership('settings.users', 'USERS'), remove);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 const moduleRepo = require('./module.repository');
 
-async function getAll(query) {
-  return moduleRepo.findAll(query);
+async function getAll(query, viewOwnUserId) {
+  return moduleRepo.findAll(query, viewOwnUserId);
 }
 
 async function getById(id) {

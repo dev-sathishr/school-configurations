@@ -16,8 +16,8 @@ const ORG_RULES = {
   notes: { max: 500, label: 'Notes' },
 };
 
-async function getAll(query) {
-  return orgRepo.findAll(query);
+async function getAll(query, viewOwnUserId) {
+  return orgRepo.findAll(query, viewOwnUserId);
 }
 
 async function getById(id) {

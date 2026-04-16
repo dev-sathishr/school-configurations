@@ -1,8 +1,8 @@
 import { Injectable, OnDestroy, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Menu } from 'src/app/core/constants/menu';
 import { MenuItem, SubMenuItem } from 'src/app/core/models/menu.model';
+import { PermissionService, PermittedMenu } from 'src/app/core/services/permission.service';
 
 @Injectable({
   providedIn: 'root',
@@ -13,29 +13,45 @@ export class MenuService implements OnDestroy {
   private _pagesMenu = signal<MenuItem[]>([]);
   private _subscription = new Subscription();
 
-  constructor(private router: Router) {
-    /** Set dynamic menu */
-    this._pagesMenu.set(Menu.pages);
+  constructor(private router: Router, private permissionService: PermissionService) {
+    // Build menu from permissions
+    this._subscription.add(
+      this.permissionService.menus$.subscribe((menus) => {
+        this._pagesMenu.set(this.buildMenu(menus));
+      })
+    );
 
-    let sub = this.router.events.subscribe((event) => {
-      if (event instanceof NavigationEnd) {
-        /** Expand menu base on active route */
-        this._pagesMenu().forEach((menu) => {
-          let activeGroup = false;
-          menu.items.forEach((subMenu) => {
-            const active = this.isActive(subMenu.route);
-            subMenu.expanded = active;
-            subMenu.active = active;
-            if (active) activeGroup = true;
-            if (subMenu.children) {
-              this.expand(subMenu.children);
-            }
+    this._subscription.add(
+      this.router.events.subscribe((event) => {
+        if (event instanceof NavigationEnd) {
+          this._pagesMenu().forEach((menu) => {
+            let activeGroup = false;
+            menu.items.forEach((subMenu) => {
+              const active = this.isActive(subMenu.route);
+              subMenu.expanded = active;
+              subMenu.active = active;
+              if (active) activeGroup = true;
+              if (subMenu.children) {
+                this.expand(subMenu.children);
+              }
+            });
+            menu.active = activeGroup;
           });
-          menu.active = activeGroup;
-        });
-      }
-    });
-    this._subscription.add(sub);
+        }
+      })
+    );
+  }
+
+  private buildMenu(menus: PermittedMenu[]): MenuItem[] {
+    if (menus.length === 0) return [];
+
+    const items: SubMenuItem[] = menus.map((menu) => ({
+      icon: menu.icon,
+      label: menu.name,
+      route: menu.route_path,
+    }));
+
+    return [{ group: '', separator: false, items }];
   }
 
   get showSideBar() {
@@ -62,7 +78,6 @@ export class MenuService implements OnDestroy {
   public toggleMenu(menu: SubMenuItem) {
     this.showSideBar = true;
 
-    /** collapse all submenus except the selected one. */
     const updatedMenu = this._pagesMenu().map((menuGroup) => {
       return {
         ...menuGroup,

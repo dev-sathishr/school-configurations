@@ -7,7 +7,7 @@ const SELECT_FIELDS = `m.id, m.name, m.code, m.icon, m.route_path, m.display_ord
 
 const JOINS = 'LEFT JOIN settings.users cb ON m.created_by = cb.id LEFT JOIN settings.users ub ON m.updated_by = ub.id';
 
-async function findAll(query) {
+async function findAll(query, viewOwnUserId) {
   return paginate({
     table: 'settings.modules',
     alias: 'm',
@@ -18,6 +18,7 @@ async function findAll(query) {
     sortableColumns: ['m.name', 'm.code', 'm.display_order', 'm.is_active', 'm.created_at'],
     defaultSortBy: 'm.display_order',
     defaultSortOrder: 'ASC',
+    ...(viewOwnUserId ? { extraWhere: 'm.created_by = ?', extraWhereParams: [viewOwnUserId] } : {}),
   }, query);
 }
 

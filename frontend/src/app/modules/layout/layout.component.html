@@ -1,7 +1,9 @@
 @if (themeService.theme().menuStyle === 'sidebar') {
   <!-- Sidebar Layout -->
   <div class="flex h-screen w-full overflow-hidden">
-    <app-sidebar></app-sidebar>
+    @if (menuService.pagesMenu.length > 0) {
+      <app-sidebar></app-sidebar>
+    }
     <div class="flex grow flex-col content-start overflow-hidden bg-card">
       <app-navbar></app-navbar>
       <div
@@ -18,7 +20,9 @@
   <!-- Header Layout -->
   <div class="flex h-screen w-full flex-col overflow-hidden">
     <app-navbar></app-navbar>
-    <app-subheader></app-subheader>
+    @if (menuService.pagesMenu.length > 0) {
+      <app-subheader></app-subheader>
+    }
     <div
       id="main-content"
       class="scrollbar-thumb-rounded scrollbar-track-rounded grow overflow-auto bg-card scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted">

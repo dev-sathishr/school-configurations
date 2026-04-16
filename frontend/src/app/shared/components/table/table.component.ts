@@ -26,6 +26,8 @@ export class TableComponent implements OnInit, OnDestroy {
   @Input() deleteUrl = '';
   @Input() displayKeyMap: Record<string, string> = {};
   @Input() rowTransform: ((row: any, mapped: any) => any) | null = null;
+  @Input() canEdit = true;
+  @Input() canDelete = true;
 
   @Output() onEdit = new EventEmitter<any>();
 

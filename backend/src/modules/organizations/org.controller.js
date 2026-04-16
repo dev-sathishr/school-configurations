@@ -10,7 +10,7 @@ function handleError(resp, result) {
 
 async function getAll(req, resp) {
   try {
-    const result = await orgService.getAll(req.query);
+    const result = await orgService.getAll(req.query, req.viewOwn ? req.user.id : null);
     return res.success(resp, result);
   } catch (err) {
     console.error('Get organizations error:', err);

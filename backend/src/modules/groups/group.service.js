@@ -1,7 +1,7 @@
 const groupRepo = require('./group.repository');
 
-async function getAll(query) {
-  return groupRepo.findAll(query);
+async function getAll(query, viewOwnUserId) {
+  return groupRepo.findAll(query, viewOwnUserId);
 }
 
 async function getById(id) {

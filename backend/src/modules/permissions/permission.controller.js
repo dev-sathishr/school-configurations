@@ -10,7 +10,7 @@ function handleError(resp, result) {
 
 async function getAll(req, resp) {
   try {
-    const result = await permissionService.getAll(req.query);
+    const result = await permissionService.getAll(req.query, req.viewOwn ? req.user.id : null);
     return res.success(resp, result);
   } catch (err) {
     console.error('Get permissions error:', err);

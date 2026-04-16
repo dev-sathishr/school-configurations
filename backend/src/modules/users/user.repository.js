@@ -10,7 +10,7 @@ const JOINS = `LEFT JOIN settings.groups g ON u.group_id = g.id
   LEFT JOIN settings.users cb ON u.created_by = cb.id
   LEFT JOIN settings.users ub ON u.updated_by = ub.id`;
 
-async function findAll(query) {
+async function findAll(query, viewOwnUserId) {
   return paginate({
     table: 'settings.users',
     alias: 'u',
@@ -21,6 +21,7 @@ async function findAll(query) {
     sortableColumns: ['u.username', 'u.full_name', 'u.email', 'u.phone', 'g.name', 'u.is_active', 'u.created_at', 'u.last_login'],
     defaultSortBy: 'u.created_at',
     defaultSortOrder: 'DESC',
+    ...(viewOwnUserId ? { extraWhere: 'u.created_by = ?', extraWhereParams: [viewOwnUserId] } : {}),
   }, query);
 }
 

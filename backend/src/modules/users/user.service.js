@@ -1,8 +1,8 @@
 const userRepo = require('./user.repository');
 const password = require('../../shared/helpers/password.helper');
 
-async function getAll(query) {
-  return userRepo.findAll(query);
+async function getAll(query, viewOwnUserId) {
+  return userRepo.findAll(query, viewOwnUserId);
 }
 
 async function getById(id) {

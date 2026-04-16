@@ -17,7 +17,7 @@ const DETAIL_SELECT = `l.id, l.organization_id, l.name, l.code, l.type, l.email,
   org.id AS org_id, org.name AS org_name,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
 
-async function findAll(query) {
+async function findAll(query, viewOwnUserId) {
   return paginate({
     table: 'settings.locations',
     alias: 'l',
@@ -28,6 +28,7 @@ async function findAll(query) {
     sortableColumns: ['l.name', 'l.code', 'l.type', 'l.is_active', 'l.created_at', 'org.name'],
     defaultSortBy: 'l.created_at',
     defaultSortOrder: 'DESC',
+    ...(viewOwnUserId ? { extraWhere: 'l.created_by = ?', extraWhereParams: [viewOwnUserId] } : {}),
   }, query);
 }
 

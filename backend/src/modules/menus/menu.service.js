@@ -1,7 +1,7 @@
 const menuRepo = require('./menu.repository');
 
-async function getAll(query) {
-  return menuRepo.findAll(query);
+async function getAll(query, viewOwnUserId) {
+  return menuRepo.findAll(query, viewOwnUserId);
 }
 
 async function getById(id) {

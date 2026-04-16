@@ -1,7 +1,7 @@
 const permissionRepo = require('./permission.repository');
 
-async function getAll(query) {
-  return permissionRepo.findAll(query);
+async function getAll(query, viewOwnUserId) {
+  return permissionRepo.findAll(query, viewOwnUserId);
 }
 
 async function getById(id) {

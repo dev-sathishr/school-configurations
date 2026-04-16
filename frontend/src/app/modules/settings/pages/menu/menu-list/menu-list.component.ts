@@ -4,11 +4,13 @@ import { TableComponent } from '../../../../../shared/components/table/table.com
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
+import { PermissionService } from '../../../../../core/services/permission.service';
+import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-menu-list',
   templateUrl: './menu-list.component.html',
-  imports: [TableComponent, ButtonComponent, BreadcrumbComponent],
+  imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
 export class MenuListComponent {
   @ViewChild(TableComponent) table!: TableComponent;
@@ -45,7 +47,7 @@ export class MenuListComponent {
     return mapped;
   };
 
-  constructor(private cs: CommonService) {}
+  constructor(private cs: CommonService, public ps: PermissionService) {}
 
   addNew() { this.cs.navigate({ url: '/settings/menu/new' }); }
   editSelected(item: any) { this.cs.navigate({ url: `/settings/menu/${item.id}/edit` }); }

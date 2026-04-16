@@ -53,6 +53,8 @@ export class AuthService {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     this.currentUserSubject.next(null);
+    // Navigate first — AuthGuard will block re-entry and PermissionService
+    // resets its loaded flag on next login via the guard
     this.router.navigate(['/auth/sign-in']);
   }
 

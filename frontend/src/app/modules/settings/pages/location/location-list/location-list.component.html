@@ -1,6 +1,6 @@
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
   <app-breadcrumb></app-breadcrumb>
-  <app-button impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="addNew()">
+  <app-button *appHasPermission="['LOCATIONS', 'CREATE']" impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="addNew()">
     <span class="mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">+</span>
     Add Location
   </app-button>
@@ -13,5 +13,7 @@
   [columns]="columns"
   [displayKeyMap]="displayKeyMap"
   [rowTransform]="rowTransform"
+  [canEdit]="ps.canEdit('LOCATIONS')"
+  [canDelete]="ps.canDelete('LOCATIONS')"
   (onEdit)="editSelected($event)">
 </app-table>

@@ -14,6 +14,8 @@ export class TableActionComponent {
   selectedCount = input(0);
   isSingleSelected = input(false);
   @Input() columns: ColumnConfig[] = [];
+  @Input() canEdit = true;
+  @Input() canDelete = true;
 
   @Output() onEditSelected = new EventEmitter<void>();
   @Output() onDeleteSelected = new EventEmitter<void>();

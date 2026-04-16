@@ -76,9 +76,6 @@ async function seed() {
     const menus = [
       { name: 'Dashboard', code: 'DASHBOARD', icon: 'assets/icons/heroicons/outline/chart-pie.svg', route_path: '/dashboard', display_order: 1 },
       { name: 'Settings', code: 'SETTINGS', icon: 'assets/icons/heroicons/outline/cog.svg', route_path: '/settings', display_order: 2 },
-      { name: 'Academics', code: 'ACADEMICS', icon: 'assets/icons/heroicons/outline/academic-cap.svg', route_path: '/academics', display_order: 3 },
-      { name: 'Finance', code: 'FINANCE', icon: 'assets/icons/heroicons/outline/currency-rupee.svg', route_path: '/finance', display_order: 4 },
-      { name: 'Transport', code: 'TRANSPORT', icon: 'assets/icons/heroicons/outline/truck.svg', route_path: '/transport', display_order: 5 },
     ];
 
     const menuIds = {};
@@ -94,6 +91,14 @@ async function seed() {
 
     // Seed Modules (feature pages / sub-items within menus)
     const modules = [
+      // Dashboard modules
+      { name: 'School Overview', code: 'SCHOOL_OVERVIEW', icon: 'assets/icons/heroicons/outline/chart-pie.svg', route_path: null, display_order: 1 },
+      { name: 'Academic Summary', code: 'ACADEMIC_SUMMARY', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: null, display_order: 2 },
+      { name: 'Fee Collection', code: 'FEE_COLLECTION', icon: 'assets/icons/heroicons/outline/gift.svg', route_path: null, display_order: 3 },
+      { name: 'My Classes', code: 'MY_CLASSES', icon: 'assets/icons/heroicons/outline/users.svg', route_path: null, display_order: 4 },
+      { name: 'My Grades', code: 'MY_GRADES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: null, display_order: 5 },
+      { name: 'Child Progress', code: 'CHILD_PROGRESS', icon: 'assets/icons/heroicons/outline/eye.svg', route_path: null, display_order: 6 },
+      // Settings modules
       { name: 'Organizations', code: 'ORGANIZATIONS', icon: 'assets/icons/heroicons/outline/cube.svg', route_path: '/settings/organization', display_order: 1 },
       { name: 'Locations', code: 'LOCATIONS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/location', display_order: 2 },
       { name: 'Users', code: 'USERS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/settings/user', display_order: 3 },
@@ -116,6 +121,14 @@ async function seed() {
 
     // Seed Menu Modules (link modules under their parent menu)
     const menuModuleMappings = [
+      // Dashboard modules
+      { menu: 'DASHBOARD', module: 'SCHOOL_OVERVIEW', display_order: 1 },
+      { menu: 'DASHBOARD', module: 'ACADEMIC_SUMMARY', display_order: 2 },
+      { menu: 'DASHBOARD', module: 'FEE_COLLECTION', display_order: 3 },
+      { menu: 'DASHBOARD', module: 'MY_CLASSES', display_order: 4 },
+      { menu: 'DASHBOARD', module: 'MY_GRADES', display_order: 5 },
+      { menu: 'DASHBOARD', module: 'CHILD_PROGRESS', display_order: 6 },
+      // Settings modules
       { menu: 'SETTINGS', module: 'ORGANIZATIONS', display_order: 1 },
       { menu: 'SETTINGS', module: 'LOCATIONS', display_order: 2 },
       { menu: 'SETTINGS', module: 'USERS', display_order: 3 },
@@ -165,13 +178,29 @@ async function seed() {
     await client.query('UPDATE settings.users SET group_id = $1 WHERE id = $2', [groupIds['SUPER_ADMIN'], adminId]);
     console.log('Super admin user assigned to SUPER_ADMIN group');
 
+    // Seed admin user
+    const existingAdmin = await client.query('SELECT id FROM settings.users WHERE username = $1', ['admin']);
+    if (existingAdmin.rows.length === 0) {
+      const adminPwd = await password.hash('admin@123');
+      await client.query(
+        `INSERT INTO settings.users (username, password, full_name, email, group_id, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, $5, true, $6, $7)`,
+        ['admin', adminPwd, 'Admin User', 'admin@shaanthied.com', groupIds['ADMIN'], adminId, adminId]
+      );
+      console.log('Admin user created (username: admin, password: admin@123)');
+    } else {
+      // Re-assign group_id in case groups were re-created with new IDs
+      await client.query('UPDATE settings.users SET group_id = $1 WHERE username = $2', [groupIds['ADMIN'], 'admin']);
+      console.log('Admin user already exists, group_id updated');
+    }
+
     // Seed Group Modules (which menus each group can access)
     const groupModuleMappings = [
-      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'SETTINGS', 'ACADEMICS', 'FINANCE', 'TRANSPORT'] },
-      { group: 'ADMIN', menus: ['DASHBOARD', 'SETTINGS', 'ACADEMICS', 'FINANCE'] },
-      { group: 'PRINCIPAL', menus: ['DASHBOARD', 'ACADEMICS'] },
-      { group: 'TEACHER', menus: ['DASHBOARD', 'ACADEMICS'] },
-      { group: 'ACCOUNTANT', menus: ['DASHBOARD', 'FINANCE'] },
+      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'SETTINGS'] },
+      { group: 'ADMIN', menus: ['DASHBOARD', 'SETTINGS'] },
+      { group: 'PRINCIPAL', menus: ['DASHBOARD'] },
+      { group: 'TEACHER', menus: ['DASHBOARD'] },
+      { group: 'ACCOUNTANT', menus: ['DASHBOARD'] },
       { group: 'STUDENT', menus: ['DASHBOARD'] },
       { group: 'PARENT', menus: ['DASHBOARD'] },
     ];
@@ -194,18 +223,32 @@ async function seed() {
 
     // Seed Group Permissions (group + module + permission type)
     const allPermCodes = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
+    const dashboardModules = ['SCHOOL_OVERVIEW', 'ACADEMIC_SUMMARY', 'FEE_COLLECTION', 'MY_CLASSES', 'MY_GRADES', 'CHILD_PROGRESS'];
+    const settingsModules = ['ORGANIZATIONS', 'LOCATIONS', 'USERS', 'MODULES', 'MENUS', 'GROUPS', 'PERMISSIONS'];
     const groupPermData = [
       // Super Admin: all permissions on all modules
       ...Object.keys(moduleIds).flatMap(modCode =>
         allPermCodes.map(permCode => ({ group: 'SUPER_ADMIN', module: modCode, permission: permCode }))
       ),
-      // Admin: all permissions except DELETE on settings modules
-      ...Object.keys(moduleIds).flatMap(modCode =>
+      // Admin: all permissions on settings, VIEW on all dashboard widgets
+      ...settingsModules.flatMap(modCode =>
         ['VIEW', 'CREATE', 'EDIT'].map(permCode => ({ group: 'ADMIN', module: modCode, permission: permCode }))
       ),
-      // Principal: view-only on some modules
+      ...dashboardModules.map(modCode => ({ group: 'ADMIN', module: modCode, permission: 'VIEW' })),
+      // Principal: dashboard overview + academic, view-only on some settings
+      { group: 'PRINCIPAL', module: 'SCHOOL_OVERVIEW', permission: 'VIEW' },
+      { group: 'PRINCIPAL', module: 'ACADEMIC_SUMMARY', permission: 'VIEW' },
       { group: 'PRINCIPAL', module: 'USERS', permission: 'VIEW' },
       { group: 'PRINCIPAL', module: 'ORGANIZATIONS', permission: 'VIEW' },
+      // Teacher: academic + my classes
+      { group: 'TEACHER', module: 'ACADEMIC_SUMMARY', permission: 'VIEW' },
+      { group: 'TEACHER', module: 'MY_CLASSES', permission: 'VIEW' },
+      // Accountant: fee collection
+      { group: 'ACCOUNTANT', module: 'FEE_COLLECTION', permission: 'VIEW' },
+      // Student: my grades
+      { group: 'STUDENT', module: 'MY_GRADES', permission: 'VIEW' },
+      // Parent: child progress
+      { group: 'PARENT', module: 'CHILD_PROGRESS', permission: 'VIEW' },
     ];
 
     let gpInserted = 0;

@@ -28,6 +28,8 @@ async function paginate(options, query = {}) {
     defaultSortBy = `${alias}.created_at`,
     defaultSortOrder = 'DESC',
     baseCondition = `${alias}.deleted_at IS NULL`,
+    extraWhere = '',
+    extraWhereParams = [],
   } = options;
 
   const page = Math.max(1, parseInt(query.page) || 1);
@@ -54,6 +56,20 @@ async function paginate(options, query = {}) {
   // Exclude soft-deleted rows
   if (baseCondition) {
     conditions.push(baseCondition);
+  }
+
+  // Extra conditions with parameterized values
+  if (extraWhere) {
+    if (extraWhereParams.length > 0) {
+      let clause = extraWhere;
+      for (const val of extraWhereParams) {
+        params.push(val);
+        clause = clause.replace('?', `$${params.length}`);
+      }
+      conditions.push(clause);
+    } else {
+      conditions.push(extraWhere);
+    }
   }
 
   // Global search

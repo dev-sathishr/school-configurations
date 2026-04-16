@@ -1,13 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { MenuService } from '../../services/menu.service';
 import { ThemeService } from '../../../../core/services/theme.service';
+import { PermissionService, PermittedMenu } from '../../../../core/services/permission.service';
 import { NavbarMobileComponent } from './navbar-mobile/navbar-mobilecomponent';
 import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
 import { SelectDropdownComponent } from '../../../../shared/components/select-dropdown/select-dropdown.component';
 import type { DropdownOption } from '../../../../shared/components/select-dropdown/select-dropdown.component';
-import { CommonService } from '../../../../shared/services/common/common.service';
 
 interface FavoriteItem {
   route: string;
@@ -21,51 +22,53 @@ interface FavoriteItem {
   styleUrls: ['./navbar.component.css'],
   imports: [AngularSvgIconModule, ProfileMenuComponent, NavbarMobileComponent, RouterLink, SelectDropdownComponent],
 })
-export class NavbarComponent implements OnInit {
+export class NavbarComponent implements OnInit, OnDestroy {
   favorites: FavoriteItem[] = [];
   allModules: FavoriteItem[] = [];
   favoriteOptions: DropdownOption[] = [];
   selectedFavoriteValues: string[] = [];
+  private sub?: Subscription;
 
-  constructor(private menuService: MenuService, public themeService: ThemeService, private cs: CommonService) {}
+  constructor(private menuService: MenuService, public themeService: ThemeService, private permissionService: PermissionService) {}
 
   ngOnInit(): void {
-    // Load favorites from localStorage immediately so they render without waiting for the API
     this.loadFavorites();
 
-    this.cs.getService({ url: '/menus/with-modules' }).subscribe({
-      next: (res: any) => {
-        const menus = res.data || res || [];
-        this.allModules = [];
-
-        for (const menu of menus) {
-          // Add Dashboard menu itself as a module-level item (it has no child modules)
-          if (menu.code === 'DASHBOARD' && menu.icon && menu.route_path) {
-            this.allModules.push({ route: menu.route_path, label: menu.name, icon: menu.icon });
-          }
-
-          // Add modules from each menu
-          for (const mod of menu.modules || []) {
-            if (mod.route_path) {
-              this.allModules.push({ route: mod.route_path, label: mod.name, icon: mod.icon || menu.icon });
-            }
-          }
-        }
-
-        this.favoriteOptions = this.allModules.map((item) => ({
-          value: item.route,
-          label: item.label,
-          icon: item.icon,
-        }));
-
-        // Re-validate favorites against the actual API data (remove stale entries)
-        if (this.favorites.length > 0) {
-          this.favorites = this.favorites.filter((d) => this.allModules.some((m) => m.route === d.route));
-          this.selectedFavoriteValues = this.favorites.map((f) => f.route);
-          this.saveFavorites();
-        }
-      },
+    this.sub = this.permissionService.menus$.subscribe((menus) => {
+      this.buildModuleList(menus);
     });
+  }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
+  }
+
+  private buildModuleList(menus: PermittedMenu[]): void {
+    this.allModules = [];
+
+    for (const menu of menus) {
+      if (menu.modules.length === 0 && menu.route_path) {
+        this.allModules.push({ route: menu.route_path, label: menu.name, icon: menu.icon });
+      }
+
+      for (const mod of menu.modules) {
+        if (mod.route_path) {
+          this.allModules.push({ route: mod.route_path, label: mod.name, icon: mod.icon || menu.icon });
+        }
+      }
+    }
+
+    this.favoriteOptions = this.allModules.map((item) => ({
+      value: item.route,
+      label: item.label,
+      icon: item.icon,
+    }));
+
+    if (this.favorites.length > 0) {
+      this.favorites = this.favorites.filter((d) => this.allModules.some((m) => m.route === d.route));
+      this.selectedFavoriteValues = this.favorites.map((f) => f.route);
+      this.saveFavorites();
+    }
   }
 
   get favoritesHeader(): string {

@@ -34,8 +34,8 @@ function mapDetailRow(row) {
   };
 }
 
-async function getAll(query) {
-  const result = await locationRepo.findAll(query);
+async function getAll(query, viewOwnUserId) {
+  const result = await locationRepo.findAll(query, viewOwnUserId);
   result.data = result.data.map(mapRow);
   return result;
 }
