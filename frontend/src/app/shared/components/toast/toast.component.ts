@@ -1,14 +1,17 @@
-import { Component, inject } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { Component, computed, inject } from '@angular/core';
+import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { ToastService, Toast } from '../../services/toast/toast.service';
 
 @Component({
   selector: 'app-toast',
   templateUrl: './toast.component.html',
-  imports: [NgClass],
+  imports: [NgClass, NgTemplateOutlet],
 })
 export class ToastComponent {
   toastService = inject(ToastService);
+
+  topToasts = computed(() => this.toastService.toasts().filter(t => t.position === 'top-right'));
+  bottomToasts = computed(() => this.toastService.toasts().filter(t => t.position === 'bottom-right'));
 
   dismiss(id: number): void {
     this.toastService.dismiss(id);

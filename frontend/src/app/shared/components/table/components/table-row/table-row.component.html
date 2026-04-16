@@ -9,7 +9,20 @@
   @for (col of orderedColumns; track col.key) {
     @if (isVisible(col)) {
       <td>
-        @if (col.type === 'badge' && col.badgeMap) {
+        @if (col.type === 'avatar') {
+          <div class="flex items-center gap-2.5">
+            @if (user[col.avatarKey || ''] && !avatarErrors.has(user[col.avatarKey || ''])) {
+              <img [src]="getAvatarUrl(user[col.avatarKey || ''])" alt=""
+                class="h-8 w-8 rounded-full border border-muted/30 object-cover"
+                (error)="onAvatarError(user[col.avatarKey || ''])" />
+            } @else {
+              <div class="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold">
+                {{ getInitial(user[col.key]) }}
+              </div>
+            }
+            <span>{{ user[col.key] ?? '-' }}</span>
+          </div>
+        } @else if (col.type === 'badge' && col.badgeMap) {
           <span
             class="rounded-[30px] px-2.5 py-1 text-xs font-medium"
             [class]="getBadgeClass(col)">

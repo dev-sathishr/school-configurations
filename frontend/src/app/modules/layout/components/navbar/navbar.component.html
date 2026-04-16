@@ -78,12 +78,8 @@
 
       <!-- Action icons & Profile -->
       <div class="flex items-center gap-1">
-        <button class="text-muted-foreground hover:text-foreground hover:bg-muted hidden rounded-md p-2 transition-colors md:inline-flex">
-          <svg-icon src="assets/icons/heroicons/outline/view-grid.svg" [svgClass]="'h-5 w-5'"> </svg-icon>
-        </button>
-        <button class="text-muted-foreground hover:text-foreground hover:bg-muted hidden rounded-md p-2 transition-colors md:inline-flex">
-          <svg-icon src="assets/icons/heroicons/outline/bell.svg" [svgClass]="'h-5 w-5'"> </svg-icon>
-        </button>
+        <app-notification-bell></app-notification-bell>
+        <app-chat-panel></app-chat-panel>
         <app-profile-menu></app-profile-menu>
       </div>
     </div>

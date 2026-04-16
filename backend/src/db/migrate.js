@@ -337,6 +337,101 @@ async function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_group_permission_unique ON settings.group_permissions (group_id, module_id, permission_id) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_group_permission_unique already exists'));
 
+    // Permission requests table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.permission_requests (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        requested_by UUID NOT NULL REFERENCES settings.users(id),
+        message TEXT,
+        status VARCHAR(20) DEFAULT 'pending',
+        resolved_by UUID REFERENCES settings.users(id),
+        resolved_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // Notifications table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.notifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES settings.users(id),
+        type VARCHAR(50) NOT NULL,
+        title VARCHAR(300) NOT NULL,
+        message TEXT,
+        is_read BOOLEAN DEFAULT false,
+        data JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON settings.notifications (user_id, is_read) WHERE is_read = false;
+    `).catch(() => console.log('Index idx_notifications_user_unread already exists'));
+
+    // Conversations table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.conversations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        type VARCHAR(20) DEFAULT 'direct',
+        name VARCHAR(200),
+        created_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // Conversation members table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.conversation_members (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        conversation_id UUID NOT NULL REFERENCES settings.conversations(id),
+        user_id UUID NOT NULL REFERENCES settings.users(id),
+        last_read_at TIMESTAMPTZ DEFAULT NOW(),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_conv_member_unique ON settings.conversation_members (conversation_id, user_id);
+    `).catch(() => console.log('Index idx_conv_member_unique already exists'));
+
+    // Messages table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        conversation_id UUID NOT NULL REFERENCES settings.conversations(id),
+        sender_id UUID NOT NULL REFERENCES settings.users(id),
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_messages_conversation ON settings.messages (conversation_id, created_at DESC);
+    `).catch(() => console.log('Index idx_messages_conversation already exists'));
+
+    // Files table (polymorphic — links files to any entity)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.files (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id UUID NOT NULL,
+        file_type VARCHAR(50) NOT NULL,
+        original_name VARCHAR(500) NOT NULL,
+        stored_name VARCHAR(500) NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        size INT NOT NULL,
+        path VARCHAR(500) NOT NULL,
+        created_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_files_entity ON settings.files (entity_type, entity_id, file_type) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_files_entity already exists'));
+
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];
     for (const table of tables) {

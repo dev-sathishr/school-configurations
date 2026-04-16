@@ -8,6 +8,8 @@ import { PermissionService, PermittedMenu } from '../../../../core/services/perm
 import { NavbarMobileComponent } from './navbar-mobile/navbar-mobilecomponent';
 import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
 import { SelectDropdownComponent } from '../../../../shared/components/select-dropdown/select-dropdown.component';
+import { NotificationBellComponent } from './notification-bell/notification-bell.component';
+import { ChatPanelComponent } from './chat-panel/chat-panel.component';
 import type { DropdownOption } from '../../../../shared/components/select-dropdown/select-dropdown.component';
 
 interface FavoriteItem {
@@ -20,7 +22,7 @@ interface FavoriteItem {
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css'],
-  imports: [AngularSvgIconModule, ProfileMenuComponent, NavbarMobileComponent, RouterLink, SelectDropdownComponent],
+  imports: [AngularSvgIconModule, ProfileMenuComponent, NavbarMobileComponent, RouterLink, SelectDropdownComponent, NotificationBellComponent, ChatPanelComponent],
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   favorites: FavoriteItem[] = [];

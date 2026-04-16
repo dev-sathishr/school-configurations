@@ -6,8 +6,9 @@ export interface ColumnConfig {
   sortable?: boolean;
   searchable?: boolean;
   visible?: boolean;
-  type?: 'text' | 'badge';
+  type?: 'text' | 'badge' | 'avatar';
   badgeMap?: Record<string, { label: string; class: string }>;
+  avatarKey?: string;
 }
 
 @Injectable({

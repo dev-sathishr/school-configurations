@@ -16,9 +16,9 @@ async function seed() {
     if (existing.rows.length === 0) {
       const hashedPassword = await password.hash('admin@123');
       const result = await client.query(
-        `INSERT INTO settings.users (username, password, full_name, email, role, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-        ['superadmin', hashedPassword, 'Super Admin', 'admin@shaanthied.com', 'super_admin', true]
+        `INSERT INTO settings.users (username, password, full_name, email, is_active)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        ['superadmin', hashedPassword, 'Super Admin', 'admin@shaanthied.com', true]
       );
       adminId = result.rows[0].id;
       console.log('Default super admin user created');
@@ -45,6 +45,8 @@ async function seed() {
     console.log(inserted > 0 ? `${inserted} organization(s) seeded` : 'All organizations already exist, skipping');
 
     // Clear old seed data from these tables (re-seed fresh)
+    await client.query('DELETE FROM settings.notifications');
+    await client.query('DELETE FROM settings.permission_requests');
     await client.query('DELETE FROM settings.group_permissions');
     await client.query('DELETE FROM settings.group_modules');
     await client.query('DELETE FROM settings.menu_modules');
@@ -194,10 +196,24 @@ async function seed() {
       console.log('Admin user already exists, group_id updated');
     }
 
+    // Seed teacher user
+    const existingTeacher = await client.query('SELECT id FROM settings.users WHERE username = $1', ['teacher']);
+    if (existingTeacher.rows.length === 0) {
+      const teacherPwd = await password.hash('teacher@123');
+      await client.query(
+        `INSERT INTO settings.users (username, password, full_name, email, group_id, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, $5, true, $6, $7)`,
+        ['teacher', teacherPwd, 'Teacher User', 'teacher@shaanthied.com', groupIds['TEACHER'], adminId, adminId]
+      );
+      console.log('Teacher user created (username: teacher, password: teacher@123)');
+    } else {
+      await client.query('UPDATE settings.users SET group_id = $1 WHERE username = $2', [groupIds['TEACHER'], 'teacher']);
+      console.log('Teacher user already exists, group_id updated');
+    }
+
     // Seed Group Modules (which menus each group can access)
     const groupModuleMappings = [
       { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'SETTINGS'] },
-      { group: 'ADMIN', menus: ['DASHBOARD', 'SETTINGS'] },
       { group: 'PRINCIPAL', menus: ['DASHBOARD'] },
       { group: 'TEACHER', menus: ['DASHBOARD'] },
       { group: 'ACCOUNTANT', menus: ['DASHBOARD'] },
@@ -230,11 +246,7 @@ async function seed() {
       ...Object.keys(moduleIds).flatMap(modCode =>
         allPermCodes.map(permCode => ({ group: 'SUPER_ADMIN', module: modCode, permission: permCode }))
       ),
-      // Admin: all permissions on settings, VIEW on all dashboard widgets
-      ...settingsModules.flatMap(modCode =>
-        ['VIEW', 'CREATE', 'EDIT'].map(permCode => ({ group: 'ADMIN', module: modCode, permission: permCode }))
-      ),
-      ...dashboardModules.map(modCode => ({ group: 'ADMIN', module: modCode, permission: 'VIEW' })),
+      // Admin: no permissions (empty — assign via UI)
       // Principal: dashboard overview + academic, view-only on some settings
       { group: 'PRINCIPAL', module: 'SCHOOL_OVERVIEW', permission: 'VIEW' },
       { group: 'PRINCIPAL', module: 'ACADEMIC_SUMMARY', permission: 'VIEW' },

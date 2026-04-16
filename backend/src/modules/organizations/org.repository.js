@@ -1,8 +1,8 @@
 const db = require('../../config/database');
 const { paginate } = require('../../shared/helpers/pagination.helper');
 
-const SELECT_FIELDS = `o.*, cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
-const JOINS = 'LEFT JOIN settings.users cb ON o.created_by = cb.id LEFT JOIN settings.users ub ON o.updated_by = ub.id';
+const SELECT_FIELDS = `o.*, cb.full_name AS created_by_name, ub.full_name AS updated_by_name, lf.id AS logo_file_id`;
+const JOINS = `LEFT JOIN settings.users cb ON o.created_by = cb.id LEFT JOIN settings.users ub ON o.updated_by = ub.id LEFT JOIN LATERAL (SELECT f.id FROM settings.files f WHERE f.entity_type = 'organization' AND f.entity_id = o.id AND f.file_type = 'logo' AND f.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 1) lf ON true`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({

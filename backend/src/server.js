@@ -11,6 +11,10 @@ const menuModuleRoutes = require('./modules/menu-modules/menu-module.routes');
 const groupRoutes = require('./modules/groups/group.routes');
 const groupModuleRoutes = require('./modules/group-modules/group-module.routes');
 const permissionRoutes = require('./modules/permissions/permission.routes');
+const permissionRequestRoutes = require('./modules/permission-requests/permission-request.routes');
+const notificationRoutes = require('./modules/notifications/notification.routes');
+const chatRoutes = require('./modules/chat/chat.routes');
+const fileRoutes = require('./modules/files/file.routes');
 
 const { lookupPincode } = require('./shared/helpers/pincode.helper');
 const { authenticate } = require('./shared/middleware/auth.middleware');
@@ -32,6 +36,10 @@ app.use('/api/v1/menu-modules', menuModuleRoutes);
 app.use('/api/v1/groups', groupRoutes);
 app.use('/api/v1/group-modules', groupModuleRoutes);
 app.use('/api/v1/permissions', permissionRoutes);
+app.use('/api/v1/permission-requests', permissionRequestRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/chat', chatRoutes);
+app.use('/api/v1/files', fileRoutes);
 
 // Shared
 app.get('/api/v1/pincode/:pincode', authenticate, lookupPincode);

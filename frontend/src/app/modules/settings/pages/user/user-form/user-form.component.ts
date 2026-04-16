@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
@@ -6,13 +6,16 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
+import { FileUploadComponent } from '../../../../../shared/components/file-upload/file-upload.component';
 
 @Component({
   selector: 'app-user-form',
   templateUrl: './user-form.component.html',
-  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, BreadcrumbComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, BreadcrumbComponent, FileUploadComponent],
 })
 export class UserFormComponent implements OnInit {
+  @ViewChild('profileUpload') profileUpload!: FileUploadComponent;
+
   form!: FormGroup;
   editMode = false;
   editId = '';
@@ -74,9 +77,25 @@ export class UserFormComponent implements OnInit {
       : this.cs.postService({ url: '/users', payload: data });
 
     req.subscribe({
-      next: () => { this.saving = false; this.cs.navigate({ url: '/settings/user' }); },
+      next: (res: any) => {
+        const createdId = res?.data?.id;
+        const pendingUpload = !this.editMode && createdId ? this.profileUpload?.uploadPendingFile(createdId) : null;
+        if (pendingUpload) {
+          pendingUpload.subscribe({
+            next: () => this.navigateAfterSave(),
+            error: () => this.navigateAfterSave(),
+          });
+        } else {
+          this.navigateAfterSave();
+        }
+      },
       error: (err: any) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
     });
+  }
+
+  private navigateAfterSave(): void {
+    this.saving = false;
+    this.cs.navigate({ url: '/settings/user' });
   }
 
   cancel() { this.cs.navigate({ url: '/settings/user' }); }

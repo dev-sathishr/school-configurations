@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionService } from '../../../../core/services/permission.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-no-access',
@@ -13,32 +14,76 @@ import { PermissionService } from '../../../../core/services/permission.service'
       <svg-icon src="assets/icons/heroicons/outline/shield-exclamation.svg" [svgClass]="'h-16 w-16 text-muted-foreground/30'"></svg-icon>
       <h2 class="text-foreground mt-4 text-xl font-semibold">No Access</h2>
       <p class="text-muted-foreground mt-2 max-w-md text-sm">
-        Your account doesn't have any module permissions assigned yet. Please contact your administrator to get access.
+        Your account doesn't have any module permissions assigned yet.
+        Use the chat to contact your administrator for access.
       </p>
       <div class="mt-6 flex gap-3">
-        <button (click)="retry()" class="bg-muted text-foreground cursor-pointer rounded-lg px-6 py-2 text-sm font-medium hover:bg-muted/80">
+        <button (click)="retry()" class="bg-primary text-primary-foreground cursor-pointer rounded-lg px-6 py-2 text-sm font-medium">
           Retry
         </button>
-        <button (click)="logout()" class="bg-primary text-primary-foreground cursor-pointer rounded-lg px-6 py-2 text-sm font-medium">
+        <button (click)="logout()" class="text-muted-foreground cursor-pointer rounded-lg border border-muted px-6 py-2 text-sm font-medium hover:text-foreground">
           Sign Out
         </button>
       </div>
     </div>
   `,
 })
-export class NoAccessComponent implements OnInit {
-  constructor(private authService: AuthService, private permissionService: PermissionService, private router: Router) {}
+export class NoAccessComponent implements OnInit, OnDestroy {
+  private eventSource?: EventSource;
+
+  constructor(
+    private authService: AuthService,
+    private permissionService: PermissionService,
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
+  ) {}
 
   ngOnInit(): void {
-    // If user actually has menus (e.g. page refresh after permissions were granted), redirect
     const menus = this.permissionService.menus;
     if (menus.length > 0 && menus[0].route_path) {
       this.router.navigate([menus[0].route_path]);
+      return;
     }
+
+    this.listenForApproval();
+  }
+
+  ngOnDestroy(): void {
+    this.eventSource?.close();
+  }
+
+  private listenForApproval(): void {
+    const token = this.authService.getToken();
+    if (!token) return;
+
+    const url = `${environment.apiUrl}/notifications/stream?token=${token}`;
+
+    this.ngZone.runOutsideAngular(() => {
+      this.eventSource = new EventSource(url);
+
+      this.eventSource.addEventListener('notification', (event: any) => {
+        const data = JSON.parse(event.data);
+        if (data.notification?.type === 'permission_approved') {
+          this.ngZone.run(() => {
+            this.permissionService.load().subscribe(() => {
+              const menus = this.permissionService.menus;
+              if (menus.length > 0 && menus[0].route_path) {
+                this.router.navigate([menus[0].route_path]);
+              }
+            });
+          });
+        }
+      });
+
+      this.eventSource.onerror = () => {
+        this.eventSource?.close();
+        setTimeout(() => this.listenForApproval(), 5000);
+      };
+    });
   }
 
   retry(): void {
-    // Re-fetch permissions from server and redirect if access was granted
     this.permissionService.load().subscribe(() => {
       const menus = this.permissionService.menus;
       if (menus.length > 0 && menus[0].route_path) {

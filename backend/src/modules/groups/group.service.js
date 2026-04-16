@@ -1,4 +1,7 @@
 const groupRepo = require('./group.repository');
+const db = require('../../config/database');
+const notificationRepo = require('../notifications/notification.repository');
+const requestRepo = require('../permission-requests/permission-request.repository');
 
 async function getAll(query, viewOwnUserId) {
   return groupRepo.findAll(query, viewOwnUserId);
@@ -35,6 +38,36 @@ async function update(id, body, userId) {
   }
 
   const group = await groupRepo.update(id, body, current, userId);
+
+  // Notify users with pending permission requests — only if group actually has module permissions in DB after update
+  try {
+    const permCount = await db.query(
+      'SELECT COUNT(*) FROM settings.group_permissions WHERE group_id = $1 AND deleted_at IS NULL',
+      [id]
+    );
+    if (parseInt(permCount.rows[0].count) > 0) {
+      const pendingUsers = await db.query(`
+        SELECT pr.id AS request_id, pr.requested_by, u.full_name
+        FROM settings.permission_requests pr
+        JOIN settings.users u ON pr.requested_by = u.id
+        WHERE u.group_id = $1 AND pr.status = 'pending'
+      `, [id]);
+
+      for (const row of pendingUsers.rows) {
+        await requestRepo.updateStatus(row.request_id, 'approved', userId);
+        await notificationRepo.create(
+          row.requested_by,
+          'permission_approved',
+          'Access Granted',
+          'Your permission request has been approved. You now have access to the assigned modules.',
+          { approved_by: userId }
+        );
+      }
+    }
+  } catch (err) {
+    console.error('Error notifying pending users:', err);
+  }
+
   return { group };
 }
 

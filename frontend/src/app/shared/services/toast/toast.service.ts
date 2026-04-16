@@ -2,12 +2,15 @@ import { Injectable, signal } from '@angular/core';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
+export type ToastPosition = 'top-right' | 'bottom-right';
+
 export interface Toast {
   id: number;
   type: ToastType;
   message: string;
   description?: string;
   duration: number;
+  position: ToastPosition;
   removing?: boolean;
 }
 
@@ -19,13 +22,14 @@ export class ToastService {
 
   readonly toasts = this._toasts.asReadonly();
 
-  show(options: { type?: ToastType; message: string; description?: string; duration?: number }): void {
+  show(options: { type?: ToastType; message: string; description?: string; duration?: number; position?: ToastPosition }): void {
     const toast: Toast = {
       id: ++this._idCounter,
       type: options.type || 'info',
       message: options.message,
       description: options.description,
       duration: options.duration ?? 4000,
+      position: options.position || 'top-right',
     };
 
     this._toasts.update(list => [...list, toast]);

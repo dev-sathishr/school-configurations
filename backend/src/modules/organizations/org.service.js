@@ -1,4 +1,5 @@
 const orgRepo = require('./org.repository');
+const fileRepo = require('../files/file.repository');
 const { validate } = require('../../shared/helpers/validate.helper');
 const { saveAddresses, getAddresses } = require('../../shared/helpers/address.helper');
 
@@ -24,8 +25,12 @@ async function getById(id) {
   const org = await orgRepo.findById(id);
   if (!org) return { error: 'notFound', message: 'Organization not found' };
 
-  const addresses = await getAddresses('organization', id);
-  return { data: { ...org, addresses } };
+  const [addresses, logo] = await Promise.all([
+    getAddresses('organization', id),
+    fileRepo.findOneByEntity('organization', id, 'logo'),
+  ]);
+
+  return { data: { ...org, addresses, logo: logo || null } };
 }
 
 async function create(body, userId) {

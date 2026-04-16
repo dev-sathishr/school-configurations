@@ -2,6 +2,7 @@ import { Component, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { TableFilterService, ColumnConfig } from '../../services/table-filter.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: '[app-table-row]',
@@ -31,5 +32,20 @@ export class TableRowComponent {
   getBadgeClass(col: ColumnConfig): string {
     const val = String(this.user[col.key] ?? '');
     return col.badgeMap?.[val]?.class ?? 'bg-muted text-muted-foreground';
+  }
+
+  getAvatarUrl(fileId: string): string {
+    const token = localStorage.getItem('access_token');
+    return `${environment.apiUrl}/files/${fileId}?token=${token}`;
+  }
+
+  avatarErrors: Set<string> = new Set();
+
+  onAvatarError(fileId: string): void {
+    this.avatarErrors.add(fileId);
+  }
+
+  getInitial(name: string): string {
+    return (name || '?').charAt(0).toUpperCase();
   }
 }

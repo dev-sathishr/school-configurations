@@ -1,56 +1,69 @@
+<!-- Top-right toasts (CRUD operations) -->
 <div class="pointer-events-none fixed right-4 top-4 z-[100] flex flex-col gap-2">
-  @for (toast of toastService.toasts(); track toast.id) {
-    <div
-      class="pointer-events-auto flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-lg border border-l-4 border-muted/30 bg-background px-4 py-3 shadow-lg transition-all duration-300"
-      [ngClass]="[
-        borderClass(toast),
-        toast.removing ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
-      ]"
-      (mouseenter)="toastService.pause(toast.id)"
-      (mouseleave)="toastService.resume(toast.id)"
-      style="animation: toastSlideIn 0.3s ease-out">
-
-      <!-- Icon -->
-      <div class="mt-0.5 shrink-0" [ngClass]="iconClass(toast)">
-        @switch (toast.type) {
-          @case ('success') {
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-          }
-          @case ('error') {
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-          }
-          @case ('warning') {
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-            </svg>
-          }
-          @case ('info') {
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-            </svg>
-          }
-        }
-      </div>
-
-      <!-- Content -->
-      <div class="min-w-0 flex-1">
-        <p class="text-sm font-medium text-foreground">{{ toast.message }}</p>
-        @if (toast.description) {
-          <p class="mt-0.5 text-xs text-muted-foreground">{{ toast.description }}</p>
-        }
-      </div>
-
-      <!-- Close -->
-      <button type="button" (click)="dismiss(toast.id)"
-        class="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
+  @for (toast of topToasts(); track toast.id) {
+    <ng-container *ngTemplateOutlet="toastTpl; context: { $implicit: toast }"></ng-container>
   }
 </div>
+
+<!-- Bottom-right toasts (notifications, like Teams) -->
+<div class="pointer-events-none fixed bottom-4 right-4 z-[100] flex flex-col-reverse gap-2">
+  @for (toast of bottomToasts(); track toast.id) {
+    <ng-container *ngTemplateOutlet="toastTpl; context: { $implicit: toast }"></ng-container>
+  }
+</div>
+
+<!-- Shared toast template -->
+<ng-template #toastTpl let-toast>
+  <div
+    class="pointer-events-auto flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-lg border border-l-4 border-muted/30 bg-background px-4 py-3 shadow-lg transition-all duration-300"
+    [ngClass]="[
+      borderClass(toast),
+      toast.removing ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
+    ]"
+    (mouseenter)="toastService.pause(toast.id)"
+    (mouseleave)="toastService.resume(toast.id)"
+    style="animation: toastSlideIn 0.3s ease-out">
+
+    <!-- Icon -->
+    <div class="mt-0.5 shrink-0" [ngClass]="iconClass(toast)">
+      @switch (toast.type) {
+        @case ('success') {
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+        }
+        @case ('error') {
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+        }
+        @case ('warning') {
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+        }
+        @case ('info') {
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+          </svg>
+        }
+      }
+    </div>
+
+    <!-- Content -->
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-medium text-foreground">{{ toast.message }}</p>
+      @if (toast.description) {
+        <p class="mt-0.5 text-xs text-muted-foreground">{{ toast.description }}</p>
+      }
+    </div>
+
+    <!-- Close -->
+    <button type="button" (click)="dismiss(toast.id)"
+      class="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+</ng-template>

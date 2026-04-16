@@ -15,12 +15,21 @@
       <!-- Account Info -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Account Information</h4>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <app-form-field [formGroup]="form" controlName="username" label="Username" [required]="true" [submitted]="submitted" placeholder="e.g. john_doe" />
-          <app-form-field [formGroup]="form" controlName="password" label="Password" fieldType="password"
-            [required]="!editMode" [submitted]="submitted" [placeholder]="editMode ? 'Leave blank to keep current' : 'Enter password'" />
-          <app-form-field [formGroup]="form" controlName="group_id" label="Group" fieldType="async-select"
-            asyncUrl="/groups/dropdown" [required]="true" [submitted]="submitted" [initialLabel]="groupLabel" selectPlaceholder="Select group" />
+        <div class="flex items-start gap-5">
+          <div class="shrink-0 pt-5">
+            <app-file-upload #profileUpload
+              entityType="user" [entityId]="editId"
+              fileType="profile_image" accept="image/*" [maxSize]="1"
+              displayStyle="photo" label="Profile Photo">
+            </app-file-upload>
+          </div>
+          <div class="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+            <app-form-field [formGroup]="form" controlName="username" label="Username" [required]="true" [submitted]="submitted" placeholder="e.g. john_doe" />
+            <app-form-field [formGroup]="form" controlName="password" label="Password" fieldType="password"
+              [required]="!editMode" [submitted]="submitted" [placeholder]="editMode ? 'Leave blank to keep current' : 'Enter password'" />
+            <app-form-field [formGroup]="form" controlName="group_id" label="Group" fieldType="async-select"
+              asyncUrl="/groups/dropdown" [required]="true" [submitted]="submitted" [initialLabel]="groupLabel" selectPlaceholder="Select group" />
+          </div>
         </div>
       </div>
 

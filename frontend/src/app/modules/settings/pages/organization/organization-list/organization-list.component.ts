@@ -19,7 +19,7 @@ export class OrganizationListComponent {
   deleteUrl = '/organizations/delete-multiple';
 
   columns: ColumnConfig[] = [
-    { key: 'o.name', label: 'Name', sortable: true, searchable: true },
+    { key: 'o.name', label: 'Name', sortable: true, searchable: true, type: 'avatar', avatarKey: 'logo_file_id' },
     { key: 'o.reg_no', label: 'Reg No', sortable: true, searchable: true },
     { key: 'o.email', label: 'Email', sortable: true, searchable: true },
     { key: 'o.primary_contact_no', label: 'Contact', sortable: true },
@@ -33,7 +33,7 @@ export class OrganizationListComponent {
   displayKeyMap: Record<string, string> = {
     'o.name': 'name', 'o.reg_no': 'reg_no', 'o.email': 'email',
     'o.primary_contact_no': 'primary_contact_no', 'o.is_active': 'is_active',
-    'updated_by_name': 'updated_by_name',
+    'updated_by_name': 'updated_by_name', 'logo_file_id': 'logo_file_id',
   };
 
   rowTransform = (row: any, mapped: any) => {

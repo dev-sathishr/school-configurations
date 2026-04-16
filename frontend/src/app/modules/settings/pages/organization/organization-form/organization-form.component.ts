@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
@@ -7,13 +7,16 @@ import { FormFieldComponent } from '../../../../../shared/components/form-field/
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { AddressComponent, Address } from '../../../../../shared/components/address/address.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
+import { FileUploadComponent, UploadedFile } from '../../../../../shared/components/file-upload/file-upload.component';
 
 @Component({
   selector: 'app-organization-form',
   templateUrl: './organization-form.component.html',
-  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, AddressComponent, BreadcrumbComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, AddressComponent, BreadcrumbComponent, FileUploadComponent],
 })
 export class OrganizationFormComponent implements OnInit {
+  @ViewChild('logoUpload') logoUpload!: FileUploadComponent;
+
   form!: FormGroup;
   editMode = false;
   editId = '';
@@ -23,6 +26,7 @@ export class OrganizationFormComponent implements OnInit {
   errorMessage = '';
   addressError = '';
   addresses: Address[] = [];
+  logo: UploadedFile | null = null;
 
   constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
 
@@ -58,6 +62,7 @@ export class OrganizationFormComponent implements OnInit {
             alternate_phone: { code: d.alternate_contact_code || '+91', number: d.alternate_contact_no || '' },
           });
           this.addresses = d.addresses || [];
+          this.logo = d.logo || null;
           this.loading = false;
           this.cdr.detectChanges();
         },
@@ -96,10 +101,18 @@ export class OrganizationFormComponent implements OnInit {
       : this.cs.postService({ url: '/organizations', payload: data });
 
     req.subscribe({
-      next: () => {
-        this.saving = false;
-        this.cs.showToastr({ type: 'success', message: this.editMode ? 'Organization updated' : 'Organization created', description: this.editMode ? 'Changes saved successfully' : 'New organization has been added' });
-        this.cs.navigate({ url: '/settings/organization' });
+      next: (res: any) => {
+        const createdId = res?.data?.id;
+        // Upload pending logo if in create mode
+        const pendingUpload = !this.editMode && createdId ? this.logoUpload?.uploadPendingFile(createdId) : null;
+        if (pendingUpload) {
+          pendingUpload.subscribe({
+            next: () => this.navigateAfterSave(),
+            error: () => this.navigateAfterSave(), // Navigate even if upload fails
+          });
+        } else {
+          this.navigateAfterSave();
+        }
       },
       error: (err: any) => {
         this.saving = false;
@@ -107,6 +120,12 @@ export class OrganizationFormComponent implements OnInit {
         this.cs.showToastr({ type: 'error', message: 'Failed to save', description: this.errorMessage });
       },
     });
+  }
+
+  private navigateAfterSave(): void {
+    this.saving = false;
+    this.cs.showToastr({ type: 'success', message: this.editMode ? 'Organization updated' : 'Organization created', description: this.editMode ? 'Changes saved successfully' : 'New organization has been added' });
+    this.cs.navigate({ url: '/settings/organization' });
   }
 
   onAddressesChange(addresses: Address[]): void {
