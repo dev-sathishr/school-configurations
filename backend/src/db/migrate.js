@@ -50,6 +50,9 @@ async function migrate() {
       );
     `);
 
+    // Add phone_code to users if missing
+    await client.query(`ALTER TABLE settings.users ADD COLUMN IF NOT EXISTS phone_code VARCHAR(10) DEFAULT '+91'`).catch(() => {});
+
     // Drop legacy role column and enum if they exist
     await client.query('ALTER TABLE settings.users DROP COLUMN IF EXISTS role').catch(() => {});
     await client.query('DROP TYPE IF EXISTS settings.user_role').catch(() => {});
@@ -431,6 +434,25 @@ async function migrate() {
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_files_entity ON settings.files (entity_type, entity_id, file_type) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_files_entity already exists'));
+
+    // User locations mapping (many-to-many)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.user_locations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES settings.users(id),
+        location_id UUID NOT NULL REFERENCES settings.locations(id),
+        is_default BOOLEAN DEFAULT false,
+        created_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // Add is_default column if missing (for existing tables)
+    await client.query('ALTER TABLE settings.user_locations ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false').catch(() => {});
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_user_location_unique ON settings.user_locations (user_id, location_id);
+    `).catch(() => console.log('Index idx_user_location_unique already exists'));
 
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];

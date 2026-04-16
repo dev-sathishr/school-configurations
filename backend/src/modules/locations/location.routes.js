@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { getAll, getById, create, update, remove, removeMultiple } = require('./location.controller');
+const { getAll, getById, create, update, remove, removeMultiple, getDropdown } = require('./location.controller');
 const { authenticate, authorizeModule, checkModuleView, checkRecordOwnership } = require('../../shared/middleware/auth.middleware');
 
 router.use(authenticate);
 
+router.get('/dropdown', getDropdown);
 router.get('/', checkModuleView('LOCATIONS'), getAll);
 router.get('/:id', checkRecordOwnership('settings.locations', 'LOCATIONS'), getById);
 router.post('/', authorizeModule('LOCATIONS', 'CREATE'), create);

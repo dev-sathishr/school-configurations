@@ -4,11 +4,13 @@ const { paginate } = require('../../shared/helpers/pagination.helper');
 const SELECT_FIELDS = `u.id, u.username, u.full_name, u.email, u.phone, u.group_id, u.is_active,
   u.last_login, u.created_by, u.updated_by, u.created_at, u.updated_at,
   g.name AS group_name, g.code AS group_code,
-  cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
+  cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
+  pf.id AS profile_file_id`;
 
 const JOINS = `LEFT JOIN settings.groups g ON u.group_id = g.id
   LEFT JOIN settings.users cb ON u.created_by = cb.id
-  LEFT JOIN settings.users ub ON u.updated_by = ub.id`;
+  LEFT JOIN settings.users ub ON u.updated_by = ub.id
+  LEFT JOIN LATERAL (SELECT f.id FROM settings.files f WHERE f.entity_type = 'user' AND f.entity_id = u.id AND f.file_type = 'profile_image' AND f.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 1) pf ON true`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({
@@ -53,12 +55,12 @@ async function findByUsernameActive(username) {
 
 async function create(data, userId) {
   const result = await db.query(`
-    INSERT INTO settings.users (username, password, full_name, email, phone, group_id, is_active, created_by, updated_by)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    RETURNING id, username, full_name, email, phone, group_id, is_active, created_at
+    INSERT INTO settings.users (username, password, full_name, email, phone_code, phone, group_id, is_active, created_by, updated_by)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    RETURNING id, username, full_name, email, phone_code, phone, group_id, is_active, created_at
   `, [
     data.username, data.hashedPassword, data.full_name,
-    data.email || null, data.phone || null,
+    data.email || null, data.phone_code || '+91', data.phone || null,
     data.group_id || null, data.is_active !== undefined ? data.is_active : true,
     userId, userId,
   ]);
@@ -68,15 +70,16 @@ async function create(data, userId) {
 async function update(id, data, current, userId) {
   const result = await db.query(`
     UPDATE settings.users SET
-      username = $1, password = $2, full_name = $3, email = $4, phone = $5,
-      group_id = $6, is_active = $7, updated_by = $8, updated_at = NOW()
-    WHERE id = $9
-    RETURNING id, username, full_name, email, phone, group_id, is_active, updated_at
+      username = $1, password = $2, full_name = $3, email = $4, phone_code = $5, phone = $6,
+      group_id = $7, is_active = $8, updated_by = $9, updated_at = NOW()
+    WHERE id = $10
+    RETURNING id, username, full_name, email, phone_code, phone, group_id, is_active, updated_at
   `, [
     data.username || current.username,
     data.hashedPassword || current.password,
     data.full_name || current.full_name,
     data.email !== undefined ? (data.email || null) : current.email,
+    data.phone_code || current.phone_code || '+91',
     data.phone !== undefined ? (data.phone || null) : current.phone,
     data.group_id !== undefined ? (data.group_id || null) : current.group_id,
     data.is_active !== undefined ? data.is_active : current.is_active,
@@ -114,4 +117,26 @@ async function findProfileById(id) {
   return result.rows[0] || null;
 }
 
-module.exports = { findAll, findById, findByUsername, findByUsernameActive, create, update, softDelete, softDeleteMultiple, updateLastLogin, findProfileById };
+async function getUserLocations(userId) {
+  const result = await db.query(
+    `SELECT l.id, l.name, l.code, ul.is_default FROM settings.user_locations ul
+     JOIN settings.locations l ON ul.location_id = l.id AND l.deleted_at IS NULL
+     WHERE ul.user_id = $1 ORDER BY ul.is_default DESC, l.name`,
+    [userId]
+  );
+  return result.rows;
+}
+
+async function saveUserLocations(userId, locationIds, defaultLocationId, createdBy) {
+  await db.query('DELETE FROM settings.user_locations WHERE user_id = $1', [userId]);
+  if (!locationIds || locationIds.length === 0) return;
+  for (const locId of locationIds) {
+    const isDefault = locId === defaultLocationId;
+    await db.query(
+      'INSERT INTO settings.user_locations (user_id, location_id, is_default, created_by) VALUES ($1, $2, $3, $4)',
+      [userId, locId, isDefault, createdBy]
+    );
+  }
+}
+
+module.exports = { findAll, findById, findByUsername, findByUsernameActive, create, update, softDelete, softDeleteMultiple, updateLastLogin, findProfileById, getUserLocations, saveUserLocations };

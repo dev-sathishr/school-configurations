@@ -20,6 +20,7 @@ export interface User {
   group_code: string;
   group_name: string;
   last_login: string;
+  profile_file_id: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

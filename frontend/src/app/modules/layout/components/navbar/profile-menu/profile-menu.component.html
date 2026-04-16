@@ -2,10 +2,13 @@
   <!-- Profile Button -->
   <button (click)="toggleMenu()" class="bg-card relative flex rounded-full text-sm" type="button">
     <span class="sr-only">Open user menu</span>
-    <img
-      class="size-9 shrink-0 rounded-md"
-      src="assets/avatars/avt-01.jpg"
-      alt="" />
+    @if (profileImageUrl) {
+      <img class="size-9 shrink-0 rounded-md object-cover" [src]="profileImageUrl" alt="" (error)="onImageError()" />
+    } @else {
+      <div class="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-md text-sm font-semibold">
+        {{ userInitial }}
+      </div>
+    }
   </button>
 
   <!-- Dropdown -->
@@ -15,7 +18,13 @@
 
     <!-- User Info -->
     <div class="flex items-center gap-3 px-4 py-4">
-      <img class="h-10 w-10 shrink-0 rounded-lg" src="assets/avatars/avt-01.jpg" alt="" />
+      @if (profileImageUrl) {
+        <img class="h-10 w-10 shrink-0 rounded-lg object-cover" [src]="profileImageUrl" alt="" (error)="onImageError()" />
+      } @else {
+        <div class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-semibold">
+          {{ userInitial }}
+        </div>
+      }
       <div class="overflow-hidden">
         <p class="text-foreground truncate text-sm font-semibold">{{ currentUser?.full_name || 'User' }}</p>
         <p class="text-muted-foreground truncate text-xs">{{ currentUser?.group_name || '' }}</p>

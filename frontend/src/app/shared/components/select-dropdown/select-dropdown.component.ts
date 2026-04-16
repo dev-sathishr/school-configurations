@@ -41,6 +41,7 @@ export class SelectDropdownComponent implements OnInit, OnDestroy {
 
   // Initial label (to avoid extra API call in edit mode)
   @Input() initialLabel = '';
+  @Input() initialLabels: Record<string, string> = {};
 
   // Trigger style
   @Input() triggerType: 'field' | 'custom' = 'field';
@@ -113,8 +114,17 @@ export class SelectDropdownComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Display label for single select trigger
+  // Display label for single/multi select trigger
   get selectedLabel(): string {
+    if (this.multiSelect) {
+      if (this.selectedValues.length === 0) return '';
+      const allOpts = this.isAsync ? this.asyncOptions : this.options;
+      const labels = this.selectedValues.map(v => {
+        const match = allOpts.find(o => o.value === v);
+        return match?.label || this.initialLabels[v] || v;
+      });
+      return labels.join(', ');
+    }
     if (this.isAsync) {
       const match = this.asyncOptions.find((o) => o.value === this.value);
       return match?.label || this._selectedLabel;

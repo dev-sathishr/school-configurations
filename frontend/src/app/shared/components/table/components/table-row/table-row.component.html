@@ -11,7 +11,7 @@
       <td>
         @if (col.type === 'avatar') {
           <div class="flex items-center gap-2.5">
-            @if (user[col.avatarKey || ''] && !avatarErrors.has(user[col.avatarKey || ''])) {
+            @if (hasAvatar(col)) {
               <img [src]="getAvatarUrl(user[col.avatarKey || ''])" alt=""
                 class="h-8 w-8 rounded-full border border-muted/30 object-cover"
                 (error)="onAvatarError(user[col.avatarKey || ''])" />

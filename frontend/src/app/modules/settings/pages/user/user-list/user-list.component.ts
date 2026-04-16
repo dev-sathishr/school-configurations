@@ -19,7 +19,7 @@ export class UserListComponent {
   deleteUrl = '/users/delete-multiple';
 
   columns: ColumnConfig[] = [
-    { key: 'u.full_name', label: 'Full Name', sortable: true, searchable: true },
+    { key: 'u.full_name', label: 'Full Name', sortable: true, searchable: true, type: 'avatar', avatarKey: 'profile_file_id' },
     { key: 'u.username', label: 'Username', sortable: true, searchable: true },
     { key: 'u.email', label: 'Email', sortable: true, searchable: true },
     { key: 'u.phone', label: 'Phone', sortable: true, searchable: true },
@@ -39,6 +39,7 @@ export class UserListComponent {
     'u.full_name': 'full_name', 'u.username': 'username', 'u.email': 'email',
     'u.phone': 'phone', 'g.name': 'group_name', 'u.is_active': 'is_active',
     'u.last_login': 'last_login', 'created_by_name': 'created_by_name',
+    'profile_file_id': 'profile_file_id',
   };
 
   rowTransform = (row: any, mapped: any) => {

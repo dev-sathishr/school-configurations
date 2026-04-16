@@ -73,4 +73,14 @@ async function removeMultiple(req, resp) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple };
+async function getDropdown(req, resp) {
+  try {
+    const result = await locationService.getDropdown(req.query);
+    return res.success(resp, result);
+  } catch (err) {
+    console.error('Get location dropdown error:', err);
+    return res.error(resp);
+  }
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown };

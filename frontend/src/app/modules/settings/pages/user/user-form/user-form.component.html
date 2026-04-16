@@ -15,15 +15,15 @@
       <!-- Account Info -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Account Information</h4>
-        <div class="flex items-start gap-5">
-          <div class="shrink-0 pt-5">
+        <div class="flex flex-col items-center gap-5 md:flex-row md:items-start">
+          <div class="shrink-0">
             <app-file-upload #profileUpload
               entityType="user" [entityId]="editId"
               fileType="profile_image" accept="image/*" [maxSize]="1"
-              displayStyle="photo" label="Profile Photo">
+              displayStyle="photo" label="Profile Photo" [initialFile]="profileImage">
             </app-file-upload>
           </div>
-          <div class="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="grid w-full flex-1 grid-cols-1 gap-4 md:grid-cols-2">
             <app-form-field [formGroup]="form" controlName="username" label="Username" [required]="true" [submitted]="submitted" placeholder="e.g. john_doe" />
             <app-form-field [formGroup]="form" controlName="password" label="Password" fieldType="password"
               [required]="!editMode" [submitted]="submitted" [placeholder]="editMode ? 'Leave blank to keep current' : 'Enter password'" />
@@ -38,9 +38,58 @@
         <h4 class="text-foreground mb-4 text-sm font-semibold">Personal Information</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <app-form-field [formGroup]="form" controlName="full_name" label="Full Name" [required]="true" [submitted]="submitted" placeholder="e.g. John Doe" />
-          <app-form-field [formGroup]="form" controlName="email" label="Email" fieldType="email" placeholder="e.g. john@example.com" />
-          <app-form-field [formGroup]="form" controlName="phone" label="Phone" placeholder="e.g. 9876543210" />
+          <app-form-field [formGroup]="form" controlName="email" label="Email" fieldType="email"
+            [required]="true" [submitted]="submitted" placeholder="e.g. john@example.com" [lowercase]="true" />
+          <app-form-field [formGroup]="form" controlName="phone" label="Phone" fieldType="phone"
+            [required]="true" [submitted]="submitted" placeholder="Phone number" [maxLength]="15" />
         </div>
+      </div>
+
+      <!-- Location Access -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Location Access <span class="text-red-500">*</span></h4>
+        <p class="text-muted-foreground mb-3 text-xs">Select locations and choose one as the default.</p>
+        @if (locationsLoading) {
+          <div class="text-muted-foreground py-4 text-center text-xs">Loading locations...</div>
+        } @else if (allLocations.length === 0) {
+          <div class="text-muted-foreground py-4 text-center text-xs">No locations available. Create locations first.</div>
+        } @else {
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+            @for (loc of allLocations; track loc.id) {
+              <div
+                class="flex items-center gap-2.5 rounded-lg border px-3 py-2.5 transition-colors"
+                [class.border-primary]="isLocationSelected(loc.id)"
+                [class.bg-primary/5]="isLocationSelected(loc.id)"
+                [class.border-muted/30]="!isLocationSelected(loc.id)"
+                [class.hover:border-primary/40]="!isLocationSelected(loc.id)">
+                <input type="checkbox" [checked]="isLocationSelected(loc.id)" (change)="toggleLocation(loc.id)"
+                  class="accent-primary h-4 w-4 shrink-0 cursor-pointer rounded" />
+                <div class="min-w-0 flex-1 cursor-pointer" (click)="toggleLocation(loc.id)">
+                  <p class="text-foreground truncate text-xs font-medium">{{ loc.name }}</p>
+                  @if (loc.code) {
+                    <p class="text-muted-foreground text-[10px]">{{ loc.code }}</p>
+                  }
+                </div>
+                @if (isLocationSelected(loc.id)) {
+                  <button type="button" (click)="setDefaultLocation(loc.id)"
+                    class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors"
+                    [class.bg-primary]="defaultLocationId === loc.id"
+                    [class.text-primary-foreground]="defaultLocationId === loc.id"
+                    [class.bg-muted/30]="defaultLocationId !== loc.id"
+                    [class.text-muted-foreground]="defaultLocationId !== loc.id"
+                    [class.hover:bg-primary/20]="defaultLocationId !== loc.id"
+                    [class.cursor-default]="defaultLocationId === loc.id"
+                    [class.cursor-pointer]="defaultLocationId !== loc.id">
+                    {{ defaultLocationId === loc.id ? 'Default' : 'Set default' }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+          @if (locationError && submitted) {
+            <p class="mt-2 text-xs text-red-500">{{ locationError }}</p>
+          }
+        }
       </div>
 
       <!-- Status -->

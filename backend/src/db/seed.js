@@ -277,6 +277,59 @@ async function seed() {
     }
     console.log(`Group Permissions seeded (${gpInserted} assignments)`);
 
+    // Seed Locations
+    const orgResult = await client.query("SELECT id FROM settings.organizations WHERE name = 'Shaanthi Matriculation School'");
+    const orgId = orgResult.rows[0]?.id;
+
+    if (orgId) {
+      // Clear old locations (re-seed)
+      await client.query('DELETE FROM settings.user_locations');
+      await client.query('DELETE FROM settings.locations WHERE organization_id = $1', [orgId]);
+
+      const locations = [
+        { name: 'Main Campus', code: 'MAIN', type: 'main_branch', email: 'main@shaanthi.edu.in', phone: '9876543210' },
+        { name: 'East Wing Branch', code: 'EAST', type: 'branch', email: 'east@shaanthi.edu.in', phone: '9876543211' },
+        { name: 'Sports Complex', code: 'SPORT', type: 'playground', email: 'sports@shaanthi.edu.in', phone: '9876543212' },
+      ];
+
+      const locationIds = {};
+      for (const loc of locations) {
+        const result = await client.query(
+          `INSERT INTO settings.locations (organization_id, name, code, type, email, primary_contact_code, primary_contact_no, is_active, created_by, updated_by)
+           VALUES ($1, $2, $3, $4::settings.location_type, $5, '+91', $6, true, $7, $8) RETURNING id`,
+          [orgId, loc.name, loc.code, loc.type, loc.email, loc.phone, adminId, adminId]
+        );
+        locationIds[loc.code] = result.rows[0].id;
+      }
+      console.log(`Locations seeded (${Object.keys(locationIds).length} total)`);
+
+      // Map locations to users
+      // Super admin & admin: all locations; teacher: Main Campus only
+      const userLocationMappings = [
+        { username: 'superadmin', locations: ['MAIN', 'EAST', 'SPORT'], default: 'MAIN' },
+        { username: 'admin', locations: ['MAIN', 'EAST', 'SPORT'], default: 'MAIN' },
+        { username: 'teacher', locations: ['MAIN'], default: 'MAIN' },
+      ];
+
+      let ulInserted = 0;
+      for (const mapping of userLocationMappings) {
+        const userResult = await client.query('SELECT id FROM settings.users WHERE username = $1', [mapping.username]);
+        const userId = userResult.rows[0]?.id;
+        if (!userId) continue;
+        for (const locCode of mapping.locations) {
+          const locId = locationIds[locCode];
+          if (!locId) continue;
+          const isDefault = locCode === mapping.default;
+          await client.query(
+            'INSERT INTO settings.user_locations (user_id, location_id, is_default, created_by) VALUES ($1, $2, $3, $4)',
+            [userId, locId, isDefault, adminId]
+          );
+          ulInserted++;
+        }
+      }
+      console.log(`User Locations seeded (${ulInserted} mappings)`);
+    }
+
   } catch (err) {
     console.error('Seed failed:', err);
   } finally {

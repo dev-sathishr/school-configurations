@@ -15,15 +15,15 @@
       <!-- Basic Info -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Basic Information</h4>
-        <div class="flex items-start gap-5">
-          <div class="shrink-0 pt-5">
+        <div class="flex flex-col items-center gap-5 md:flex-row md:items-start">
+          <div class="shrink-0">
             <app-file-upload #logoUpload
               entityType="organization" [entityId]="editId"
               fileType="logo" accept="image/*" [maxSize]="2"
               displayStyle="avatar" label="Logo" [initialFile]="logo">
             </app-file-upload>
           </div>
-          <div class="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="grid w-full flex-1 grid-cols-1 gap-4 md:grid-cols-2">
             <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted"
               placeholder="e.g. ABC School" [minLength]="3" [maxLength]="100" />
             <app-form-field [formGroup]="form" controlName="reg_no" label="Registration No"

@@ -6,6 +6,7 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
 import { ThemeService } from '../../../../../core/services/theme.service';
 import { AuthService, User } from '../../../../../core/services/auth.service';
 import { ClickOutsideDirective } from '../../../../../shared/directives/click-outside.directive';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-profile-menu',
@@ -43,11 +44,26 @@ export class ProfileMenuComponent implements OnInit {
   public themeMode = ['light', 'dark'];
   public themeDirection = ['ltr', 'rtl'];
   public currentUser: User | null = null;
+  public profileImageUrl: string | null = null;
+  public profileImageError = false;
 
   constructor(public themeService: ThemeService, private authService: AuthService) {}
 
   ngOnInit(): void {
     this.currentUser = this.authService.currentUser;
+    if (this.currentUser?.profile_file_id) {
+      const token = this.authService.getToken();
+      this.profileImageUrl = `${environment.apiUrl}/files/${this.currentUser.profile_file_id}?token=${token}`;
+    }
+  }
+
+  onImageError(): void {
+    this.profileImageError = true;
+    this.profileImageUrl = null;
+  }
+
+  get userInitial(): string {
+    return (this.currentUser?.full_name || '?').charAt(0).toUpperCase();
   }
 
   logout(): void {

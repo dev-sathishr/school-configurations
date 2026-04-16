@@ -112,4 +112,11 @@ async function removeMultiple(ids, userId) {
   return { deleted_count: deletedCount };
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple };
+async function getDropdown(query) {
+  const page = parseInt(query.page) || 1;
+  const size = parseInt(query.size) || 20;
+  const search = (query.search || '').trim();
+  return locationRepo.findDropdown({ page, size, search });
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown };

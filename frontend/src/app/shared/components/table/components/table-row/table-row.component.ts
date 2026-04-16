@@ -34,6 +34,11 @@ export class TableRowComponent {
     return col.badgeMap?.[val]?.class ?? 'bg-muted text-muted-foreground';
   }
 
+  hasAvatar(col: ColumnConfig): boolean {
+    const val = this.user[col.avatarKey || ''];
+    return !!val && val !== '-' && !this.avatarErrors.has(val);
+  }
+
   getAvatarUrl(fileId: string): string {
     const token = localStorage.getItem('access_token');
     return `${environment.apiUrl}/files/${fileId}?token=${token}`;

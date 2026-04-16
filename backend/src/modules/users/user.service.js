@@ -1,4 +1,5 @@
 const userRepo = require('./user.repository');
+const fileRepo = require('../files/file.repository');
 const password = require('../../shared/helpers/password.helper');
 
 async function getAll(query, viewOwnUserId) {
@@ -8,7 +9,13 @@ async function getAll(query, viewOwnUserId) {
 async function getById(id) {
   const user = await userRepo.findById(id);
   if (!user) return { error: 'notFound', message: 'User not found' };
-  return { user };
+
+  const [locations, profileImage] = await Promise.all([
+    userRepo.getUserLocations(id),
+    fileRepo.findOneByEntity('user', id, 'profile_image'),
+  ]);
+
+  return { user: { ...user, locations, profile_image: profileImage || null } };
 }
 
 async function create(body, userId) {
@@ -22,7 +29,12 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Username already exists' };
 
   const hashedPassword = await password.hash(pwd);
-  const user = await userRepo.create({ username, hashedPassword, full_name, email, phone, group_id, is_active }, userId);
+  const user = await userRepo.create({ username, hashedPassword, full_name, email, phone_code: body.phone_code, phone, group_id, is_active }, userId);
+
+  if (body.location_ids && body.location_ids.length > 0) {
+    const defaultLocId = body.default_location_id || body.location_ids[0];
+    await userRepo.saveUserLocations(user.id, body.location_ids, defaultLocId, userId);
+  }
 
   return { user };
 }
@@ -44,10 +56,17 @@ async function update(id, body, userId) {
     hashedPassword,
     full_name: body.full_name,
     email: body.email,
+    phone_code: body.phone_code,
     phone: body.phone,
     group_id: body.group_id,
     is_active: body.is_active,
   }, rawCurrent, userId);
+
+  if (body.location_ids !== undefined) {
+    const locIds = body.location_ids || [];
+    const defaultLocId = body.default_location_id || (locIds.length > 0 ? locIds[0] : null);
+    await userRepo.saveUserLocations(id, locIds, defaultLocId, userId);
+  }
 
   return { user };
 }

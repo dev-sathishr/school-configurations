@@ -1,4 +1,5 @@
 const userRepo = require('../users/user.repository');
+const fileRepo = require('../files/file.repository');
 const password = require('../../shared/helpers/password.helper');
 const jwt = require('../../shared/helpers/jwt.helper');
 const db = require('../../config/database');
@@ -18,6 +19,7 @@ async function login(username, pwd) {
   await userRepo.updateLastLogin(user.id);
 
   const tokenPayload = { id: user.id, username: user.username, group_code: user.group_code || '' };
+  const profileFile = await fileRepo.findOneByEntity('user', user.id, 'profile_image');
 
   return {
     data: {
@@ -32,6 +34,7 @@ async function login(username, pwd) {
         group_code: user.group_code || '',
         group_name: user.group_name || '',
         last_login: user.last_login,
+        profile_file_id: profileFile?.id || null,
       },
     },
     message: 'Login successful',

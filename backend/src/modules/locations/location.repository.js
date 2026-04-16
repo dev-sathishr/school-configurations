@@ -119,4 +119,32 @@ async function checkUnique(field, value, excludeId = null, extraConditions = {})
   return result.rows.length > 0;
 }
 
-module.exports = { findAll, findById, findByField, create, update, softDelete, softDeleteMultiple, checkUnique };
+async function findDropdown({ page, size, search }) {
+  const offset = (page - 1) * size;
+  let where = 'WHERE l.is_active = true AND l.deleted_at IS NULL';
+  const params = [];
+
+  if (search) {
+    params.push(`%${search}%`);
+    where += ` AND (l.name ILIKE $${params.length} OR l.code ILIKE $${params.length})`;
+  }
+
+  const countResult = await db.query(`SELECT COUNT(*) FROM settings.locations l ${where}`, params);
+  const totalCount = parseInt(countResult.rows[0].count);
+
+  params.push(size, offset);
+  const result = await db.query(
+    `SELECT l.id, l.name, l.code, org.name AS org_name
+     FROM settings.locations l
+     LEFT JOIN settings.organizations org ON l.organization_id = org.id
+     ${where} ORDER BY l.name LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+
+  return {
+    data: result.rows.map(r => ({ id: r.id, name: r.code ? `${r.name} (${r.code})` : r.name })),
+    pagination: { page, size, total_count: totalCount, total_pages: Math.ceil(totalCount / size) },
+  };
+}
+
+module.exports = { findAll, findById, findByField, create, update, softDelete, softDeleteMultiple, checkUnique, findDropdown };
