@@ -83,4 +83,15 @@ async function removeMultiple(req, resp) {
   }
 }
 
-module.exports = { getAll, getById, getDropdown, create, update, remove, removeMultiple };
+async function importRows(req, resp) {
+  try {
+    const result = await moduleService.importRows(req.body.rows, req.user.id);
+    if (result.error) return handleError(resp, result);
+    return res.success(resp, result, `${result.success_count} module(s) imported, ${result.error_count} failed`);
+  } catch (err) {
+    console.error('Import modules error:', err);
+    return res.error(resp);
+  }
+}
+
+module.exports = { getAll, getById, getDropdown, create, update, remove, removeMultiple, importRows };

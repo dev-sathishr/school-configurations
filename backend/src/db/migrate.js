@@ -454,6 +454,46 @@ async function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_user_location_unique ON settings.user_locations (user_id, location_id);
     `).catch(() => console.log('Index idx_user_location_unique already exists'));
 
+    // User preferences (single JSONB doc per user)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.user_preferences (
+        user_id UUID PRIMARY KEY REFERENCES settings.users(id) ON DELETE CASCADE,
+        data JSONB NOT NULL DEFAULT '{}'::jsonb,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // Fix previously seeded icon paths that point to non-existent assets.
+    await client.query(`
+      UPDATE settings.modules
+         SET icon = 'assets/icons/heroicons/outline/users.svg'
+       WHERE icon = 'assets/icons/heroicons/outline/user-group.svg';
+    `).catch(() => {});
+
+    // Replace the table-level UNIQUE on users.username with a partial unique
+    // index so soft-deleted usernames don't block re-use.
+    await client.query('ALTER TABLE settings.users DROP CONSTRAINT IF EXISTS users_username_key').catch(() => {});
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_user_username_unique
+        ON settings.users (username)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_user_username_unique already exists'));
+
+    // Ensure IMPORT and EXPORT permission types exist on existing databases.
+    for (const perm of [
+      { name: 'Import', code: 'IMPORT', description: 'Can bulk-import records from file' },
+      { name: 'Export', code: 'EXPORT', description: 'Can download records as CSV/Excel/PDF' },
+    ]) {
+      await client.query(`
+        INSERT INTO settings.permissions (name, code, description, is_active)
+        SELECT $1, $2, $3, true
+         WHERE NOT EXISTS (
+           SELECT 1 FROM settings.permissions
+            WHERE UPPER(code) = UPPER($2) AND deleted_at IS NULL
+         )
+      `, [perm.name, perm.code, perm.description]).catch(() => {});
+    }
+
     // Academic level enum
     await client.query(`
       CREATE TYPE academic.academic_level AS ENUM (

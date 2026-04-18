@@ -1,6 +1,7 @@
 const userRepo = require('./user.repository');
 const fileRepo = require('../../files/file.repository');
 const password = require('../../../shared/helpers/password.helper');
+const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 
 async function getAll(query, viewOwnUserId) {
   return userRepo.findAll(query, viewOwnUserId);
@@ -87,4 +88,41 @@ async function removeMultiple(ids, userId) {
   return { deleted_count: deletedCount };
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple };
+async function importRows(rows, userId) {
+  return bulkImport({
+    rows, create, userId,
+    preResolve: async (parsedRows) => {
+      // If the file uses group_code, resolve to group_id up-front.
+      if (parsedRows.some((r) => !r.group_id && (r.group_code || r['Group Code']))) {
+        const db = require('../../../config/database');
+        const result = await db.query('SELECT id, code FROM settings.groups WHERE deleted_at IS NULL');
+        return { groupByCode: new Map(result.rows.map((g) => [String(g.code).toUpperCase(), g.id])) };
+      }
+      return {};
+    },
+    transformRow: async (raw, ctx) => {
+      const username = pick(raw, 'username', 'Username');
+      const row = {
+        username,
+        password: pick(raw, 'password', 'Password') || username,
+        full_name: pick(raw, 'full_name', 'Full Name'),
+        email: pick(raw, 'email', 'Email'),
+        phone: pick(raw, 'phone', 'Phone'),
+        phone_code: pick(raw, 'phone_code', 'Phone Code') || '+91',
+        group_id: pick(raw, 'group_id', 'Group ID'),
+        is_active: asBool(pick(raw, 'is_active', 'Is Active'), true),
+      };
+      const groupCode = pick(raw, 'group_code', 'Group Code');
+      if (!row.group_id && groupCode && ctx.groupByCode) {
+        row.group_id = ctx.groupByCode.get(String(groupCode).toUpperCase());
+        if (!row.group_id) return { error: `Unknown group_code: ${groupCode}` };
+      }
+      if (!row.username || !row.full_name || !row.group_id) {
+        return { error: 'username, full_name, and group_id (or group_code) are required' };
+      }
+      return { row };
+    },
+  });
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, importRows };

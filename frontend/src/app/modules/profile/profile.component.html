@@ -1,0 +1,21 @@
+<div class="flex flex-col gap-6 lg:flex-row">
+  <!-- Left rail -->
+  <aside class="shrink-0 lg:w-56">
+    <nav class="bg-background border-border flex flex-col gap-0.5 rounded-lg border p-2">
+      @for (section of sections; track section.route) {
+        <a
+          [routerLink]="section.route"
+          routerLinkActive="bg-primary/10 text-primary"
+          class="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors">
+          <svg-icon [src]="section.icon" [svgClass]="'h-4 w-4'"></svg-icon>
+          {{ section.label }}
+        </a>
+      }
+    </nav>
+  </aside>
+
+  <!-- Content -->
+  <section class="min-w-0 flex-1">
+    <router-outlet></router-outlet>
+  </section>
+</div>

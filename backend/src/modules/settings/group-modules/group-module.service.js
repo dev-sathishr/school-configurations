@@ -1,4 +1,6 @@
 const groupModuleRepo = require('./group-module.repository');
+const db = require('../../../config/database');
+const { bulkImport, pick } = require('../../../shared/helpers/bulk-import.helper');
 
 async function getAll(query) {
   return groupModuleRepo.findAll(query);
@@ -51,4 +53,38 @@ async function removeMultiple(ids, userId) {
   return { deleted_count: deletedCount };
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple };
+async function importRows(rows, userId) {
+  return bulkImport({
+    rows, create, userId,
+    preResolve: async () => {
+      const [groups, menus] = await Promise.all([
+        db.query('SELECT id, code FROM settings.groups WHERE deleted_at IS NULL'),
+        db.query('SELECT id, code FROM settings.menus WHERE deleted_at IS NULL'),
+      ]);
+      return {
+        groupByCode: new Map(groups.rows.map((g) => [String(g.code).toUpperCase(), g.id])),
+        menuByCode: new Map(menus.rows.map((m) => [String(m.code).toUpperCase(), m.id])),
+      };
+    },
+    transformRow: async (raw, ctx) => {
+      let group_id = pick(raw, 'group_id', 'Group ID');
+      let menu_id = pick(raw, 'menu_id', 'Menu ID');
+      const groupCode = pick(raw, 'group_code', 'Group Code');
+      const menuCode = pick(raw, 'menu_code', 'Menu Code');
+      if (!group_id && groupCode) {
+        group_id = ctx.groupByCode.get(String(groupCode).toUpperCase());
+        if (!group_id) return { error: `Unknown group_code: ${groupCode}` };
+      }
+      if (!menu_id && menuCode) {
+        menu_id = ctx.menuByCode.get(String(menuCode).toUpperCase());
+        if (!menu_id) return { error: `Unknown menu_code: ${menuCode}` };
+      }
+      if (!group_id || !menu_id) {
+        return { error: 'group_code/group_id and menu_code/menu_id are required' };
+      }
+      return { row: { group_id, menu_id } };
+    },
+  });
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, importRows };

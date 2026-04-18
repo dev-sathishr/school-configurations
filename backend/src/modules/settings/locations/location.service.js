@@ -1,6 +1,8 @@
 const locationRepo = require('./location.repository');
+const db = require('../../../config/database');
 const { validate } = require('../../../shared/helpers/validate.helper');
 const { saveAddresses, getAddresses } = require('../../../shared/helpers/address.helper');
+const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 
 const LOC_RULES = {
   organization_id: { required: true, label: 'Organization' },
@@ -119,4 +121,53 @@ async function getDropdown(query) {
   return locationRepo.findDropdown({ page, size, search });
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown };
+async function importRows(rows, userId) {
+  return bulkImport({
+    rows, create, userId,
+    preResolve: async () => {
+      const result = await db.query('SELECT id, name FROM settings.organizations WHERE deleted_at IS NULL');
+      return { orgByName: new Map(result.rows.map((o) => [String(o.name).toLowerCase(), o.id])) };
+    },
+    transformRow: async (raw, ctx) => {
+      let organization_id = pick(raw, 'organization_id', 'Organization ID');
+      const orgName = pick(raw, 'organization_name', 'Organization Name', 'Organization');
+      if (!organization_id && orgName) {
+        organization_id = ctx.orgByName.get(String(orgName).toLowerCase());
+        if (!organization_id) return { error: `Unknown organization: ${orgName}` };
+      }
+      const row = {
+        organization_id,
+        name: pick(raw, 'name', 'Name'),
+        code: pick(raw, 'code', 'Code'),
+        type: pick(raw, 'type', 'Type') || 'branch',
+        email: pick(raw, 'email', 'Email') || '',
+        primary_contact_code: pick(raw, 'primary_contact_code') || '+91',
+        primary_contact_no: pick(raw, 'primary_contact_no', 'Primary Contact No'),
+        notes: pick(raw, 'notes', 'Notes') || '',
+        is_active: asBool(pick(raw, 'is_active', 'Is Active'), true),
+        addresses: [],
+      };
+      const line1 = pick(raw, 'address_line1', 'Address Line 1');
+      const city = pick(raw, 'city', 'City');
+      const state = pick(raw, 'state', 'State');
+      if (line1 || city || state) {
+        row.addresses.push({
+          address_type: 'branch',
+          is_default: true,
+          address_line1: line1 || '',
+          address_line2: pick(raw, 'address_line2', 'Address Line 2') || '',
+          city: city || '',
+          state: state || '',
+          pincode: pick(raw, 'pincode', 'Pincode') || '',
+          country: pick(raw, 'country', 'Country') || 'India',
+        });
+      }
+      if (!row.name || !row.code || !row.organization_id) {
+        return { error: 'name, code, and organization (name or id) are required' };
+      }
+      return { row };
+    },
+  });
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown, importRows };

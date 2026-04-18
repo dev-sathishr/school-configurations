@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
+import { PermissionService } from '../../../../../core/services/permission.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
@@ -16,6 +17,7 @@ import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb
 export class LocationFormComponent implements OnInit {
   form!: FormGroup;
   editMode = false;
+  viewMode = false;
   editId = '';
   submitted = false;
   saving = false;
@@ -35,7 +37,7 @@ export class LocationFormComponent implements OnInit {
     { value: 'other', label: 'Other' },
   ];
 
-  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
+  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef, public ps: PermissionService) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -52,7 +54,10 @@ export class LocationFormComponent implements OnInit {
 
     const id = this.cs.getRouteParam(this.route, 'id');
     if (id) {
-      this.editMode = true;
+      const segments = this.route.snapshot.url;
+      const lastPath = segments[segments.length - 1]?.path;
+      this.viewMode = lastPath === 'view';
+      this.editMode = !this.viewMode;
       this.editId = id;
       this.loading = true;
       this.cs.getService({ url: `/locations/${id}` }).subscribe({
@@ -122,4 +127,6 @@ export class LocationFormComponent implements OnInit {
   }
 
   cancel() { this.cs.navigate({ url: '/settings/location' }); }
+
+  switchToEdit() { this.cs.navigate({ url: `/settings/location/${this.editId}/edit` }); }
 }

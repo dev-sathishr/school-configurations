@@ -1,6 +1,7 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, input, Output } from '@angular/core';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { TableFilterService, ColumnConfig } from '../../services/table-filter.service';
+import { ExportFormat } from '../../exporters';
 
 @Component({
   selector: 'app-table-action',
@@ -16,12 +17,20 @@ export class TableActionComponent {
   @Input() columns: ColumnConfig[] = [];
   @Input() canEdit = true;
   @Input() canDelete = true;
+  @Input() canView = true;
 
   @Output() onEditSelected = new EventEmitter<void>();
   @Output() onDeleteSelected = new EventEmitter<void>();
+  @Output() onViewSelected = new EventEmitter<void>();
   @Output() onInvertSelection = new EventEmitter<void>();
+  @Output() onExport = new EventEmitter<ExportFormat>();
+  @Output() onImportClick = new EventEmitter<void>();
+
+  @Input() canImport = false;
+  @Input() canExport = true;
 
   showColumnsDropdown = false;
+  showExportDropdown = false;
   dragIndex: number | null = null;
   dragOverIndex: number | null = null;
 
@@ -31,7 +40,17 @@ export class TableActionComponent {
   onDocumentClick(event: MouseEvent) {
     if (!this.elementRef.nativeElement.contains(event.target)) {
       this.showColumnsDropdown = false;
+      this.showExportDropdown = false;
     }
+  }
+
+  toggleExportDropdown() {
+    this.showExportDropdown = !this.showExportDropdown;
+  }
+
+  pickExport(format: ExportFormat) {
+    this.showExportDropdown = false;
+    this.onExport.emit(format);
   }
 
   toggleFilters() {

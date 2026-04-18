@@ -28,6 +28,8 @@
             [class]="getBadgeClass(col)">
             {{ getBadgeLabel(col) }}
           </span>
+        } @else if (col.type === 'date') {
+          {{ user[col.key] ? (user[col.key] | date: 'medium') : '-' }}
         } @else {
           {{ user[col.key] ?? '-' }}
         }

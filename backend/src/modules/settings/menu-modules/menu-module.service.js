@@ -1,4 +1,6 @@
 const menuModuleRepo = require('./menu-module.repository');
+const db = require('../../../config/database');
+const { bulkImport, pick } = require('../../../shared/helpers/bulk-import.helper');
 
 async function getAll(query) {
   return menuModuleRepo.findAll(query);
@@ -51,4 +53,41 @@ async function removeMultiple(ids, userId) {
   return { deleted_count: deletedCount };
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple };
+async function importRows(rows, userId) {
+  return bulkImport({
+    rows, create, userId,
+    preResolve: async () => {
+      const [menus, mods] = await Promise.all([
+        db.query('SELECT id, code FROM settings.menus WHERE deleted_at IS NULL'),
+        db.query('SELECT id, code FROM settings.modules WHERE deleted_at IS NULL'),
+      ]);
+      return {
+        menuByCode: new Map(menus.rows.map((m) => [String(m.code).toUpperCase(), m.id])),
+        moduleByCode: new Map(mods.rows.map((m) => [String(m.code).toUpperCase(), m.id])),
+      };
+    },
+    transformRow: async (raw, ctx) => {
+      let menu_id = pick(raw, 'menu_id', 'Menu ID');
+      let module_id = pick(raw, 'module_id', 'Module ID');
+      const menuCode = pick(raw, 'menu_code', 'Menu Code');
+      const moduleCode = pick(raw, 'module_code', 'Module Code');
+      if (!menu_id && menuCode) {
+        menu_id = ctx.menuByCode.get(String(menuCode).toUpperCase());
+        if (!menu_id) return { error: `Unknown menu_code: ${menuCode}` };
+      }
+      if (!module_id && moduleCode) {
+        module_id = ctx.moduleByCode.get(String(moduleCode).toUpperCase());
+        if (!module_id) return { error: `Unknown module_code: ${moduleCode}` };
+      }
+      if (!menu_id || !module_id) {
+        return { error: 'menu_code/menu_id and module_code/module_id are required' };
+      }
+      return { row: {
+        menu_id, module_id,
+        display_order: Number(pick(raw, 'display_order', 'Display Order')) || 0,
+      } };
+    },
+  });
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, importRows };

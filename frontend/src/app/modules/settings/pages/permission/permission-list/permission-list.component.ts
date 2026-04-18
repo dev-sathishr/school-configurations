@@ -29,12 +29,11 @@ export class PermissionListComponent {
         'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
       },
     },
-    { key: 'created_by_name', label: 'Created By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'p.name': 'name', 'p.code': 'code', 'p.description': 'description',
-    'p.is_active': 'is_active', 'created_by_name': 'created_by_name',
+    'p.is_active': 'is_active',
   };
 
   rowTransform = (row: any, mapped: any) => {
@@ -47,4 +46,5 @@ export class PermissionListComponent {
 
   addNew() { this.cs.navigate({ url: '/settings/permission/new' }); }
   editSelected(item: any) { this.cs.navigate({ url: `/settings/permission/${item.id}/edit` }); }
+  viewSelected(item: any) { this.cs.navigate({ url: `/settings/permission/${item.id}/view` }); }
 }

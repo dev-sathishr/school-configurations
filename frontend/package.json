@@ -38,10 +38,13 @@
     "@tailwindcss/typography": "^0.5.16",
     "angular-svg-icon": "^13.0.0",
     "apexcharts": "^3.35.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "ng-apexcharts": "^1.7.1",
     "ngx-sonner": "^2.0.1",
     "rxjs": "^7.8.2",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@angular/build": "^21.0.4",

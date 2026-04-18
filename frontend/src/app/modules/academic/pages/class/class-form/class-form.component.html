@@ -35,6 +35,7 @@
     <!-- General Tab -->
     @if (activeTab === 'general') {
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+        <fieldset [disabled]="viewMode" class="space-y-6">
         <div class="bg-background border-muted/30 rounded-lg border p-5">
           <h4 class="text-foreground mb-4 text-sm font-semibold">Class Information</h4>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -57,13 +58,23 @@
           </div>
         </div>
 
+        </fieldset>
+
         <div class="flex justify-end gap-3">
           <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
-            Cancel
+            {{ viewMode ? 'Back' : 'Cancel' }}
           </app-button>
-          <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
-            {{ editMode ? 'Update' : 'Save & Next' }}
-          </app-button>
+          @if (viewMode) {
+            @if (ps.canEdit('CLASSES')) {
+              <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">
+                Edit
+              </app-button>
+            }
+          } @else {
+            <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
+              {{ editMode ? 'Update' : 'Save & Next' }}
+            </app-button>
+          }
         </div>
       </form>
     }

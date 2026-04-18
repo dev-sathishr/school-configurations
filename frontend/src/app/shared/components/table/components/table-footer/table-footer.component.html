@@ -4,11 +4,9 @@
     <div class="flex items-center gap-2">
       Show
       <select class="w-16 p-2" (change)="onPageSizeChange($event)">
-        <option value="5">5</option>
-        <option value="10" selected>10</option>
-        <option value="20">20</option>
-        <option value="30">30</option>
-        <option value="50">50</option>
+        @for (opt of pageSizeOptions(); track opt) {
+          <option [value]="opt" [selected]="opt === pageSize()">{{ opt }}</option>
+        }
       </select>
       per page
     </div>

@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
+import { UserPreferencesService } from '../../../../core/services/user-preferences.service';
 
 export interface ColumnConfig {
   key: string;
@@ -6,7 +7,7 @@ export interface ColumnConfig {
   sortable?: boolean;
   searchable?: boolean;
   visible?: boolean;
-  type?: 'text' | 'badge' | 'avatar';
+  type?: 'text' | 'badge' | 'avatar' | 'date';
   badgeMap?: Record<string, { label: string; class: string }>;
   avatarKey?: string;
 }
@@ -15,6 +16,12 @@ export interface ColumnConfig {
   providedIn: 'root',
 })
 export class TableFilterService {
+  private prefs = inject(UserPreferencesService);
+
+  // Stable key for the currently-mounted table. Used to read/write the
+  // pageSize override in UserPreferencesService.
+  private currentTableKey = signal<string>('');
+
   // Global
   searchField = signal<string>('');
   statusField = signal<string>('');
@@ -102,10 +109,46 @@ export class TableFilterService {
     this.statusField.set('');
     this.orderField.set('');
     this.pageField.set(1);
-    this.pageSizeField.set(10);
+    // Do NOT reset pageSizeField here — init(tableKey) is the authority and
+    // resetting would fire an extra effect run with a stale default.
     this.sortByField.set('');
     this.sortOrderField.set('');
     this.columnFilters.set({});
     this.columnOrder.set([]);
+    this.currentTableKey.set('');
+  }
+
+  // ─── Table pagination (prefs-backed) ───────────────────
+
+  /**
+   * Initialise this service for the table identified by `tableKey`.
+   * Seeds pageSize from user preferences (per-table override ?? global default).
+   */
+  init(tableKey: string) {
+    this.currentTableKey.set(tableKey);
+    const size = this.prefs.effectivePageSize(tableKey);
+    this.pageSizeField.set(size);
+    this.pageField.set(1);
+  }
+
+  /**
+   * User picked a new page size for the currently-active table.
+   * Writes a per-table override in preferences.
+   */
+  setPageSize(size: number) {
+    const key = this.currentTableKey();
+    this.pageSizeField.set(size);
+    this.pageField.set(1);
+    if (key) this.prefs.setTablePageSize(key, size);
+  }
+
+  /** Remove the per-table override for the currently-active table and fall back to the global default. */
+  clearTableOverride() {
+    const key = this.currentTableKey();
+    if (!key) return;
+    this.prefs.clearTableOverride(key);
+    const size = this.prefs.effectivePageSize(key);
+    this.pageSizeField.set(size);
+    this.pageField.set(1);
   }
 }

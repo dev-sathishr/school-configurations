@@ -5,7 +5,10 @@ import { TableActionComponent } from './components/table-action/table-action.com
 import { TableFooterComponent } from './components/table-footer/table-footer.component';
 import { TableHeaderComponent } from './components/table-header/table-header.component';
 import { TableRowComponent } from './components/table-row/table-row.component';
+import { ImportDialogComponent } from './components/import-dialog/import-dialog.component';
 import { ColumnConfig, TableFilterService } from './services/table-filter.service';
+import { AUDIT_COLUMNS } from './audit-columns';
+import { ExportFormat, exportRows } from './exporters';
 import { CommonService } from '../../services/common/common.service';
 import { LoaderComponent } from '../loader/loader.component';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
@@ -17,7 +20,7 @@ import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.compone
   imports: [
     FormsModule, AngularSvgIconModule,
     TableActionComponent, TableFooterComponent, TableHeaderComponent, TableRowComponent,
-    LoaderComponent, ConfirmDialogComponent,
+    LoaderComponent, ConfirmDialogComponent, ImportDialogComponent,
   ],
 })
 export class TableComponent implements OnInit, OnDestroy {
@@ -28,19 +31,43 @@ export class TableComponent implements OnInit, OnDestroy {
   @Input() rowTransform: ((row: any, mapped: any) => any) | null = null;
   @Input() canEdit = true;
   @Input() canDelete = true;
+  @Input() canView = true;
+  @Input() canImport = false;
+  @Input() canExport = true;
 
   @Output() onEdit = new EventEmitter<any>();
+  @Output() onView = new EventEmitter<any>();
+  @Output() onImport = new EventEmitter<void>();
 
   data = signal<any[]>([]);
   pagination = signal<any>({ page: 1, size: 10, total_count: 0, total_pages: 0 });
   loading = false;
   showDeleteConfirm = false;
   deleting = false;
+  showImportDialog = false;
+
+  // Gate the effect so it doesn't fire during construction with the stale
+  // filterService defaults — we want the first fetch to use the size that
+  // `ngOnInit → filterService.init(apiUrl)` resolves from user preferences.
+  private initialized = signal(false);
 
   totalCount = () => this.pagination().total_count;
 
+  /**
+   * All configured columns plus the shared audit columns (created_at, created_by,
+   * updated_at, updated_by). Audit columns are hidden by default except "Updated By".
+   * If the parent already declared an audit column manually (e.g. a custom label
+   * or pre-audit-era code), that one wins and we skip the duplicate from the set.
+   */
+  get effectiveColumns(): ColumnConfig[] {
+    const existing = new Set(this.columns.map((c) => c.key));
+    const missing = AUDIT_COLUMNS.filter((c) => !existing.has(c.key));
+    return [...this.columns, ...missing];
+  }
+
   constructor(private cs: CommonService, public filterService: TableFilterService) {
     effect(() => {
+      if (!this.initialized()) return;
       const search = this.filterService.searchField();
       const page = this.filterService.pageField();
       const size = this.filterService.pageSizeField();
@@ -53,10 +80,14 @@ export class TableComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.filterService.reset();
-    this.filterService.initColumns(this.columns);
+    this.filterService.initColumns(this.effectiveColumns);
+    this.filterService.init(this.apiUrl);
+    // Open the gate — the effect re-runs once with the resolved pageSize.
+    this.initialized.set(true);
   }
 
   ngOnDestroy() {
+    this.initialized.set(false);
     this.filterService.reset();
   }
 
@@ -89,15 +120,15 @@ export class TableComponent implements OnInit, OnDestroy {
   }
 
   get visibleColumnCount(): number {
-    return this.columns.filter((c) => this.filterService.isColumnVisible(c.key)).length + 1;
+    return this.effectiveColumns.filter((c) => this.filterService.isColumnVisible(c.key)).length + 1;
   }
 
   get orderedColumns(): ColumnConfig[] {
-    return this.filterService.getOrderedColumns(this.columns);
+    return this.filterService.getOrderedColumns(this.effectiveColumns);
   }
 
   get hasVisibleColumns(): boolean {
-    return this.columns.some((c) => this.filterService.isColumnVisible(c.key));
+    return this.effectiveColumns.some((c) => this.filterService.isColumnVisible(c.key));
   }
 
   get selectedRows(): any[] {
@@ -128,6 +159,73 @@ export class TableComponent implements OnInit, OnDestroy {
     if (this.isSingleSelected) {
       this.onEdit.emit(this.selectedRows[0]);
     }
+  }
+
+  viewSelected() {
+    if (this.isSingleSelected) {
+      this.onView.emit(this.selectedRows[0]);
+    }
+  }
+
+  // ─── Import ──────────────────────────────────────────
+
+  startImport() {
+    this.showImportDialog = true;
+    this.onImport.emit();
+  }
+
+  closeImport() {
+    this.showImportDialog = false;
+  }
+
+  onImportDone() {
+    // Reload after a successful import so the user sees the new rows.
+    this.reloadCurrentPage();
+  }
+
+  // ─── Export ──────────────────────────────────────────
+
+  /**
+   * Fetches all rows matching the current filter/sort state, then exports them
+   * in the chosen format. "All rows" is capped at 10,000 to avoid runaway requests;
+   * promote to a server-side streaming endpoint if you expect larger datasets.
+   */
+  exportAll(format: ExportFormat) {
+    if (!this.apiUrl || this.loading) return;
+    this.loading = true;
+
+    const q: any = { page: 1, size: 10000 };
+    const search = this.filterService.searchField();
+    const sortBy = this.filterService.sortByField();
+    const sortOrder = this.filterService.sortOrderField();
+    const columnFilters = this.filterService.columnFilters();
+    if (search) q.search = search;
+    if (sortBy) q.sort_by = sortBy;
+    if (sortOrder) q.sort_order = sortOrder;
+    for (const [col, val] of Object.entries(columnFilters)) {
+      if (val) q[`filter[${col}]`] = val;
+    }
+
+    this.cs.getService({ url: this.apiUrl, params: q }).subscribe({
+      next: (res: any) => {
+        const rows = (res.data || []).map((row: any) => {
+          const mapped: any = { ...row };
+          for (const [colKey, dataKey] of Object.entries(this.displayKeyMap)) {
+            mapped[colKey] = row[dataKey] ?? '';
+          }
+          return this.rowTransform ? this.rowTransform(row, mapped) : mapped;
+        });
+        const orderedCols = this.filterService.getOrderedColumns(this.effectiveColumns);
+        const visibleCols = orderedCols.filter((c) => this.filterService.isColumnVisible(c.key));
+        const filename = this.apiUrl.split('/').filter(Boolean).pop() || 'export';
+        exportRows(rows, visibleCols, filename, format);
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+        this.cs.showToastr({ type: 'error', message: 'Export failed' });
+      },
+    });
   }
 
   deleteSelected() {

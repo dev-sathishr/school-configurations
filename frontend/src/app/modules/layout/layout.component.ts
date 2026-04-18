@@ -5,6 +5,7 @@ import { NavbarComponent } from './components/navbar/navbar.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { SubheaderComponent } from './components/subheader/subheader.component';
 import { ThemeService } from '../../core/services/theme.service';
+import { UsageTrackingService } from '../../core/services/usage-tracking.service';
 import { MenuService } from './services/menu.service';
 
 @Component({
@@ -16,7 +17,12 @@ import { MenuService } from './services/menu.service';
 export class LayoutComponent implements OnInit {
   private mainContent: HTMLElement | null = null;
 
-  constructor(private router: Router, public themeService: ThemeService, public menuService: MenuService) {
+  constructor(
+    private router: Router,
+    public themeService: ThemeService,
+    public menuService: MenuService,
+    private usageTracking: UsageTrackingService,
+  ) {
     this.router.events.subscribe((event: Event) => {
       if (event instanceof NavigationEnd) {
         if (this.mainContent) {
@@ -24,6 +30,7 @@ export class LayoutComponent implements OnInit {
         }
       }
     });
+    this.usageTracking.start();
   }
 
   ngOnInit(): void {

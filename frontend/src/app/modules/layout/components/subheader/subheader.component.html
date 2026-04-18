@@ -1,8 +1,8 @@
 <div class="border-border bg-background/80 hidden border-t md:block">
   <div class="mx-auto px-5">
     <div class="flex items-center gap-1 py-1.5">
-      @for (menu of menuService.pagesMenu; track menu) {
-        @for (item of menu.items; track item) {
+      @for (menu of menuService.pagesMenu; track menu.group) {
+        @for (item of menu.items; track item.route) {
           <a
             routerLink="{{ item.route }}"
             routerLinkActive="bg-primary text-primary-foreground"

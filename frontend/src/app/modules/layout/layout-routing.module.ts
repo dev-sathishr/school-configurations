@@ -33,6 +33,11 @@ const routes: Routes = [
     loadChildren: () => import('../settings/settings.module').then((m) => m.SettingsModule),
   },
   {
+    path: 'profile',
+    component: LayoutComponent,
+    loadChildren: () => import('../profile/profile.module').then((m) => m.ProfileModule),
+  },
+  {
     path: '',
     canActivate: [DefaultRedirectGuard],
     children: [],

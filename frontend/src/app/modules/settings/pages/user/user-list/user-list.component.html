@@ -15,5 +15,9 @@
   [rowTransform]="rowTransform"
   [canEdit]="ps.canEdit('USERS')"
   [canDelete]="ps.canDelete('USERS')"
-  (onEdit)="editSelected($event)">
+  [canView]="ps.canView('USERS')"
+  [canImport]="ps.canImport('USERS')"
+  [canExport]="ps.canExport('USERS')"
+  (onEdit)="editSelected($event)"
+  (onView)="viewSelected($event)">
 </app-table>

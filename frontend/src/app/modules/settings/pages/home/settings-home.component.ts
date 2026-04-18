@@ -1,7 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, effect, inject, OnInit, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
+import { NgClass } from '@angular/common';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { PermissionService } from '../../../../core/services/permission.service';
+import { UserPreferencesService } from '../../../../core/services/user-preferences.service';
+import { sortByPinnedAndUsage } from '../../../../shared/utils/sort-by-pinned-and-usage';
 
 interface SettingsCard {
   icon: string;
@@ -15,9 +18,11 @@ interface SettingsCard {
 @Component({
   selector: 'app-settings-home',
   templateUrl: './settings-home.component.html',
-  imports: [AngularSvgIconModule],
+  imports: [AngularSvgIconModule, NgClass],
 })
 export class SettingsHomeComponent implements OnInit {
+  private prefs = inject(UserPreferencesService);
+
   private allCards: SettingsCard[] = [
     {
       icon: 'assets/icons/heroicons/outline/cube.svg',
@@ -77,12 +82,28 @@ export class SettingsHomeComponent implements OnInit {
     },
   ];
 
-  cards: SettingsCard[] = [];
+  cards = signal<SettingsCard[]>([]);
 
-  constructor(private router: Router, private permissionService: PermissionService) {}
+  constructor(private router: Router, private permissionService: PermissionService) {
+    // Re-sort on pin changes. Usage is read untracked — usage increments on
+    // navigation must not cause a reorder while the user is looking at the page.
+    effect(() => {
+      const pinned = this.prefs.favorites().pinnedMenus;
+      const usage = untracked(() => this.prefs.usage().modules);
+      const visible = this.allCards.filter((c) => this.permissionService.hasAnyPermission(c.moduleCode));
+      this.cards.set(sortByPinnedAndUsage(visible, (c) => c.route, pinned, usage));
+    });
+  }
 
-  ngOnInit(): void {
-    this.cards = this.allCards.filter((card) => this.permissionService.hasAnyPermission(card.moduleCode));
+  ngOnInit(): void {}
+
+  isPinned(route: string): boolean {
+    return this.prefs.favorites().pinnedMenus.includes(route);
+  }
+
+  togglePin(route: string, event: Event) {
+    event.stopPropagation();
+    this.prefs.togglePinnedMenu(route);
   }
 
   navigate(card: SettingsCard) {

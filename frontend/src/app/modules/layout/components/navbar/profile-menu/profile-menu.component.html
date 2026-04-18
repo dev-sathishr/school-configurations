@@ -27,131 +27,26 @@
       }
       <div class="overflow-hidden">
         <p class="text-foreground truncate text-sm font-semibold">{{ currentUser?.full_name || 'User' }}</p>
-        <p class="text-muted-foreground truncate text-xs">{{ currentUser?.group_name || '' }}</p>
+        <p class="text-muted-foreground truncate text-xs">{{ currentUser?.email || '' }}</p>
       </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="border-border flex border-b">
+    <!-- Actions -->
+    <div class="border-border border-t p-3">
+      <a
+        routerLink="/profile"
+        (click)="isOpen = false"
+        class="text-muted-foreground hover:bg-card hover:text-primary inline-flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2.5 text-xs font-semibold transition-colors">
+        <svg-icon src="./assets/icons/heroicons/outline/user-circle.svg" [svgClass]="'h-4 w-4 text-muted-foreground/50'"></svg-icon>
+        Your Profile
+      </a>
+      <hr class="border-border my-2 border-dashed" />
       <button
-        (click)="activeTab = 'menu'"
-        class="flex-1 px-4 py-2.5 text-xs font-semibold transition-colors"
-        [ngClass]="activeTab === 'menu'
-          ? 'text-primary border-b-2 border-primary'
-          : 'text-muted-foreground hover:text-foreground'">
-        Menu
+        (click)="logout()"
+        class="text-muted-foreground hover:bg-red-50 hover:text-red-600 inline-flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2.5 text-xs font-semibold transition-colors">
+        <svg-icon src="./assets/icons/heroicons/outline/logout.svg" [svgClass]="'h-4 w-4'"></svg-icon>
+        Log out
       </button>
-      <button
-        (click)="activeTab = 'appearance'"
-        class="flex-1 px-4 py-2.5 text-xs font-semibold transition-colors"
-        [ngClass]="activeTab === 'appearance'
-          ? 'text-primary border-b-2 border-primary'
-          : 'text-muted-foreground hover:text-foreground'">
-        Appearance
-      </button>
-    </div>
-
-    <!-- Tab Content -->
-    <div class="p-3">
-      <!-- Menu Tab -->
-      @if (activeTab === 'menu') {
-        <ul class="flex flex-col gap-0.5">
-          @for (item of profileMenu; track $index) {
-            <li
-              routerLink="{{ item.link }}"
-              (click)="isOpen = false"
-              class="text-muted-foreground hover:bg-card hover:text-primary inline-flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2.5 text-xs font-semibold transition-colors">
-              <svg-icon src="{{ item.icon }}" [svgClass]="'h-4 w-4 text-muted-foreground/50'"> </svg-icon>
-              {{ item.title }}
-            </li>
-          }
-        </ul>
-        <hr class="border-border my-2 border-dashed" />
-        <button
-          (click)="logout()"
-          class="text-muted-foreground hover:bg-red-50 hover:text-red-600 inline-flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2.5 text-xs font-semibold transition-colors">
-          <svg-icon src="./assets/icons/heroicons/outline/logout.svg" [svgClass]="'h-4 w-4'"></svg-icon>
-          Log out
-        </button>
-      }
-
-      <!-- Appearance Tab -->
-      @if (activeTab === 'appearance') {
-        <!-- Menu Style -->
-        <div class="mb-4">
-          <span class="text-foreground mb-2 block text-xs font-semibold">Menu</span>
-          <div class="grid grid-cols-2 gap-2">
-            <div
-              (click)="setMenuStyle('sidebar')"
-              [ngClass]="{ 'border-primary bg-primary/5 text-primary': themeService.theme().menuStyle === 'sidebar' }"
-              class="border-border text-muted-foreground hover:bg-card hover:text-foreground inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border text-xs font-medium transition-colors">
-              <svg-icon src="assets/icons/heroicons/outline/menu.svg" [svgClass]="'h-4 w-4'"></svg-icon>
-              <span>Vertical</span>
-            </div>
-            <div
-              (click)="setMenuStyle('header')"
-              [ngClass]="{ 'border-primary bg-primary/5 text-primary': themeService.theme().menuStyle === 'header' }"
-              class="border-border text-muted-foreground hover:bg-card hover:text-foreground inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border text-xs font-medium transition-colors">
-              <svg-icon src="assets/icons/heroicons/outline/view-grid.svg" [svgClass]="'h-4 w-4'"></svg-icon>
-              <span>Horizontal</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mode -->
-        <div class="mb-4">
-          <span class="text-foreground mb-2 block text-xs font-semibold">Mode</span>
-          <div class="grid grid-cols-2 gap-2">
-            @for (item of themeMode; track $index) {
-              <div
-                (click)="toggleThemeMode()"
-                [ngClass]="{ 'border-primary bg-primary/5 text-primary': item == themeService.theme().mode }"
-                class="border-border text-muted-foreground hover:bg-card hover:text-foreground inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border text-xs font-medium transition-colors">
-                <svg-icon
-                  [src]="item == 'light' ? 'assets/icons/heroicons/outline/sun.svg' : 'assets/icons/heroicons/outline/moon.svg'"
-                  [svgClass]="'h-4 w-4'">
-                </svg-icon>
-                <span class="capitalize">{{ item }}</span>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Direction -->
-        <div class="mb-4">
-          <span class="text-foreground mb-2 block text-xs font-semibold">Direction</span>
-          <div class="grid grid-cols-2 gap-2">
-            @for (item of themeDirection; track $index) {
-              <div
-                (click)="setDirection(item)"
-                [ngClass]="{ 'border-primary bg-primary/5 text-primary': item == themeService.theme().direction }"
-                class="border-border text-muted-foreground hover:bg-card hover:text-foreground inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border text-xs font-medium transition-colors">
-                <svg-icon
-                  [src]="item == 'ltr' ? 'assets/icons/tablericons/text-direction-ltr.svg' : 'assets/icons/tablericons/text-direction-rtl.svg'"
-                  [svgClass]="'h-4 w-4'">
-                </svg-icon>
-                <span class="uppercase">{{ item }}</span>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Color -->
-        <div>
-          <span class="text-foreground mb-2 block text-xs font-semibold">Color</span>
-          <div class="flex flex-wrap gap-2">
-            @for (item of themeColors; track $index) {
-              <div
-                (click)="toggleThemeColor(item.name)"
-                [ngClass]="{ 'ring-2 ring-offset-2 ring-primary': item.name == themeService.theme().color }"
-                class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-all"
-                [style.backgroundColor]="item.code"
-                [title]="item.name">
-              </div>
-            }
-          </div>
-        </div>
-      }
     </div>
   </div>
 </div>

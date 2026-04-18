@@ -34,13 +34,11 @@ export class LocationListComponent {
       'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
       'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
     }},
-    { key: 'updated_by_name', label: 'Updated By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'organization_name': 'organization_name', 'l.name': 'name', 'l.code': 'code',
     'l.type': 'type', 'primary_contact_no': 'primary_contact_no', 'l.is_active': 'is_active',
-    'updated_by_name': 'updated_by_name',
   };
 
   rowTransform = (row: any, mapped: any) => {
@@ -54,4 +52,5 @@ export class LocationListComponent {
 
   addNew() { this.cs.navigate({ url: '/settings/location/new' }); }
   editSelected(row: any) { this.cs.navigate({ url: `/settings/location/${row.id}/edit` }); }
+  viewSelected(row: any) { this.cs.navigate({ url: `/settings/location/${row.id}/view` }); }
 }

@@ -1,4 +1,4 @@
-@for (menu of menuService.pagesMenu; track menu) {
+@for (menu of menuService.pagesMenu; track menu.group) {
   <div class="pt-3">
     @if (menuService.showSideBar && menu.group) {
       <div class="mx-1 flex items-center justify-between py-3">
@@ -9,7 +9,7 @@
     }
     <ul class="flex flex-col">
       <!-- List items -->
-      @for (item of menu.items; track item) {
+      @for (item of menu.items; track item.route) {
         <li>
           <!-- Menu List -->
           <div
@@ -51,6 +51,19 @@
                 </a>
               </div>
             </ng-template>
+            <!-- Pin toggle (hidden unless pinned or hovered, only when sidebar is expanded) -->
+            @if (menuService.showSideBar && item.route) {
+              <button
+                type="button"
+                (click)="togglePin(item.route, $event)"
+                [title]="menuService.isPinned(item.route) ? 'Unpin from top' : 'Pin to top'"
+                [ngClass]="menuService.isPinned(item.route)
+                  ? 'text-primary'
+                  : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-primary'"
+                class="ml-auto flex cursor-pointer items-center justify-end p-1 transition-opacity">
+                <svg-icon src="assets/icons/heroicons/outline/bookmark.svg" svgClass="h-4 w-4"></svg-icon>
+              </button>
+            }
             <!-- Arrow Icon -->
             @if (item.children) {
               <button

@@ -2,13 +2,19 @@
   <app-table-action
     [totalCount]="pagination().total_count"
     [filteredCount]="pagination().total_count"
-    [columns]="columns"
+    [columns]="effectiveColumns"
     [selectedCount]="selectedCount"
     [isSingleSelected]="isSingleSelected"
     [canEdit]="canEdit"
     [canDelete]="canDelete"
+    [canView]="canView"
+    [canImport]="canImport"
+    [canExport]="canExport"
     (onEditSelected)="editSelected()"
     (onDeleteSelected)="deleteSelected()"
+    (onViewSelected)="viewSelected()"
+    (onExport)="exportAll($event)"
+    (onImportClick)="startImport()"
     (onInvertSelection)="invertSelection()">
   </app-table-action>
 
@@ -24,8 +30,8 @@
       <table
         class="text-muted-foreground table w-full table-auto border-collapse border-0 text-left align-middle leading-5">
         <thead class="border-muted/20 text-muted-foreground border text-xs">
-          <tr app-table-header [columns]="columns" [showActions]="false" (onCheck)="toggleAll($event)"></tr>
-          @if (columns.length > 0 && filterService.showFilters()) {
+          <tr app-table-header [columns]="effectiveColumns" [showActions]="false" (onCheck)="toggleAll($event)"></tr>
+          @if (effectiveColumns.length > 0 && filterService.showFilters()) {
             <tr>
               <th class="px-1 py-1.5"></th>
               @for (col of orderedColumns; track col.key) {
@@ -59,7 +65,7 @@
                 (click)="toggleRow(row)"
                 app-table-row
                 [user]="row"
-                [columns]="columns"></tr>
+                [columns]="effectiveColumns"></tr>
             } @empty {
               <tr>
                 <td class="py-4 text-center text-sm" [attr.colspan]="visibleColumnCount">No records found</td>
@@ -79,6 +85,12 @@
     [loading]="deleting"
     (onConfirm)="confirmDelete()"
     (onCancel)="cancelDelete()" />
+
+  <app-import-dialog
+    [visible]="showImportDialog"
+    [apiUrl]="apiUrl"
+    (onClose)="closeImport()"
+    (onImported)="onImportDone()" />
 
   <app-table-footer
     [totalCount]="pagination().total_count"

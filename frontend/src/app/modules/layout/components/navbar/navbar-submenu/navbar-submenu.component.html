@@ -1,5 +1,5 @@
 <ul #submenuRef class="bg-background shadow-custom mt-2 space-y-0.5 rounded-md py-3">
-  @for (item of submenu; track item) {
+  @for (item of submenu; track item.route || item.label) {
     <li class="flex font-semibold">
       <!-- Condition -->
       <ng-container

@@ -90,6 +90,14 @@ export class PermissionService {
     return this.hasModulePermission(moduleCode, 'delete');
   }
 
+  canImport(moduleCode: string): boolean {
+    return this.hasModulePermission(moduleCode, 'import');
+  }
+
+  canExport(moduleCode: string): boolean {
+    return this.hasModulePermission(moduleCode, 'export');
+  }
+
   getModulePermissions(moduleCode: string): Record<string, boolean> | null {
     for (const menu of this._menus.value) {
       const mod = menu.modules.find((m) => m.code === moduleCode);

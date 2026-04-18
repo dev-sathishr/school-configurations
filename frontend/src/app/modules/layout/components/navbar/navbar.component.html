@@ -19,7 +19,7 @@
       </div>
 
       <!-- Logo (header mode or no menus, desktop) -->
-      @if (themeService.theme().menuStyle !== 'sidebar' || allModules.length === 0) {
+      @if (themeService.theme().menuStyle !== 'sidebar' || allModules().length === 0) {
         <div class="hidden items-center justify-start gap-3 md:flex ltr:mr-8 rtl:ml-8">
           <a class="flex items-center justify-center rounded-sm focus:outline-hidden focus:ring-1">
             <img src="assets/icons/shaanthi-logo.png" alt="ShaanthiEd" class="h-10 w-auto object-contain" />
@@ -29,14 +29,44 @@
       }
 
       <!-- Search bar & Favorites -->
-      @if (allModules.length > 0) {
+      @if (allModules().length > 0) {
         <div class="hidden items-center gap-4 md:flex">
           <!-- Search -->
-          <div class="border-border relative flex items-center rounded-md border">
-            <input type="text" placeholder="Type to search..."
-              class="text-foreground placeholder:text-muted-foreground h-9 w-64 rounded-md border-0 bg-transparent py-1.5 pl-3 pr-9 text-sm focus:outline-hidden" />
-            <svg-icon src="assets/icons/heroicons/outline/magnifying-glass.svg"
-              [svgClass]="'absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'"> </svg-icon>
+          <div class="relative" clickOutside (clickOutside)="closeSearch()">
+            <div class="border-border relative flex items-center rounded-md border">
+              <input type="text" placeholder="Type to search..."
+                [value]="searchQuery()"
+                (input)="onSearchInput($event)"
+                (focus)="onSearchFocus()"
+                (keydown)="onSearchKeydown($event)"
+                class="text-foreground placeholder:text-muted-foreground h-9 w-64 rounded-md border-0 bg-transparent py-1.5 pl-3 pr-9 text-sm focus:outline-hidden" />
+              <svg-icon src="assets/icons/heroicons/outline/magnifying-glass.svg"
+                [svgClass]="'absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'"> </svg-icon>
+            </div>
+
+            @if (searchOpen()) {
+              @if (searchResults().length > 0) {
+                <div class="bg-background shadow-custom border-muted absolute left-0 top-full z-30 mt-1 max-h-80 w-full overflow-y-auto rounded-lg border py-1">
+                  <ul class="flex flex-col">
+                    @for (item of searchResults(); track item.route) {
+                      <li
+                        (click)="selectResult(item)"
+                        class="text-muted-foreground hover:bg-card hover:text-primary mx-1 inline-flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors">
+                        @if (item.icon) {
+                          <svg-icon [src]="item.icon" [svgClass]="'h-4 w-4 shrink-0 text-muted-foreground/70'"></svg-icon>
+                        }
+                        <span class="truncate">{{ item.label }}</span>
+                        <span class="text-muted-foreground/50 ml-auto truncate pl-2 font-mono text-[10px]">{{ item.route }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              } @else if (searchQuery().trim()) {
+                <div class="bg-background shadow-custom border-muted text-muted-foreground absolute left-0 top-full z-30 mt-1 w-full rounded-lg border px-3 py-2 text-xs">
+                  No matches for "{{ searchQuery() }}".
+                </div>
+              }
+            }
           </div>
 
           <!-- Divider -->

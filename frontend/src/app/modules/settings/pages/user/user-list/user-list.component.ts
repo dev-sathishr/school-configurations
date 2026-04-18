@@ -32,13 +32,12 @@ export class UserListComponent {
       },
     },
     { key: 'u.last_login', label: 'Last Login', sortable: true },
-    { key: 'created_by_name', label: 'Created By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'u.full_name': 'full_name', 'u.username': 'username', 'u.email': 'email',
     'u.phone': 'phone', 'g.name': 'group_name', 'u.is_active': 'is_active',
-    'u.last_login': 'last_login', 'created_by_name': 'created_by_name',
+    'u.last_login': 'last_login',
     'profile_file_id': 'profile_file_id',
   };
 
@@ -56,4 +55,5 @@ export class UserListComponent {
 
   addNew() { this.cs.navigate({ url: '/settings/user/new' }); }
   editSelected(user: any) { this.cs.navigate({ url: `/settings/user/${user.id}/edit` }); }
+  viewSelected(user: any) { this.cs.navigate({ url: `/settings/user/${user.id}/view` }); }
 }

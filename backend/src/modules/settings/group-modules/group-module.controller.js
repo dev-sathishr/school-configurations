@@ -73,4 +73,15 @@ async function removeMultiple(req, resp) {
   }
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple };
+async function importRows(req, resp) {
+  try {
+    const result = await groupModuleService.importRows(req.body.rows, req.user.id);
+    if (result.error) return handleError(resp, result);
+    return res.success(resp, result, `${result.success_count} mapping(s) imported, ${result.error_count} failed`);
+  } catch (err) {
+    console.error('Import group-modules error:', err);
+    return res.error(resp);
+  }
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, importRows };

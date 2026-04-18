@@ -1,4 +1,4 @@
-@for (menu of menuService.pagesMenu; track menu) {
+@for (menu of menuService.pagesMenu; track menu.group) {
   <div class="pt-4">
     <div class="mx-1 mb-2 flex items-center justify-between">
       <small class="text-muted-foreground/50 text-xs font-semibold">
@@ -7,7 +7,7 @@
     </div>
     <ul class="flex flex-col">
       <!-- List items -->
-      @for (item of menu.items; track item) {
+      @for (item of menu.items; track item.route) {
         <li>
           <!-- Menu List -->
           <div

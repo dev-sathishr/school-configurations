@@ -1,0 +1,51 @@
+<div class="bg-background border-border rounded-lg border p-6">
+  <h2 class="text-foreground mb-1 text-lg font-semibold">Table Preferences</h2>
+  <p class="text-muted-foreground mb-6 text-sm">Set your global rows-per-page and manage per-table overrides.</p>
+
+  <!-- Global default -->
+  <div class="mb-6">
+    <label class="text-foreground mb-2 block text-xs font-semibold uppercase">Global Default</label>
+    <div class="flex items-center gap-3">
+      <select
+        class="bg-background border-border text-foreground h-9 rounded-md border px-2 text-sm"
+        (change)="onGlobalChange($event)">
+        @for (opt of pageSizeOptions; track opt) {
+          <option [value]="opt" [selected]="opt === tables().defaultPageSize">{{ opt }} rows</option>
+        }
+      </select>
+      <span class="text-muted-foreground text-xs">Changing this resets all per-table overrides below.</span>
+    </div>
+    @if (pendingGlobalChange) {
+      <p class="text-primary mt-2 text-xs">All per-table overrides have been cleared.</p>
+    }
+  </div>
+
+  <!-- Per-table overrides -->
+  <div>
+    <span class="text-foreground mb-2 block text-xs font-semibold uppercase">Per-table Overrides</span>
+    @if (overrides().length === 0) {
+      <p class="text-muted-foreground text-sm italic">No overrides yet. Change rows-per-page on any table to create one.</p>
+    } @else {
+      <ul class="divide-border border-border divide-y rounded-md border">
+        @for (row of overrides(); track row.key) {
+          <li class="flex items-center justify-between gap-3 px-3 py-2">
+            <span class="text-foreground min-w-0 flex-1 truncate font-mono text-xs">{{ prettyKey(row.key) }}</span>
+            <select
+              class="bg-background border-border text-foreground h-8 rounded-md border px-2 text-xs"
+              (change)="onOverrideChange(row.key, $event)">
+              @for (opt of pageSizeOptions; track opt) {
+                <option [value]="opt" [selected]="opt === row.size">{{ opt }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              (click)="resetOverride(row.key)"
+              class="text-muted-foreground hover:text-red-600 text-xs font-semibold transition-colors">
+              Reset
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

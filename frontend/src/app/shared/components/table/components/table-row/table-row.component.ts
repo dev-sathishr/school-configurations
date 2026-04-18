@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { TableFilterService, ColumnConfig } from '../../services/table-filter.service';
@@ -6,7 +7,7 @@ import { environment } from 'src/environments/environment';
 
 @Component({
   selector: '[app-table-row]',
-  imports: [FormsModule, AngularSvgIconModule],
+  imports: [FormsModule, AngularSvgIconModule, DatePipe],
   templateUrl: './table-row.component.html',
   styleUrl: './table-row.component.css',
 })

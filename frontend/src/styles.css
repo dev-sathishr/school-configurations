@@ -303,3 +303,43 @@ select {
 [type='radio'] {
   @apply h-4 w-4 rounded-sm border-border bg-background checked:border-primary checked:bg-primary indeterminate:border-primary indeterminate:bg-primary focus:ring-2 focus:ring-primary;
 }
+
+/* ─── Disabled state (view mode) ─────────────────────────── */
+
+/* Native form controls — browser cascades `disabled` through fieldset[disabled].
+   Inputs take the muted background treatment. Buttons only get the disabled
+   cursor + opacity so their own bg (e.g. accent-coloured state pills) survives. */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  @apply cursor-not-allowed bg-muted/40 text-muted-foreground opacity-70;
+}
+button:disabled {
+  @apply cursor-not-allowed opacity-70;
+}
+
+/* Any descendant of a disabled fieldset — catches our custom select-dropdown
+   trigger (a <div>, which the browser won't disable automatically), file-upload
+   buttons, location pickers, etc. Block interaction and show the not-allowed cursor. */
+fieldset:disabled {
+  @apply cursor-not-allowed;
+}
+fieldset:disabled * {
+  pointer-events: none;
+}
+fieldset:disabled [role='button'],
+fieldset:disabled .cursor-pointer,
+fieldset:disabled [type='checkbox'],
+fieldset:disabled [type='radio'] {
+  cursor: not-allowed !important;
+}
+
+/* Custom non-native controls that should look disabled alongside the native ones.
+   We only mute the backgrounds of controls that were normally on `bg-background`
+   (select-dropdown trigger `<div>`, phone-input wrapper) — NOT every clickable
+   element, because things like the "Default" location pill use `bg-primary` as
+   a state indicator that must stay visible in view mode. */
+fieldset:disabled .cursor-pointer.bg-background,
+fieldset:disabled .phone-input-wrapper {
+  @apply cursor-not-allowed bg-muted/40 opacity-70;
+}

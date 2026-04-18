@@ -1,4 +1,6 @@
 const menuRepo = require('./menu.repository');
+const db = require('../../../config/database');
+const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 
 async function getAll(query, viewOwnUserId) {
   return menuRepo.findAll(query, viewOwnUserId);
@@ -58,4 +60,36 @@ async function removeMultiple(ids, userId) {
   return { deleted_count: deletedCount };
 }
 
-module.exports = { getAll, getById, getDropdown, getMenusWithModules, create, update, remove, removeMultiple };
+async function importRows(rows, userId) {
+  return bulkImport({
+    rows, create, userId,
+    preResolve: async (parsedRows) => {
+      if (parsedRows.some((r) => !r.parent_id && (r.parent_code || r['Parent Code']))) {
+        const result = await db.query('SELECT id, code FROM settings.menus WHERE deleted_at IS NULL');
+        return { menuByCode: new Map(result.rows.map((m) => [String(m.code).toUpperCase(), m.id])) };
+      }
+      return {};
+    },
+    transformRow: async (raw, ctx) => {
+      const row = {
+        name: pick(raw, 'name', 'Name'),
+        code: pick(raw, 'code', 'Code'),
+        icon: pick(raw, 'icon', 'Icon') || '',
+        route_path: pick(raw, 'route_path', 'Route Path') || '',
+        display_order: Number(pick(raw, 'display_order', 'Display Order')) || 0,
+        parent_id: pick(raw, 'parent_id', 'Parent ID') || null,
+        description: pick(raw, 'description', 'Description') || '',
+        is_active: asBool(pick(raw, 'is_active', 'Is Active'), true),
+      };
+      const parentCode = pick(raw, 'parent_code', 'Parent Code');
+      if (!row.parent_id && parentCode && ctx.menuByCode) {
+        row.parent_id = ctx.menuByCode.get(String(parentCode).toUpperCase()) || null;
+        if (!row.parent_id) return { error: `Unknown parent_code: ${parentCode}` };
+      }
+      if (!row.name || !row.code) return { error: 'name and code are required' };
+      return { row };
+    },
+  });
+}
+
+module.exports = { getAll, getById, getDropdown, getMenusWithModules, create, update, remove, removeMultiple, importRows };

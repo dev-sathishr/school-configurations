@@ -1,4 +1,5 @@
 const permissionRepo = require('./permission.repository');
+const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 
 async function getAll(query, viewOwnUserId) {
   return permissionRepo.findAll(query, viewOwnUserId);
@@ -53,4 +54,20 @@ async function removeMultiple(ids, userId) {
   return { deleted_count: deletedCount };
 }
 
-module.exports = { getAll, getById, getDropdown, create, update, remove, removeMultiple };
+async function importRows(rows, userId) {
+  return bulkImport({
+    rows, create, userId,
+    transformRow: async (raw) => {
+      const row = {
+        name: pick(raw, 'name', 'Name'),
+        code: pick(raw, 'code', 'Code'),
+        description: pick(raw, 'description', 'Description') || '',
+        is_active: asBool(pick(raw, 'is_active', 'Is Active'), true),
+      };
+      if (!row.name || !row.code) return { error: 'name and code are required' };
+      return { row };
+    },
+  });
+}
+
+module.exports = { getAll, getById, getDropdown, create, update, remove, removeMultiple, importRows };

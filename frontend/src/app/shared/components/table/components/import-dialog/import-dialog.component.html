@@ -1,0 +1,113 @@
+<app-modal
+  [visible]="visible"
+  [title]="'Import ' + entityLabel"
+  size="large"
+  [closeOnBackdrop]="!submitting()"
+  (onClose)="close()">
+
+  <p class="text-muted-foreground mb-4 text-xs">
+    Upload a CSV or Excel (.xlsx) file. The first row must contain column headers matching the field names.
+  </p>
+
+  @if (!result()) {
+    <label class="border-muted/50 hover:border-primary/60 flex cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-dashed px-4 py-8 text-sm transition-colors">
+      <input type="file" accept=".csv,.xlsx" class="hidden" (change)="onFileChange($event)" />
+      @if (fileName()) {
+        <span class="text-foreground">{{ fileName() }}</span>
+        <span class="text-muted-foreground text-xs">({{ totalCount() }} rows)</span>
+      } @else {
+        <span class="text-muted-foreground">Click to choose a file</span>
+      }
+    </label>
+
+    @if (parseError()) {
+      <p class="mt-3 rounded bg-red-50 px-3 py-2 text-xs text-red-600">{{ parseError() }}</p>
+    }
+
+    @if (parsedRows().length > 0) {
+      <div class="mt-4">
+        <div class="mb-2 flex items-center justify-between">
+          <p class="text-muted-foreground text-xs font-semibold uppercase">Review rows</p>
+          <p class="text-muted-foreground text-xs">
+            <span class="text-primary font-semibold">{{ selectedCount() }}</span> of {{ totalCount() }} selected
+          </p>
+        </div>
+        <div class="max-h-80 overflow-auto rounded-md border border-muted/40">
+          <table class="w-full text-xs">
+            <thead class="bg-muted/30 sticky top-0">
+              <tr>
+                <th class="w-10 px-2 py-1.5 text-center">
+                  <input type="checkbox"
+                    [checked]="allSelected()"
+                    [indeterminate]="!allSelected() && !noneSelected()"
+                    (change)="toggleAll()"
+                    class="cursor-pointer" />
+                </th>
+                @for (h of previewHeaders(); track h) {
+                  <th class="px-2 py-1.5 text-left font-semibold text-foreground">{{ h }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of parsedRows(); track $index) {
+                <tr class="border-t border-muted/30 transition-colors"
+                  [class.bg-primary\/5]="isRowSelected($index)"
+                  [class.opacity-50]="!isRowSelected($index)">
+                  <td class="w-10 px-2 py-1.5 text-center">
+                    <input type="checkbox"
+                      [checked]="isRowSelected($index)"
+                      (change)="toggleRow($index)"
+                      class="cursor-pointer" />
+                  </td>
+                  @for (h of previewHeaders(); track h) {
+                    <td class="truncate px-2 py-1.5 text-muted-foreground">{{ row[h] }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  } @else {
+    <div class="rounded-md bg-green-50 px-3 py-2 text-xs text-green-700">
+      <p class="font-semibold">{{ result()!.success_count || 0 }} rows imported successfully.</p>
+      @if (result()!.error_count) {
+        <p class="text-red-700 mt-1">{{ result()!.error_count }} rows failed.</p>
+      }
+    </div>
+    @if (result()!.errors && result()!.errors!.length > 0) {
+      <div class="mt-3 max-h-64 overflow-y-auto rounded-md border border-muted/40">
+        <table class="w-full text-xs">
+          <thead class="bg-muted/30">
+            <tr>
+              <th class="px-2 py-1.5 text-left font-semibold">Row</th>
+              <th class="px-2 py-1.5 text-left font-semibold">Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (err of result()!.errors; track $index) {
+              <tr class="border-t border-muted/30">
+                <td class="px-2 py-1.5 text-muted-foreground">{{ err.row }}</td>
+                <td class="px-2 py-1.5 text-red-600">{{ err.message }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <div modal-footer class="flex justify-end gap-3">
+    <app-button impact="light" tone="light" shape="rounded" size="medium" type="button"
+      (buttonClick)="close()" [disabled]="submitting()">
+      {{ result() ? 'Close' : 'Cancel' }}
+    </app-button>
+    @if (!result()) {
+      <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button"
+        (buttonClick)="submit()" [loading]="submitting()" [disabled]="noneSelected()">
+        Import {{ selectedCount() ? '(' + selectedCount() + ')' : '' }}
+      </app-button>
+    }
+  </div>
+</app-modal>

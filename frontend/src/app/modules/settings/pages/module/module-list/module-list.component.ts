@@ -30,13 +30,11 @@ export class ModuleListComponent {
         'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
       },
     },
-    { key: 'created_by_name', label: 'Created By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'm.name': 'name', 'm.code': 'code', 'm.route_path': 'route_path',
     'm.display_order': 'display_order', 'm.is_active': 'is_active',
-    'created_by_name': 'created_by_name',
   };
 
   rowTransform = (row: any, mapped: any) => {
@@ -49,4 +47,5 @@ export class ModuleListComponent {
 
   addNew() { this.cs.navigate({ url: '/settings/module/new' }); }
   editSelected(item: any) { this.cs.navigate({ url: `/settings/module/${item.id}/edit` }); }
+  viewSelected(item: any) { this.cs.navigate({ url: `/settings/module/${item.id}/view` }); }
 }

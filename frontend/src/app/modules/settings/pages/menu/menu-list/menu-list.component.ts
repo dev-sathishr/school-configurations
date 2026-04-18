@@ -32,13 +32,12 @@ export class MenuListComponent {
         'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
       },
     },
-    { key: 'created_by_name', label: 'Created By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'm.name': 'name', 'm.code': 'code', 'm.route_path': 'route_path',
     'parent_name': 'parent_name', 'm.display_order': 'display_order',
-    'm.is_active': 'is_active', 'created_by_name': 'created_by_name',
+    'm.is_active': 'is_active',
     'module_count': 'module_count',
   };
 
@@ -54,4 +53,5 @@ export class MenuListComponent {
 
   addNew() { this.cs.navigate({ url: '/settings/menu/new' }); }
   editSelected(item: any) { this.cs.navigate({ url: `/settings/menu/${item.id}/edit` }); }
+  viewSelected(item: any) { this.cs.navigate({ url: `/settings/menu/${item.id}/view` }); }
 }

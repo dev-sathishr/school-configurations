@@ -1,6 +1,7 @@
-import { Component, computed, EventEmitter, input, Output, signal } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { TableFilterService } from '../../services/table-filter.service';
+import { PAGE_SIZE_OPTIONS } from '../../../../utils/page-size-options';
 
 @Component({
   selector: 'app-table-footer',
@@ -14,6 +15,13 @@ export class TableFooterComponent {
   currentPage = input(1);
 
   constructor(private filterService: TableFilterService) {}
+
+  // Include the current pageSize even if it isn't in the standard option
+  // list — so an unusual global (e.g. 25) still shows correctly.
+  pageSizeOptions = computed(() => {
+    const size = this.pageSize();
+    return PAGE_SIZE_OPTIONS.includes(size) ? PAGE_SIZE_OPTIONS : [...PAGE_SIZE_OPTIONS, size].sort((a, b) => a - b);
+  });
 
   totalPages = computed(() => Math.ceil(this.totalCount() / this.pageSize()) || 1);
   rangeStart = computed(() => this.totalCount() === 0 ? 0 : (this.currentPage() - 1) * this.pageSize() + 1);
@@ -37,8 +45,7 @@ export class TableFooterComponent {
 
   onPageSizeChange(event: Event) {
     const val = (event.target as HTMLSelectElement).value;
-    this.filterService.pageSizeField.set(Number(val));
-    this.filterService.pageField.set(1);
+    this.filterService.setPageSize(Number(val));
   }
 
   goToPage(page: number | string) {

@@ -61,6 +61,8 @@ async function seed() {
       { name: 'Create', code: 'CREATE', description: 'Can create new records' },
       { name: 'Edit', code: 'EDIT', description: 'Can edit existing records' },
       { name: 'Delete', code: 'DELETE', description: 'Can delete records' },
+      { name: 'Import', code: 'IMPORT', description: 'Can bulk-import records from file' },
+      { name: 'Export', code: 'EXPORT', description: 'Can download records as CSV/Excel/PDF' },
     ];
 
     const permissionIds = {};
@@ -109,7 +111,7 @@ async function seed() {
       { name: 'Users', code: 'USERS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/settings/user', display_order: 3 },
       { name: 'Modules', code: 'MODULES', icon: 'assets/icons/heroicons/outline/cube.svg', route_path: '/settings/module', display_order: 4 },
       { name: 'Menus', code: 'MENUS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/menu', display_order: 5 },
-      { name: 'Groups', code: 'GROUPS', icon: 'assets/icons/heroicons/outline/user-group.svg', route_path: '/settings/group', display_order: 6 },
+      { name: 'Groups', code: 'GROUPS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/settings/group', display_order: 6 },
       { name: 'Permissions', code: 'PERMISSIONS', icon: 'assets/icons/heroicons/outline/shield-check.svg', route_path: '/settings/permission', display_order: 7 },
     ];
 

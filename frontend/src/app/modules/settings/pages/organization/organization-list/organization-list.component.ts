@@ -28,13 +28,12 @@ export class OrganizationListComponent {
       'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
       'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
     }},
-    { key: 'updated_by_name', label: 'Updated By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'o.name': 'name', 'o.reg_no': 'reg_no', 'o.email': 'email',
     'o.primary_contact_no': 'primary_contact_no', 'o.is_active': 'is_active',
-    'updated_by_name': 'updated_by_name', 'logo_file_id': 'logo_file_id',
+    'logo_file_id': 'logo_file_id',
     'location_count': 'location_count',
   };
 
@@ -49,4 +48,5 @@ export class OrganizationListComponent {
 
   addNew() { this.cs.navigate({ url: '/settings/organization/new' }); }
   editSelected(row: any) { this.cs.navigate({ url: `/settings/organization/${row.id}/edit` }); }
+  viewSelected(row: any) { this.cs.navigate({ url: `/settings/organization/${row.id}/view` }); }
 }

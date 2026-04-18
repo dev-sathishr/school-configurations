@@ -11,6 +11,7 @@
     <app-loader size="large" text="Loading user..." />
   } @else {
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+      <fieldset [disabled]="viewMode" class="space-y-6 disabled:opacity-95">
 
       <!-- Account Info -->
       <div class="bg-background border-muted/30 rounded-lg border p-5">
@@ -97,14 +98,24 @@
         <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
       </div>
 
+      </fieldset>
+
       <!-- Actions -->
       <div class="flex justify-end gap-3">
         <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
-          Cancel
+          {{ viewMode ? 'Back' : 'Cancel' }}
         </app-button>
-        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
-          {{ editMode ? 'Update' : 'Create' }}
-        </app-button>
+        @if (viewMode) {
+          @if (ps.canEdit('USERS')) {
+            <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">
+              Edit
+            </app-button>
+          }
+        } @else {
+          <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
+            {{ editMode ? 'Update' : 'Create' }}
+          </app-button>
+        }
       </div>
     </form>
   }

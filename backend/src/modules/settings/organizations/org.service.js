@@ -2,6 +2,7 @@ const orgRepo = require('./org.repository');
 const fileRepo = require('../../files/file.repository');
 const { validate } = require('../../../shared/helpers/validate.helper');
 const { saveAddresses, getAddresses } = require('../../../shared/helpers/address.helper');
+const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 
 const ORG_RULES = {
   name: { required: true, min: 3, max: 100, label: 'Name' },
@@ -111,4 +112,43 @@ async function getDropdown(query) {
   return orgRepo.findDropdown({ page, size, search });
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown };
+async function importRows(rows, userId) {
+  return bulkImport({
+    rows, create, userId,
+    transformRow: async (raw) => {
+      const row = {
+        name: pick(raw, 'name', 'Name'),
+        reg_no: pick(raw, 'reg_no', 'Reg No') || '',
+        email: pick(raw, 'email', 'Email') || '',
+        primary_contact_code: pick(raw, 'primary_contact_code', 'Primary Contact Code') || '+91',
+        primary_contact_no: pick(raw, 'primary_contact_no', 'Primary Contact No'),
+        alternate_contact_code: pick(raw, 'alternate_contact_code') || '+91',
+        alternate_contact_no: pick(raw, 'alternate_contact_no') || '',
+        website: pick(raw, 'website', 'Website') || '',
+        notes: pick(raw, 'notes', 'Notes') || '',
+        is_active: asBool(pick(raw, 'is_active', 'Is Active'), true),
+        addresses: [],
+      };
+      // Build a single registered address from flat columns when provided.
+      const line1 = pick(raw, 'address_line1', 'Address Line 1');
+      const city = pick(raw, 'city', 'City');
+      const state = pick(raw, 'state', 'State');
+      if (line1 || city || state) {
+        row.addresses.push({
+          address_type: 'registered',
+          is_default: true,
+          address_line1: line1 || '',
+          address_line2: pick(raw, 'address_line2', 'Address Line 2') || '',
+          city: city || '',
+          state: state || '',
+          pincode: pick(raw, 'pincode', 'Pincode') || '',
+          country: pick(raw, 'country', 'Country') || 'India',
+        });
+      }
+      if (!row.name) return { error: 'name is required' };
+      return { row };
+    },
+  });
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown, importRows };

@@ -30,12 +30,11 @@ export class GroupListComponent {
         'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
       },
     },
-    { key: 'created_by_name', label: 'Created By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'g.name': 'name', 'g.code': 'code', 'g.description': 'description',
-    'g.is_active': 'is_active', 'created_by_name': 'created_by_name',
+    'g.is_active': 'is_active',
     'menu_count': 'menu_count',
   };
 
@@ -50,4 +49,5 @@ export class GroupListComponent {
 
   addNew() { this.cs.navigate({ url: '/settings/group/new' }); }
   editSelected(item: any) { this.cs.navigate({ url: `/settings/group/${item.id}/edit` }); }
+  viewSelected(item: any) { this.cs.navigate({ url: `/settings/group/${item.id}/view` }); }
 }

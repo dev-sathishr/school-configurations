@@ -40,6 +40,40 @@
       </svg>
     </button>
 
+    <!-- Export -->
+    @if (canExport) {
+      <div class="relative">
+        <button
+          (click)="toggleExportDropdown()"
+          class="flex h-[34px] items-center gap-1.5 rounded-md border border-muted/50 bg-background px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+          [class.border-primary]="showExportDropdown"
+          [class.text-primary]="showExportDropdown">
+          <svg-icon src="./assets/icons/heroicons/outline/download.svg" [svgClass]="'h-4 w-4'"></svg-icon>
+          Export
+        </button>
+        @if (showExportDropdown) {
+          <div class="bg-background border-muted absolute left-0 z-50 mt-1 w-32 rounded-md border shadow-lg">
+            <button type="button" (click)="pickExport('csv')"
+              class="block w-full px-3 py-2 text-left text-xs text-foreground hover:bg-card">CSV</button>
+            <button type="button" (click)="pickExport('xlsx')"
+              class="block w-full px-3 py-2 text-left text-xs text-foreground hover:bg-card">Excel</button>
+            <button type="button" (click)="pickExport('pdf')"
+              class="block w-full px-3 py-2 text-left text-xs text-foreground hover:bg-card">PDF</button>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Import -->
+    @if (canImport) {
+      <button
+        (click)="onImportClick.emit()"
+        class="flex h-[34px] items-center gap-1.5 rounded-md border border-muted/50 bg-background px-3 text-xs font-medium text-muted-foreground hover:text-foreground">
+        <svg-icon src="./assets/icons/heroicons/outline/arrow-sm-up.svg" [svgClass]="'h-4 w-4'"></svg-icon>
+        Import
+      </button>
+    }
+
     <!-- Column Visibility Toggle -->
     <div class="relative">
       <button
@@ -96,6 +130,14 @@
   <div class="flex items-center gap-2">
     @if (selectedCount() > 0) {
       <span class="text-muted-foreground text-xs font-medium">{{ selectedCount() }} selected</span>
+      @if (isSingleSelected() && canView) {
+        <button
+          (click)="onViewSelected.emit()"
+          title="View selected"
+          class="flex h-[34px] w-[34px] items-center justify-center rounded-md border border-muted/50 bg-background text-slate-500 hover:bg-slate-50">
+          <svg-icon src="./assets/icons/heroicons/outline/eye.svg" [svgClass]="'h-4 w-4'"></svg-icon>
+        </button>
+      }
       @if (isSingleSelected() && canEdit) {
         <button
           (click)="onEditSelected.emit()"

@@ -19,6 +19,7 @@ export class ClassFormComponent implements OnInit {
   // General form
   form!: FormGroup;
   editMode = false;
+  viewMode = false;
   editId = '';
   submitted = false;
   saving = false;
@@ -66,11 +67,10 @@ export class ClassFormComponent implements OnInit {
       'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
       'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
     }},
-    { key: 'updated_by_name', label: 'Updated By' },
   ];
   levelsDisplayKeyMap: Record<string, string> = {
     'cl.code': 'code', 'cl.section': 'section', 'cl.capacity': 'capacity',
-    'cl.is_active': 'is_active', 'updated_by_name': 'updated_by_name',
+    'cl.is_active': 'is_active',
   };
   levelsRowTransform = (row: any, mapped: any) => {
     mapped['cl.is_active'] = row.is_active ? 'Active' : 'Inactive';
@@ -106,7 +106,10 @@ export class ClassFormComponent implements OnInit {
 
     const id = this.cs.getRouteParam(this.route, 'id');
     if (id) {
-      this.editMode = true;
+      const segments = this.route.snapshot.url;
+      const lastPath = segments[segments.length - 1]?.path;
+      this.viewMode = lastPath === 'view';
+      this.editMode = !this.viewMode;
       this.editId = id;
       this.classGeneralSaved = true;
       this.selectedClassId = id;
@@ -281,4 +284,6 @@ export class ClassFormComponent implements OnInit {
   }
 
   cancel() { this.cs.navigate({ url: '/academic/class' }); }
+
+  switchToEdit() { this.cs.navigate({ url: `/academic/class/${this.editId}/edit` }); }
 }

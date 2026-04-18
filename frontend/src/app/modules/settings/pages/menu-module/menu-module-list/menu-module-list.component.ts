@@ -20,12 +20,11 @@ export class MenuModuleListComponent {
     { key: 'mod.name', label: 'Module', sortable: true, searchable: true },
     { key: 'men.name', label: 'Menu', sortable: true, searchable: true },
     { key: 'mm.display_order', label: 'Order', sortable: true },
-    { key: 'created_by_name', label: 'Created By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'mod.name': 'module_name', 'men.name': 'menu_name',
-    'mm.display_order': 'display_order', 'created_by_name': 'created_by_name',
+    'mm.display_order': 'display_order',
   };
 
   constructor(private cs: CommonService) {}

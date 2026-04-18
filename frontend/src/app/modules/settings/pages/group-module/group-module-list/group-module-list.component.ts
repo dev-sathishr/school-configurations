@@ -19,12 +19,10 @@ export class GroupModuleListComponent {
   columns: ColumnConfig[] = [
     { key: 'g.name', label: 'Group', sortable: true, searchable: true },
     { key: 'men.name', label: 'Menu', sortable: true, searchable: true },
-    { key: 'created_by_name', label: 'Created By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'g.name': 'group_name', 'men.name': 'menu_name',
-    'created_by_name': 'created_by_name',
   };
 
   constructor(private cs: CommonService) {}

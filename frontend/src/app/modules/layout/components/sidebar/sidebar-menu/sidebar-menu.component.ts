@@ -27,5 +27,11 @@ export class SidebarMenuComponent implements OnInit {
     this.menuService.toggleMenu(subMenu);
   }
 
+  public togglePin(route: string | null | undefined, event: Event) {
+    event.stopPropagation();
+    event.preventDefault();
+    this.menuService.togglePin(route);
+  }
+
   ngOnInit(): void {}
 }

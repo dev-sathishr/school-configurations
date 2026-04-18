@@ -39,11 +39,10 @@ export class ClassLevelFormComponent implements OnInit {
       'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
       'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
     }},
-    { key: 'updated_by_name', label: 'Updated By' },
   ];
   levelsDisplayKeyMap: Record<string, string> = {
     'cl.name': 'name', 'cl.capacity': 'capacity',
-    'cl.is_active': 'is_active', 'updated_by_name': 'updated_by_name',
+    'cl.is_active': 'is_active',
   };
   levelsRowTransform = (row: any, mapped: any) => {
     mapped['cl.is_active'] = row.is_active ? 'Active' : 'Inactive';

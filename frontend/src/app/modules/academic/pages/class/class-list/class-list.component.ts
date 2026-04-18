@@ -36,14 +36,12 @@ export class ClassListComponent {
       'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
       'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
     }},
-    { key: 'updated_by_name', label: 'Updated By' },
   ];
 
   displayKeyMap: Record<string, string> = {
     'c.name': 'name', 'c.code': 'code', 'c.academic_level': 'academic_level',
     'c.strength': 'strength', 'c.is_active': 'is_active',
     'level_count': 'level_count',
-    'updated_by_name': 'updated_by_name',
   };
 
   rowTransform = (row: any, mapped: any) => {
@@ -59,4 +57,5 @@ export class ClassListComponent {
 
   addNew() { this.cs.navigate({ url: '/academic/class/new' }); }
   editSelected(row: any) { this.cs.navigate({ url: `/academic/class/${row.id}/edit` }); }
+  viewSelected(row: any) { this.cs.navigate({ url: `/academic/class/${row.id}/view` }); }
 }

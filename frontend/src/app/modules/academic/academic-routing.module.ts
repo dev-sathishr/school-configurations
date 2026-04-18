@@ -14,6 +14,7 @@ const routes: Routes = [
       { path: '', component: AcademicHomeComponent },
       { path: 'class', component: ClassListComponent },
       { path: 'class/new', component: ClassFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'CLASSES', permission: 'CREATE' } },
+      { path: 'class/:id/view', component: ClassFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'CLASSES', permission: 'VIEW' } },
       { path: 'class/:id/edit', component: ClassFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'CLASSES', permission: 'EDIT' } },
     ],
   },

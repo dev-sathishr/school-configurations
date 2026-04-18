@@ -1,5 +1,6 @@
 const classRepo = require('./class.repository');
 const { validate } = require('../../../shared/helpers/validate.helper');
+const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 
 const CLASS_RULES = {
   name: { required: true, min: 2, max: 200, label: 'Name' },
@@ -78,4 +79,22 @@ async function getDropdown(query) {
   return classRepo.findDropdown({ page, size, search });
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown };
+async function importRows(rows, userId) {
+  return bulkImport({
+    rows, create, userId,
+    transformRow: async (raw) => {
+      const row = {
+        name: pick(raw, 'name', 'Name'),
+        code: pick(raw, 'code', 'Code') || '',
+        academic_level: pick(raw, 'academic_level', 'Academic Level'),
+        strength: Number(pick(raw, 'strength', 'Strength')) || 0,
+        notes: pick(raw, 'notes', 'Notes') || '',
+        is_active: asBool(pick(raw, 'is_active', 'Is Active'), true),
+      };
+      if (!row.name || !row.academic_level) return { error: 'name and academic_level are required' };
+      return { row };
+    },
+  });
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown, importRows };

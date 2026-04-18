@@ -1,5 +1,5 @@
-@for (menu of menuService.pagesMenu; track menu) {
-  @for (item of menu.items; track item) {
+@for (menu of menuService.pagesMenu; track menu.group) {
+  @for (item of menu.items; track item.route) {
     <div class="inline-block">
       <a
         routerLink="{{ item.route }}"

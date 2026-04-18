@@ -1,48 +1,65 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { Theme } from '../models/theme.model';
-import { effect } from '@angular/core';
+import { AppearancePrefs, UserPreferencesService } from './user-preferences.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ThemeService {
-  public theme = signal<Theme>({ mode: 'dark', color: 'base', direction: 'ltr', menuStyle: 'sidebar' });
+  private prefs = inject(UserPreferencesService);
+
+  public theme = signal<Theme>(this.toTheme(this.prefs.appearance()));
 
   constructor() {
-    this.loadTheme();
+    // UserPreferencesService → local `theme` signal (initial + post-load sync).
     effect(() => {
-      this.setConfig();
+      const mapped = this.toTheme(this.prefs.appearance());
+      const current = untracked(() => this.theme());
+      if (!this.sameTheme(current, mapped)) this.theme.set(mapped);
+    });
+
+    // `theme` signal → DOM + UserPreferences write-through.
+    effect(() => {
+      const t = this.theme();
+      this.applyDom(t);
+      const currentAppearance = untracked(() => this.prefs.appearance());
+      const mapped = this.fromTheme(t);
+      if (!this.sameAppearance(currentAppearance, mapped)) {
+        this.prefs.setAppearance(mapped);
+      }
     });
   }
 
-  private loadTheme() {
-    const theme = localStorage.getItem('theme');
-    if (theme) {
-      this.theme.set(JSON.parse(theme));
-    }
-  }
-
-  private setConfig() {
-    this.setLocalStorage();
-    this.setThemeClass();
-    this.setRTL();
-  }
-
   public get isDark(): boolean {
-    return this.theme().mode == 'dark';
+    return this.theme().mode === 'dark';
   }
 
-  private setThemeClass() {
-    document.querySelector('html')!.className = this.theme().mode;
-    document.querySelector('html')!.setAttribute('data-theme', this.theme().color);
+  private toTheme(a: AppearancePrefs): Theme {
+    return { mode: a.mode, color: a.color, direction: a.direction, menuStyle: a.menu };
   }
 
-  private setLocalStorage() {
-    localStorage.setItem('theme', JSON.stringify(this.theme()));
+  private fromTheme(t: Theme): AppearancePrefs {
+    return {
+      mode: t.mode as AppearancePrefs['mode'],
+      color: t.color,
+      direction: t.direction as AppearancePrefs['direction'],
+      menu: t.menuStyle,
+    };
   }
 
-  private setRTL() {
-    document.querySelector('html')!.setAttribute('dir', this.theme().direction);
-    this.setLocalStorage();
+  private sameTheme(a: Theme, b: Theme): boolean {
+    return a.mode === b.mode && a.color === b.color && a.direction === b.direction && a.menuStyle === b.menuStyle;
+  }
+
+  private sameAppearance(a: AppearancePrefs, b: AppearancePrefs): boolean {
+    return a.mode === b.mode && a.color === b.color && a.direction === b.direction && a.menu === b.menu;
+  }
+
+  private applyDom(t: Theme): void {
+    const html = document.querySelector('html');
+    if (!html) return;
+    html.className = t.mode;
+    html.setAttribute('data-theme', t.color);
+    html.setAttribute('dir', t.direction);
   }
 }

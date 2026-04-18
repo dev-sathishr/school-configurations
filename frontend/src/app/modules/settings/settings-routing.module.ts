@@ -27,30 +27,37 @@ const routes: Routes = [
 
       { path: 'user', component: UserListComponent },
       { path: 'user/new', component: UserFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'USERS', permission: 'CREATE' } },
+      { path: 'user/:id/view', component: UserFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'USERS', permission: 'VIEW' } },
       { path: 'user/:id/edit', component: UserFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'USERS', permission: 'EDIT' } },
 
       { path: 'organization', component: OrganizationListComponent },
       { path: 'organization/new', component: OrganizationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ORGANIZATIONS', permission: 'CREATE' } },
+      { path: 'organization/:id/view', component: OrganizationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ORGANIZATIONS', permission: 'VIEW' } },
       { path: 'organization/:id/edit', component: OrganizationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ORGANIZATIONS', permission: 'EDIT' } },
 
       { path: 'location', component: LocationListComponent },
       { path: 'location/new', component: LocationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'LOCATIONS', permission: 'CREATE' } },
+      { path: 'location/:id/view', component: LocationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'LOCATIONS', permission: 'VIEW' } },
       { path: 'location/:id/edit', component: LocationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'LOCATIONS', permission: 'EDIT' } },
 
       { path: 'module', component: ModuleListComponent },
       { path: 'module/new', component: ModuleFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MODULES', permission: 'CREATE' } },
+      { path: 'module/:id/view', component: ModuleFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MODULES', permission: 'VIEW' } },
       { path: 'module/:id/edit', component: ModuleFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MODULES', permission: 'EDIT' } },
 
       { path: 'menu', component: MenuListComponent },
       { path: 'menu/new', component: MenuFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MENUS', permission: 'CREATE' } },
+      { path: 'menu/:id/view', component: MenuFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MENUS', permission: 'VIEW' } },
       { path: 'menu/:id/edit', component: MenuFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MENUS', permission: 'EDIT' } },
 
       { path: 'group', component: GroupListComponent },
       { path: 'group/new', component: GroupFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'GROUPS', permission: 'CREATE' } },
+      { path: 'group/:id/view', component: GroupFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'GROUPS', permission: 'VIEW' } },
       { path: 'group/:id/edit', component: GroupFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'GROUPS', permission: 'EDIT' } },
 
       { path: 'permission', component: PermissionListComponent },
       { path: 'permission/new', component: PermissionFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'PERMISSIONS', permission: 'CREATE' } },
+      { path: 'permission/:id/view', component: PermissionFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'PERMISSIONS', permission: 'VIEW' } },
       { path: 'permission/:id/edit', component: PermissionFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'PERMISSIONS', permission: 'EDIT' } },
     ],
   },
