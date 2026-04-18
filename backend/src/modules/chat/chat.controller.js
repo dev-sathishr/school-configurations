@@ -2,11 +2,15 @@ const chatRepo = require('./chat.repository');
 const res = require('../../shared/helpers/response.helper');
 const sse = require('../../shared/services/sse.service');
 
+function attachOnlineStatus(items, userIdKey) {
+  return items.map(item => ({ ...item, is_online: sse.isUserOnline(item[userIdKey]) }));
+}
+
 async function getConversations(req, resp) {
   try {
     const conversations = await chatRepo.getConversations(req.user.id);
     const unread_total = await chatRepo.getTotalUnreadCount(req.user.id);
-    return res.success(resp, { conversations, unread_total });
+    return res.success(resp, { conversations: attachOnlineStatus(conversations, 'other_user_id'), unread_total });
   } catch (err) {
     console.error('Get conversations error:', err);
     return res.error(resp);
@@ -89,7 +93,7 @@ async function markAsRead(req, resp) {
 async function getUsers(req, resp) {
   try {
     const users = await chatRepo.getUsers(req.user.id);
-    return res.success(resp, { users });
+    return res.success(resp, { users: attachOnlineStatus(users, 'id') });
   } catch (err) {
     console.error('Get chat users error:', err);
     return res.error(resp);

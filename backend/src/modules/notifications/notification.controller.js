@@ -1,6 +1,6 @@
 const notificationRepo = require('./notification.repository');
 const res = require('../../shared/helpers/response.helper');
-const { addConnection, removeConnection } = require('../../shared/services/sse.service');
+const { addConnection, removeConnection, broadcast, getOnlineUserIds } = require('../../shared/services/sse.service');
 
 async function getMyNotifications(req, resp) {
   try {
@@ -56,8 +56,14 @@ async function stream(req, resp) {
   const unread_count = await notificationRepo.getUnreadCount(userId);
   resp.write(`event: unread_count\ndata: ${JSON.stringify({ unread_count })}\n\n`);
 
-  // Register this connection
-  addConnection(userId, resp);
+  // Register this connection — if user just came online, broadcast presence
+  const cameOnline = addConnection(userId, resp);
+  if (cameOnline) {
+    broadcast('presence_change', { user_id: userId, is_online: true });
+  }
+
+  // Send the full online user list to the newly connected user
+  resp.write(`event: presence_snapshot\ndata: ${JSON.stringify({ online_user_ids: getOnlineUserIds() })}\n\n`);
 
   // Keep alive every 30 seconds
   const keepAlive = setInterval(() => {
@@ -67,7 +73,10 @@ async function stream(req, resp) {
   // Cleanup on disconnect
   req.on('close', () => {
     clearInterval(keepAlive);
-    removeConnection(userId, resp);
+    const wentOffline = removeConnection(userId, resp);
+    if (wentOffline) {
+      broadcast('presence_change', { user_id: userId, is_online: false });
+    }
   });
 }
 

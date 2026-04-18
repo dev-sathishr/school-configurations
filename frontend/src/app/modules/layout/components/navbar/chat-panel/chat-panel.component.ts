@@ -1,4 +1,4 @@
-import { ApplicationRef, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { AuthService } from '../../../../../core/services/auth.service';
@@ -9,6 +9,7 @@ interface ChatUser {
   full_name: string;
   username: string;
   profile_file_id?: string | null;
+  is_online?: boolean;
 }
 
 interface Conversation {
@@ -20,6 +21,7 @@ interface Conversation {
   last_message: string;
   last_message_at: string;
   unread_count: number;
+  is_online?: boolean;
 }
 
 interface Message {
@@ -37,25 +39,45 @@ interface Message {
   templateUrl: './chat-panel.component.html',
 })
 export class ChatPanelComponent implements OnInit, OnDestroy {
-  isOpen = false;
-  view: 'list' | 'chat' = 'list';
-  unreadTotal = 0;
+  isOpen = signal(false);
+  view = signal<'list' | 'chat'>('list');
+  unreadTotal = signal(0);
 
   // User list
-  users: ChatUser[] = [];
-  conversations: Conversation[] = [];
-  searchQuery = '';
+  users = signal<ChatUser[]>([]);
+  conversations = signal<Conversation[]>([]);
+  searchQuery = signal('');
 
   // Chat view
   activeConversation: Conversation | null = null;
   activeConversationId = '';
-  activeChatName = '';
-  activeChatProfileFileId: string | null = null;
-  messages: Message[] = [];
-  avatarErrors = new Set<string>();
+  activeChatUserId = signal<string | null>(null);
+  activeChatName = signal('');
+  activeChatProfileFileId = signal<string | null>(null);
+  messages = signal<Message[]>([]);
+  avatarErrors = signal<Set<string>>(new Set());
   newMessage = '';
-  sending = false;
+  sending = signal(false);
   currentUserId = '';
+  onlineUserIds = signal<Set<string>>(new Set());
+
+  filteredConversations = computed(() => {
+    const q = this.searchQuery().toLowerCase();
+    const convs = this.conversations();
+    if (!q) return convs;
+    return convs.filter(c => (c.other_user_name || '').toLowerCase().includes(q));
+  });
+
+  filteredUsers = computed(() => {
+    const q = this.searchQuery().toLowerCase();
+    if (!q) return [];
+    const existingIds = new Set(this.conversations().map(c => c.other_user_id));
+    return this.users().filter(u => !existingIds.has(u.id) && (u.full_name || '').toLowerCase().includes(q));
+  });
+
+  showEmptyState = computed(() => this.filteredConversations().length === 0 && this.filteredUsers().length === 0);
+
+  emptyStateMessage = computed(() => this.searchQuery() ? 'No users found' : 'No conversations yet. Search a user to start chatting.');
 
   private eventSource?: EventSource;
   @ViewChild('messagesContainer') messagesContainer?: ElementRef;
@@ -63,10 +85,8 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   constructor(
     private cs: CommonService,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
     private elRef: ElementRef,
-    private appRef: ApplicationRef,
   ) {
     this.currentUserId = this.authService.currentUser?.id || '';
   }
@@ -79,8 +99,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   private loadUnreadCount(): void {
     this.cs.getService({ url: '/chat/unread-count' }).subscribe({
       next: (res: any) => {
-        this.unreadTotal = res.unread_total || 0;
-        this.appRef.tick();
+        this.unreadTotal.set(res.unread_total || 0);
       },
     });
   }
@@ -91,16 +110,16 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (this.isOpen && !this.elRef.nativeElement.contains(event.target)) {
-      this.isOpen = false;
-      this.cdr.detectChanges();
+    if (this.isOpen() && !this.elRef.nativeElement.contains(event.target)) {
+      this.isOpen.set(false);
     }
   }
 
   toggle(): void {
-    this.isOpen = !this.isOpen;
-    if (this.isOpen) {
-      this.view = 'list';
+    const next = !this.isOpen();
+    this.isOpen.set(next);
+    if (next) {
+      this.view.set('list');
       this.loadConversations();
     }
   }
@@ -110,43 +129,48 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   loadConversations(): void {
     this.cs.getService({ url: '/chat/conversations' }).subscribe({
       next: (res: any) => {
-        this.conversations = res.conversations || [];
-        this.unreadTotal = res.unread_total || 0;
-        this.appRef.tick();
+        const convs = res.conversations || [];
+        this.conversations.set(convs);
+        this.unreadTotal.set(res.unread_total || 0);
+        this.mergeOnline(convs, 'other_user_id');
       },
     });
   }
 
   loadUsers(): void {
-    if (this.users.length > 0) return;
+    if (this.users().length > 0) return;
     this.cs.getService({ url: '/chat/users' }).subscribe({
       next: (res: any) => {
-        this.users = res.users || [];
-        this.cdr.detectChanges();
+        const users = res.users || [];
+        this.users.set(users);
+        this.mergeOnline(users, 'id');
       },
     });
   }
 
-  get filteredConversations(): Conversation[] {
-    if (!this.searchQuery) return this.conversations;
-    const q = this.searchQuery.toLowerCase();
-    return this.conversations.filter(c => c.other_user_name.toLowerCase().includes(q));
+  private mergeOnline(items: any[], idKey: string): void {
+    const onlineIds = items.filter(i => i.is_online).map(i => i[idKey]);
+    if (onlineIds.length === 0) return;
+    this.onlineUserIds.update(set => {
+      const next = new Set(set);
+      onlineIds.forEach(id => next.add(id));
+      return next;
+    });
   }
 
-  get filteredUsers(): ChatUser[] {
-    if (!this.searchQuery) return [];
-    const q = this.searchQuery.toLowerCase();
-    const existingIds = new Set(this.conversations.map(c => c.other_user_id));
-    return this.users.filter(u => !existingIds.has(u.id) && u.full_name.toLowerCase().includes(q));
+  onSearchChange(value: string): void {
+    this.searchQuery.set(value);
+    this.loadUsers();
   }
 
   openConversation(conv: Conversation): void {
     this.activeConversation = conv;
     this.activeConversationId = conv.id;
-    this.activeChatName = conv.other_user_name;
-    this.activeChatProfileFileId = conv.other_user_profile_file_id || null;
-    this.view = 'chat';
-    this.messages = [];
+    this.activeChatUserId.set(conv.other_user_id);
+    this.activeChatName.set(conv.other_user_name);
+    this.activeChatProfileFileId.set(conv.other_user_profile_file_id || null);
+    this.view.set('chat');
+    this.messages.set([]);
     this.loadMessages();
   }
 
@@ -154,14 +178,14 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
     this.cs.postService({ url: '/chat/conversations', payload: { user_id: user.id } }).subscribe({
       next: (res: any) => {
         this.activeConversationId = res.conversation_id;
-        this.activeChatName = user.full_name;
-        this.activeChatProfileFileId = user.profile_file_id || null;
+        this.activeChatUserId.set(user.id);
+        this.activeChatName.set(user.full_name);
+        this.activeChatProfileFileId.set(user.profile_file_id || null);
         this.activeConversation = null;
-        this.view = 'chat';
-        this.messages = [];
-        this.searchQuery = '';
+        this.view.set('chat');
+        this.messages.set([]);
+        this.searchQuery.set('');
         this.loadMessages();
-        this.cdr.detectChanges();
       },
     });
   }
@@ -169,35 +193,33 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   // --- Chat view ---
 
   goBack(): void {
-    this.view = 'list';
+    this.view.set('list');
     this.loadConversations();
   }
 
   loadMessages(): void {
     this.cs.getService({ url: `/chat/conversations/${this.activeConversationId}/messages` }).subscribe({
       next: (res: any) => {
-        this.messages = res.messages || [];
-        this.cdr.detectChanges();
+        this.messages.set(res.messages || []);
         this.scrollToBottom();
       },
     });
   }
 
   sendMessage(): void {
-    if (!this.newMessage.trim() || this.sending) return;
-    this.sending = true;
+    if (!this.newMessage.trim() || this.sending()) return;
+    this.sending.set(true);
     this.cs.postService({
       url: `/chat/conversations/${this.activeConversationId}/messages`,
       payload: { content: this.newMessage.trim() },
     }).subscribe({
       next: (res: any) => {
-        this.messages.push(res.message);
+        this.messages.update(list => [...list, res.message]);
         this.newMessage = '';
-        this.sending = false;
-        this.cdr.detectChanges();
+        this.sending.set(false);
         this.scrollToBottom();
       },
-      error: () => { this.sending = false; this.cdr.detectChanges(); },
+      error: () => { this.sending.set(false); },
     });
   }
 
@@ -226,28 +248,44 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
     this.ngZone.runOutsideAngular(() => {
       this.eventSource = new EventSource(url);
 
+      this.eventSource.addEventListener('presence_snapshot', (event: any) => {
+        const data = JSON.parse(event.data);
+        this.ngZone.run(() => {
+          this.onlineUserIds.set(new Set<string>(data.online_user_ids || []));
+        });
+      });
+
+      this.eventSource.addEventListener('presence_change', (event: any) => {
+        const data = JSON.parse(event.data);
+        this.ngZone.run(() => {
+          this.onlineUserIds.update(set => {
+            const next = new Set(set);
+            if (data.is_online) next.add(data.user_id);
+            else next.delete(data.user_id);
+            return next;
+          });
+        });
+      });
+
       this.eventSource.addEventListener('chat_message', (event: any) => {
         const data = JSON.parse(event.data);
         this.ngZone.run(() => {
-          this.unreadTotal = data.unread_total || 0;
+          this.unreadTotal.set(data.unread_total || 0);
 
           // If currently viewing this conversation, add message
-          if (this.isOpen && this.view === 'chat' && data.conversation_id === this.activeConversationId) {
-            this.messages = [...this.messages, data.message];
+          if (this.isOpen() && this.view() === 'chat' && data.conversation_id === this.activeConversationId) {
+            this.messages.update(list => [...list, data.message]);
             this.scrollToBottom();
             // Mark as read
             this.cs.putService({ url: `/chat/conversations/${this.activeConversationId}/read`, payload: {} }).subscribe(() => {
-              this.unreadTotal = Math.max(0, this.unreadTotal - 1);
-              this.appRef.tick();
+              this.unreadTotal.update(v => Math.max(0, v - 1));
             });
           }
 
           // Update conversation list if open
-          if (this.isOpen && this.view === 'list') {
+          if (this.isOpen() && this.view() === 'list') {
             this.loadConversations();
           }
-
-          this.appRef.tick();
         });
       });
 
@@ -280,16 +318,23 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
+  isOnline(userId: string | null | undefined): boolean {
+    return !!userId && this.onlineUserIds().has(userId);
+  }
+
   getAvatarUrl(fileId: string | null | undefined): string | null {
-    if (!fileId || this.avatarErrors.has(fileId)) return null;
+    if (!fileId || this.avatarErrors().has(fileId)) return null;
     const token = this.authService.getToken();
     return `${environment.apiUrl}/files/${fileId}?token=${token}`;
   }
 
   onAvatarError(fileId: string | null | undefined): void {
     if (fileId) {
-      this.avatarErrors.add(fileId);
-      this.cdr.detectChanges();
+      this.avatarErrors.update(set => {
+        const next = new Set(set);
+        next.add(fileId);
+        return next;
+      });
     }
   }
 }
