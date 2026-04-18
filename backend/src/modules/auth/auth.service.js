@@ -1,4 +1,4 @@
-const userRepo = require('../users/user.repository');
+const userRepo = require('../settings/users/user.repository');
 const fileRepo = require('../files/file.repository');
 const password = require('../../shared/helpers/password.helper');
 const jwt = require('../../shared/helpers/jwt.helper');

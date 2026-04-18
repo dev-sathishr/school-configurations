@@ -28,6 +28,7 @@ export class AuthService {
   private apiUrl = environment.apiUrl;
   private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser());
   public currentUser$ = this.currentUserSubject.asObservable();
+  private loggingOut = false;
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -43,9 +44,11 @@ export class AuthService {
   }
 
   logout(): void {
+    if (this.loggingOut) return;
+    this.loggingOut = true;
     this.http.post(`${this.apiUrl}/auth/logout`, {}).subscribe({
-      complete: () => this.clearSession(),
-      error: () => this.clearSession(),
+      complete: () => { this.clearSession(); this.loggingOut = false; },
+      error: () => { this.clearSession(); this.loggingOut = false; },
     });
   }
 

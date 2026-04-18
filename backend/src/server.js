@@ -1,20 +1,28 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+
+// Auth & Shared
 const authRoutes = require('./modules/auth/auth.routes');
-const userRoutes = require('./modules/users/user.routes');
-const orgRoutes = require('./modules/organizations/org.routes');
-const locationRoutes = require('./modules/locations/location.routes');
-const moduleRoutes = require('./modules/modules/module.routes');
-const menuRoutes = require('./modules/menus/menu.routes');
-const menuModuleRoutes = require('./modules/menu-modules/menu-module.routes');
-const groupRoutes = require('./modules/groups/group.routes');
-const groupModuleRoutes = require('./modules/group-modules/group-module.routes');
-const permissionRoutes = require('./modules/permissions/permission.routes');
-const permissionRequestRoutes = require('./modules/permission-requests/permission-request.routes');
 const notificationRoutes = require('./modules/notifications/notification.routes');
 const chatRoutes = require('./modules/chat/chat.routes');
 const fileRoutes = require('./modules/files/file.routes');
+
+// Settings
+const userRoutes = require('./modules/settings/users/user.routes');
+const orgRoutes = require('./modules/settings/organizations/org.routes');
+const locationRoutes = require('./modules/settings/locations/location.routes');
+const moduleRoutes = require('./modules/settings/modules/module.routes');
+const menuRoutes = require('./modules/settings/menus/menu.routes');
+const menuModuleRoutes = require('./modules/settings/menu-modules/menu-module.routes');
+const groupRoutes = require('./modules/settings/groups/group.routes');
+const groupModuleRoutes = require('./modules/settings/group-modules/group-module.routes');
+const permissionRoutes = require('./modules/settings/permissions/permission.routes');
+const permissionRequestRoutes = require('./modules/settings/permission-requests/permission-request.routes');
+
+// Academic
+const classRoutes = require('./modules/academic/classes/class.routes');
+const classLevelRoutes = require('./modules/academic/class-levels/class-level.routes');
 
 const { lookupPincode } = require('./shared/helpers/pincode.helper');
 const { authenticate } = require('./shared/middleware/auth.middleware');
@@ -40,6 +48,8 @@ app.use('/api/v1/permission-requests', permissionRequestRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/files', fileRoutes);
+app.use('/api/v1/classes', classRoutes);
+app.use('/api/v1/class-levels', classLevelRoutes);
 
 // Shared
 app.get('/api/v1/pincode/:pincode', authenticate, lookupPincode);

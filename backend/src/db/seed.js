@@ -16,9 +16,9 @@ async function seed() {
     if (existing.rows.length === 0) {
       const hashedPassword = await password.hash('admin@123');
       const result = await client.query(
-        `INSERT INTO settings.users (username, password, full_name, email, is_active)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-        ['superadmin', hashedPassword, 'Super Admin', 'admin@shaanthied.com', true]
+        `INSERT INTO settings.users (username, password, full_name, email, phone_code, phone, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        ['superadmin', hashedPassword, 'Super Admin', 'admin@shaanthied.com', '+91', '9876500001', true]
       );
       adminId = result.rows[0].id;
       console.log('Default super admin user created');
@@ -77,7 +77,8 @@ async function seed() {
     // Seed Menus (top-level sidebar navigation groups)
     const menus = [
       { name: 'Dashboard', code: 'DASHBOARD', icon: 'assets/icons/heroicons/outline/chart-pie.svg', route_path: '/dashboard', display_order: 1 },
-      { name: 'Settings', code: 'SETTINGS', icon: 'assets/icons/heroicons/outline/cog.svg', route_path: '/settings', display_order: 2 },
+      { name: 'Academic', code: 'ACADEMIC', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/academic', display_order: 2 },
+      { name: 'Settings', code: 'SETTINGS', icon: 'assets/icons/heroicons/outline/cog.svg', route_path: '/settings', display_order: 3 },
     ];
 
     const menuIds = {};
@@ -100,6 +101,8 @@ async function seed() {
       { name: 'My Classes', code: 'MY_CLASSES', icon: 'assets/icons/heroicons/outline/users.svg', route_path: null, display_order: 4 },
       { name: 'My Grades', code: 'MY_GRADES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: null, display_order: 5 },
       { name: 'Child Progress', code: 'CHILD_PROGRESS', icon: 'assets/icons/heroicons/outline/eye.svg', route_path: null, display_order: 6 },
+      // Academic modules
+      { name: 'Classes', code: 'CLASSES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: '/academic/class', display_order: 1 },
       // Settings modules
       { name: 'Organizations', code: 'ORGANIZATIONS', icon: 'assets/icons/heroicons/outline/cube.svg', route_path: '/settings/organization', display_order: 1 },
       { name: 'Locations', code: 'LOCATIONS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/location', display_order: 2 },
@@ -130,6 +133,8 @@ async function seed() {
       { menu: 'DASHBOARD', module: 'MY_CLASSES', display_order: 4 },
       { menu: 'DASHBOARD', module: 'MY_GRADES', display_order: 5 },
       { menu: 'DASHBOARD', module: 'CHILD_PROGRESS', display_order: 6 },
+      // Academic modules
+      { menu: 'ACADEMIC', module: 'CLASSES', display_order: 1 },
       // Settings modules
       { menu: 'SETTINGS', module: 'ORGANIZATIONS', display_order: 1 },
       { menu: 'SETTINGS', module: 'LOCATIONS', display_order: 2 },
@@ -185,9 +190,9 @@ async function seed() {
     if (existingAdmin.rows.length === 0) {
       const adminPwd = await password.hash('admin@123');
       await client.query(
-        `INSERT INTO settings.users (username, password, full_name, email, group_id, is_active, created_by, updated_by)
-         VALUES ($1, $2, $3, $4, $5, true, $6, $7)`,
-        ['admin', adminPwd, 'Admin User', 'admin@shaanthied.com', groupIds['ADMIN'], adminId, adminId]
+        `INSERT INTO settings.users (username, password, full_name, email, phone_code, phone, group_id, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)`,
+        ['admin', adminPwd, 'Admin User', 'admin@shaanthied.com', '+91', '9876500002', groupIds['ADMIN'], adminId, adminId]
       );
       console.log('Admin user created (username: admin, password: admin@123)');
     } else {
@@ -201,9 +206,9 @@ async function seed() {
     if (existingTeacher.rows.length === 0) {
       const teacherPwd = await password.hash('teacher@123');
       await client.query(
-        `INSERT INTO settings.users (username, password, full_name, email, group_id, is_active, created_by, updated_by)
-         VALUES ($1, $2, $3, $4, $5, true, $6, $7)`,
-        ['teacher', teacherPwd, 'Teacher User', 'teacher@shaanthied.com', groupIds['TEACHER'], adminId, adminId]
+        `INSERT INTO settings.users (username, password, full_name, email, phone_code, phone, group_id, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)`,
+        ['teacher', teacherPwd, 'Teacher User', 'teacher@shaanthied.com', '+91', '9876500003', groupIds['TEACHER'], adminId, adminId]
       );
       console.log('Teacher user created (username: teacher, password: teacher@123)');
     } else {
@@ -213,7 +218,7 @@ async function seed() {
 
     // Seed Group Modules (which menus each group can access)
     const groupModuleMappings = [
-      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'SETTINGS'] },
+      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'ACADEMIC', 'SETTINGS'] },
       { group: 'PRINCIPAL', menus: ['DASHBOARD'] },
       { group: 'TEACHER', menus: ['DASHBOARD'] },
       { group: 'ACCOUNTANT', menus: ['DASHBOARD'] },

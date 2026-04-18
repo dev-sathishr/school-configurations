@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ApplicationRef, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { AuthService } from '../../../../../core/services/auth.service';
@@ -8,6 +8,7 @@ interface ChatUser {
   id: string;
   full_name: string;
   username: string;
+  profile_file_id?: string | null;
 }
 
 interface Conversation {
@@ -15,6 +16,7 @@ interface Conversation {
   other_user_id: string;
   other_user_name: string;
   other_username: string;
+  other_user_profile_file_id?: string | null;
   last_message: string;
   last_message_at: string;
   unread_count: number;
@@ -48,7 +50,9 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   activeConversation: Conversation | null = null;
   activeConversationId = '';
   activeChatName = '';
+  activeChatProfileFileId: string | null = null;
   messages: Message[] = [];
+  avatarErrors = new Set<string>();
   newMessage = '';
   sending = false;
   currentUserId = '';
@@ -61,13 +65,24 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
-    private elRef: ElementRef
+    private elRef: ElementRef,
+    private appRef: ApplicationRef,
   ) {
     this.currentUserId = this.authService.currentUser?.id || '';
   }
 
   ngOnInit(): void {
+    this.loadUnreadCount();
     this.connectSSE();
+  }
+
+  private loadUnreadCount(): void {
+    this.cs.getService({ url: '/chat/unread-count' }).subscribe({
+      next: (res: any) => {
+        this.unreadTotal = res.unread_total || 0;
+        this.appRef.tick();
+      },
+    });
   }
 
   ngOnDestroy(): void {
@@ -97,7 +112,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         this.conversations = res.conversations || [];
         this.unreadTotal = res.unread_total || 0;
-        this.cdr.detectChanges();
+        this.appRef.tick();
       },
     });
   }
@@ -129,6 +144,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
     this.activeConversation = conv;
     this.activeConversationId = conv.id;
     this.activeChatName = conv.other_user_name;
+    this.activeChatProfileFileId = conv.other_user_profile_file_id || null;
     this.view = 'chat';
     this.messages = [];
     this.loadMessages();
@@ -139,6 +155,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         this.activeConversationId = res.conversation_id;
         this.activeChatName = user.full_name;
+        this.activeChatProfileFileId = user.profile_file_id || null;
         this.activeConversation = null;
         this.view = 'chat';
         this.messages = [];
@@ -216,12 +233,12 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
 
           // If currently viewing this conversation, add message
           if (this.isOpen && this.view === 'chat' && data.conversation_id === this.activeConversationId) {
-            this.messages.push(data.message);
+            this.messages = [...this.messages, data.message];
             this.scrollToBottom();
             // Mark as read
             this.cs.putService({ url: `/chat/conversations/${this.activeConversationId}/read`, payload: {} }).subscribe(() => {
               this.unreadTotal = Math.max(0, this.unreadTotal - 1);
-              this.cdr.detectChanges();
+              this.appRef.tick();
             });
           }
 
@@ -230,7 +247,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
             this.loadConversations();
           }
 
-          this.cdr.detectChanges();
+          this.appRef.tick();
         });
       });
 
@@ -261,5 +278,18 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
 
   getInitials(name: string): string {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  getAvatarUrl(fileId: string | null | undefined): string | null {
+    if (!fileId || this.avatarErrors.has(fileId)) return null;
+    const token = this.authService.getToken();
+    return `${environment.apiUrl}/files/${fileId}?token=${token}`;
+  }
+
+  onAvatarError(fileId: string | null | undefined): void {
+    if (fileId) {
+      this.avatarErrors.add(fileId);
+      this.cdr.detectChanges();
+    }
   }
 }

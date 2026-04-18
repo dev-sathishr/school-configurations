@@ -116,6 +116,10 @@ export class TableComponent implements OnInit, OnDestroy {
     this.data().forEach((row) => (row.selected = checked));
   }
 
+  public invertSelection() {
+    this.data().forEach((row) => (row.selected = !row.selected));
+  }
+
   public toggleRow(row: any) {
     row.selected = !row.selected;
   }

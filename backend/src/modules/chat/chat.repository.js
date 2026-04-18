@@ -33,6 +33,7 @@ async function getConversations(userId) {
   const result = await db.query(`
     SELECT c.id, c.type, c.created_at,
       u.id AS other_user_id, u.full_name AS other_user_name, u.username AS other_username,
+      pf.id AS other_user_profile_file_id,
       lm.content AS last_message, lm.created_at AS last_message_at, lm.sender_id AS last_message_sender,
       (
         SELECT COUNT(*) FROM settings.messages m
@@ -42,6 +43,11 @@ async function getConversations(userId) {
     JOIN settings.conversations c ON cm.conversation_id = c.id
     JOIN settings.conversation_members cm2 ON cm2.conversation_id = c.id AND cm2.user_id != $1
     JOIN settings.users u ON cm2.user_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT f.id FROM settings.files f
+      WHERE f.entity_type = 'user' AND f.entity_id = u.id AND f.file_type = 'profile_image' AND f.deleted_at IS NULL
+      ORDER BY f.created_at DESC LIMIT 1
+    ) pf ON true
     LEFT JOIN LATERAL (
       SELECT content, created_at, sender_id FROM settings.messages
       WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1
@@ -137,9 +143,15 @@ async function getTotalUnreadCount(userId) {
 // Get all users (for starting new conversations)
 async function getUsers(currentUserId) {
   const result = await db.query(
-    `SELECT id, full_name, username FROM settings.users
-     WHERE id != $1 AND is_active = true AND deleted_at IS NULL
-     ORDER BY full_name ASC`,
+    `SELECT u.id, u.full_name, u.username, pf.id AS profile_file_id
+     FROM settings.users u
+     LEFT JOIN LATERAL (
+       SELECT f.id FROM settings.files f
+       WHERE f.entity_type = 'user' AND f.entity_id = u.id AND f.file_type = 'profile_image' AND f.deleted_at IS NULL
+       ORDER BY f.created_at DESC LIMIT 1
+     ) pf ON true
+     WHERE u.id != $1 AND u.is_active = true AND u.deleted_at IS NULL
+     ORDER BY u.full_name ASC`,
     [currentUserId]
   );
   return result.rows;

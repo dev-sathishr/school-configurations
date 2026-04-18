@@ -19,6 +19,7 @@ export class TableActionComponent {
 
   @Output() onEditSelected = new EventEmitter<void>();
   @Output() onDeleteSelected = new EventEmitter<void>();
+  @Output() onInvertSelection = new EventEmitter<void>();
 
   showColumnsDropdown = false;
   dragIndex: number | null = null;

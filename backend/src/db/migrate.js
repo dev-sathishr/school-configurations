@@ -454,6 +454,85 @@ async function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_user_location_unique ON settings.user_locations (user_id, location_id);
     `).catch(() => console.log('Index idx_user_location_unique already exists'));
 
+    // Academic level enum
+    await client.query(`
+      CREATE TYPE academic.academic_level AS ENUM (
+        'nursery', 'primary', 'middle', 'secondary', 'higher_secondary'
+      );
+    `).catch(() => console.log('Enum academic_level already exists, skipping...'));
+
+    // Create academic schema
+    await client.query('CREATE SCHEMA IF NOT EXISTS academic');
+
+    // Re-create enum in academic schema if needed
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE academic.academic_level AS ENUM ('nursery', 'primary', 'middle', 'secondary', 'higher_secondary');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    // Class generals table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS academic.class_generals (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(50),
+        strength INT DEFAULT 0,
+        academic_level academic.academic_level NOT NULL DEFAULT 'primary',
+        is_active BOOLEAN DEFAULT true,
+        notes TEXT,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_class_general_code_unique ON academic.class_generals (LOWER(code)) WHERE deleted_at IS NULL AND code IS NOT NULL AND code != '';
+    `).catch(() => console.log('Index idx_class_general_code_unique already exists'));
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_class_general_name_unique ON academic.class_generals (LOWER(name)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_class_general_name_unique already exists'));
+
+    // Class levels table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS academic.class_levels (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        class_general_id UUID NOT NULL REFERENCES academic.class_generals(id),
+        code VARCHAR(100) NOT NULL,
+        section VARCHAR(1) CHECK (section ~ '^[A-Z]$'),
+        capacity INT DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        notes TEXT,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    // Rename legacy "name" column to "code" if it still exists
+    await client.query('ALTER TABLE academic.class_levels RENAME COLUMN name TO code').catch(() => {});
+
+    // Add section column if missing (for tables created before)
+    await client.query("ALTER TABLE academic.class_levels ADD COLUMN IF NOT EXISTS section VARCHAR(1) CHECK (section ~ '^[A-Z]$')").catch(() => {});
+
+    // Drop old index on name (if it exists) and create new on code
+    await client.query('DROP INDEX IF EXISTS academic.idx_class_level_name_unique').catch(() => {});
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_class_level_code_unique ON academic.class_levels (class_general_id, LOWER(code)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_class_level_code_unique already exists'));
+
+    // Add notes column if missing
+    await client.query('ALTER TABLE academic.class_levels ADD COLUMN IF NOT EXISTS notes TEXT').catch(() => {});
+
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];
     for (const table of tables) {

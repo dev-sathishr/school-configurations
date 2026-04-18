@@ -24,6 +24,7 @@ export class MenuListComponent {
     { key: 'm.route_path', label: 'Route Path', sortable: true },
     { key: 'parent_name', label: 'Parent Menu' },
     { key: 'm.display_order', label: 'Order', sortable: true },
+    { key: 'module_count', label: 'Modules', sortable: true },
     {
       key: 'm.is_active', label: 'Status', sortable: true, type: 'badge',
       badgeMap: {
@@ -38,12 +39,14 @@ export class MenuListComponent {
     'm.name': 'name', 'm.code': 'code', 'm.route_path': 'route_path',
     'parent_name': 'parent_name', 'm.display_order': 'display_order',
     'm.is_active': 'is_active', 'created_by_name': 'created_by_name',
+    'module_count': 'module_count',
   };
 
   rowTransform = (row: any, mapped: any) => {
     mapped['m.is_active'] = row.is_active ? 'Active' : 'Inactive';
     mapped['m.route_path'] = row.route_path || '-';
     mapped['parent_name'] = row.parent_name || '-';
+    mapped['module_count'] = row.module_count ?? 0;
     return mapped;
   };
 

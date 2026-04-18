@@ -19,6 +19,13 @@ const routes: Routes = [
     loadChildren: () => import('../dashboard/dashboard.module').then((m) => m.DashboardModule),
   },
   {
+    path: 'academic',
+    component: LayoutComponent,
+    canActivate: [MenuAccessGuard],
+    data: { menuCode: 'ACADEMIC' },
+    loadChildren: () => import('../academic/academic.module').then((m) => m.AcademicModule),
+  },
+  {
     path: 'settings',
     component: LayoutComponent,
     canActivate: [MenuAccessGuard],

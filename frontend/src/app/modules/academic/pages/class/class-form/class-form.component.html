@@ -1,0 +1,153 @@
+<div class="mx-auto max-w-4xl">
+  <div class="mb-6">
+    <app-breadcrumb></app-breadcrumb>
+  </div>
+
+  @if (errorMessage) {
+    <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <app-loader size="large" text="Loading class..." />
+  } @else {
+    <!-- Tabs -->
+    <div class="border-border mb-6 flex border-b">
+      <button type="button" (click)="activeTab = 'general'"
+        class="px-5 py-2.5 text-xs font-semibold transition-colors"
+        [class.text-primary]="activeTab === 'general'"
+        [class.border-b-2]="activeTab === 'general'"
+        [class.border-primary]="activeTab === 'general'"
+        [class.text-muted-foreground]="activeTab !== 'general'">
+        General
+      </button>
+      <button type="button" (click)="classGeneralSaved ? activeTab = 'levels' : null"
+        class="px-5 py-2.5 text-xs font-semibold transition-colors"
+        [class.text-primary]="activeTab === 'levels'"
+        [class.border-b-2]="activeTab === 'levels'"
+        [class.border-primary]="activeTab === 'levels'"
+        [class.text-muted-foreground]="activeTab !== 'levels'"
+        [class.opacity-40]="!classGeneralSaved"
+        [class.cursor-not-allowed]="!classGeneralSaved">
+        Sections
+      </button>
+    </div>
+
+    <!-- General Tab -->
+    @if (activeTab === 'general') {
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <h4 class="text-foreground mb-4 text-sm font-semibold">Class Information</h4>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <app-form-field [formGroup]="form" controlName="name" label="Class Name" [required]="true" [submitted]="submitted"
+              placeholder="e.g. CLASS 1" [minLength]="2" [maxLength]="200" [uppercase]="true" />
+            <app-form-field [formGroup]="form" controlName="code" label="Code"
+              placeholder="e.g. CLS-01" [maxLength]="50" [uppercase]="true" />
+            <app-form-field [formGroup]="form" controlName="academic_level" label="Academic Level" fieldType="select"
+              [required]="true" [submitted]="submitted" [options]="academicLevelOptions" selectPlaceholder="Select level" />
+            <app-form-field [formGroup]="form" controlName="strength" label="Strength"
+              placeholder="e.g. 40" [digitsOnly]="true" [minLength]="1" [maxLength]="5" />
+          </div>
+        </div>
+
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <div class="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
+            <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
+            <app-form-field [formGroup]="form" controlName="notes" label="Notes" fieldType="textarea" [rows]="3"
+              placeholder="Any additional notes..." [maxLength]="500" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
+            Cancel
+          </app-button>
+          <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
+            {{ editMode ? 'Update' : 'Save & Next' }}
+          </app-button>
+        </div>
+      </form>
+    }
+
+    <!-- Levels Tab -->
+    @if (activeTab === 'levels') {
+      <!-- Section form (collapsible) -->
+      <form [formGroup]="levelForm" (ngSubmit)="onLevelSubmit()" class="mb-6">
+        <div class="bg-background border-muted/30 overflow-hidden rounded-lg border">
+          <!-- Header with toggle -->
+          <button type="button" (click)="toggleLevelForm()"
+            class="hover:bg-muted/20 flex w-full cursor-pointer items-center justify-between px-5 py-3.5 transition-colors">
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4 text-muted-foreground transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+                [class.rotate-90]="levelFormExpanded">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+              <h4 class="text-foreground text-sm font-semibold">{{ levelEditMode ? 'Edit Section' : 'Add Section' }}</h4>
+              @if (levelEditMode) {
+                <span class="bg-primary/10 text-primary ml-1 rounded-full px-2 py-0.5 text-[10px] font-medium">Editing</span>
+              }
+            </div>
+            @if (!levelFormExpanded && !levelEditMode) {
+              <span class="bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold">+</span>
+            } @else {
+              <span class="text-muted-foreground/60 text-[11px]">{{ levelFormExpanded ? 'Click to collapse' : 'Click to expand' }}</span>
+            }
+          </button>
+
+          <!-- Collapsible body -->
+          @if (levelFormExpanded) {
+            <div class="border-muted/30 border-t p-5">
+              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <app-form-field [formGroup]="levelForm" controlName="class_general_id" label="Class" fieldType="async-select"
+                  asyncUrl="/classes/dropdown" [required]="true" [submitted]="levelSubmitted" [initialLabel]="classLabel" selectPlaceholder="Select class" />
+                <app-form-field [formGroup]="levelForm" controlName="section" label="Section" fieldType="select"
+                  [options]="sectionOptions" selectPlaceholder="Select section" />
+                <app-form-field [formGroup]="levelForm" controlName="code" label="Code" [required]="true"
+                  [submitted]="levelSubmitted" placeholder="e.g. CLASS 1 A" [maxLength]="100" [uppercase]="true" />
+                <app-form-field [formGroup]="levelForm" controlName="capacity" label="Capacity"
+                  placeholder="e.g. 40" [digitsOnly]="true" [maxLength]="5" />
+              </div>
+              <div class="mt-4 grid grid-cols-1 items-center gap-4 md:grid-cols-2">
+                <app-form-field [formGroup]="levelForm" controlName="is_active" label="Active" fieldType="checkbox" />
+                <app-form-field [formGroup]="levelForm" controlName="notes" label="Notes" fieldType="textarea" [rows]="2"
+                  placeholder="Any additional notes..." [maxLength]="500" />
+              </div>
+              @if (levelError) {
+                <p class="mt-2 text-xs text-red-500">{{ levelError }}</p>
+              }
+              <div class="mt-4 flex gap-3">
+                <app-button impact="bold" tone="primary" shape="rounded" size="small" type="submit" [loading]="levelSaving">
+                  {{ levelEditMode ? 'Update Section' : 'Add Section' }}
+                </app-button>
+                @if (levelEditMode) {
+                  <app-button impact="light" tone="light" shape="rounded" size="small" type="button" (buttonClick)="cancelLevelEdit()">
+                    Cancel
+                  </app-button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </form>
+
+      <!-- Sections table -->
+      @if (levelsApiUrl) {
+        <app-table
+          [apiUrl]="levelsApiUrl"
+          [deleteUrl]="levelsDeleteUrl"
+          [columns]="levelsColumns"
+          [displayKeyMap]="levelsDisplayKeyMap"
+          [rowTransform]="levelsRowTransform"
+          [canEdit]="ps.canEdit('CLASSES')"
+          [canDelete]="ps.canDelete('CLASSES')"
+          (onEdit)="editLevel($event)">
+        </app-table>
+      }
+
+      <div class="mt-6 flex justify-end">
+        <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
+          Back to Classes
+        </app-button>
+      </div>
+    }
+  }
+</div>

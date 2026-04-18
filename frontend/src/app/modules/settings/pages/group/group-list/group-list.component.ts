@@ -22,6 +22,7 @@ export class GroupListComponent {
     { key: 'g.name', label: 'Name', sortable: true, searchable: true },
     { key: 'g.code', label: 'Code', sortable: true, searchable: true },
     { key: 'g.description', label: 'Description', searchable: true },
+    { key: 'menu_count', label: 'Menus', sortable: true },
     {
       key: 'g.is_active', label: 'Status', sortable: true, type: 'badge',
       badgeMap: {
@@ -35,11 +36,13 @@ export class GroupListComponent {
   displayKeyMap: Record<string, string> = {
     'g.name': 'name', 'g.code': 'code', 'g.description': 'description',
     'g.is_active': 'is_active', 'created_by_name': 'created_by_name',
+    'menu_count': 'menu_count',
   };
 
   rowTransform = (row: any, mapped: any) => {
     mapped['g.is_active'] = row.is_active ? 'Active' : 'Inactive';
     mapped['g.description'] = row.description || '-';
+    mapped['menu_count'] = row.menu_count ?? 0;
     return mapped;
   };
 

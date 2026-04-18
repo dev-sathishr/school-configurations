@@ -32,7 +32,10 @@ export class AuthInterceptor implements HttpInterceptor {
     return next.handle(req).pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401) {
-          this.authService.logout();
+          const isAuthEndpoint = req.url.includes('/auth/logout') || req.url.includes('/auth/login');
+          if (!isAuthEndpoint) {
+            this.authService.logout();
+          }
         }
 
         if (error.status === 403) {

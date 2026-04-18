@@ -8,7 +8,8 @@
     [canEdit]="canEdit"
     [canDelete]="canDelete"
     (onEditSelected)="editSelected()"
-    (onDeleteSelected)="deleteSelected()">
+    (onDeleteSelected)="deleteSelected()"
+    (onInvertSelection)="invertSelection()">
   </app-table-action>
 
   @if (!hasVisibleColumns) {

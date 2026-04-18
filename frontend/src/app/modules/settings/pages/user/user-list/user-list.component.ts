@@ -45,6 +45,7 @@ export class UserListComponent {
   rowTransform = (row: any, mapped: any) => {
     mapped['u.is_active'] = row.is_active ? 'Active' : 'Inactive';
     mapped['g.name'] = row.group_name || '-';
+    mapped['u.phone'] = row.phone ? `${row.phone_code || '+91'} ${row.phone}` : '-';
     mapped['u.last_login'] = row.last_login ? new Date(row.last_login).toLocaleDateString('en-IN', {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     }) : '-';

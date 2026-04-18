@@ -85,11 +85,26 @@ export class FormFieldComponent implements OnInit, OnChanges {
   phoneError = '';
 
   ngOnInit(): void {
-    if (this.fieldType === 'phone') this.initPhone();
+    if (this.fieldType === 'phone') {
+      this.initPhone();
+      this.validatePhone();
+      this.control?.valueChanges.subscribe((val) => {
+        if (val && typeof val === 'object') {
+          const nextNumber = val.number || '';
+          const nextCode = val.code || '+91';
+          if (nextNumber !== this.phoneNumber || nextCode !== this.selectedCode) {
+            this.phoneNumber = nextNumber;
+            this.selectedCode = nextCode;
+          }
+        }
+        this.validatePhone();
+      });
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['submitted'] && this.fieldType === 'phone') this.validatePhone();
+    if (changes['required'] && this.fieldType === 'phone') this.validatePhone();
   }
 
   get control() { return this.formGroup.get(this.controlName); }
@@ -168,18 +183,30 @@ export class FormFieldComponent implements OnInit, OnChanges {
   }
 
   validatePhone(): void {
+    let controlError: Record<string, boolean> | null = null;
+    let displayError = '';
+
     if (!this.phoneNumber) {
-      this.phoneError = this.required && this.submitted ? `${this.label} is required` : '';
-      return;
-    }
-    const country = this.selectedCountry;
-    if (!country) { this.phoneError = ''; return; }
-    if (this.phoneNumber.length < country.minLen) {
-      this.phoneError = `Minimum ${country.minLen} digits for ${country.name}`;
-    } else if (this.phoneNumber.length > country.maxLen) {
-      this.phoneError = `Maximum ${country.maxLen} digits for ${country.name}`;
+      if (this.required) {
+        controlError = { required: true };
+        if (this.submitted) displayError = `${this.label} is required`;
+      }
     } else {
-      this.phoneError = '';
+      const country = this.selectedCountry;
+      if (country) {
+        if (this.phoneNumber.length < country.minLen) {
+          controlError = { phoneLength: true };
+          displayError = `Minimum ${country.minLen} digits for ${country.name}`;
+        } else if (this.phoneNumber.length > country.maxLen) {
+          controlError = { phoneLength: true };
+          displayError = `Maximum ${country.maxLen} digits for ${country.name}`;
+        }
+      }
+    }
+
+    this.phoneError = displayError;
+    if (this.control && JSON.stringify(this.control.errors || null) !== JSON.stringify(controlError)) {
+      this.control.setErrors(controlError);
     }
   }
 

@@ -47,9 +47,15 @@
               class="hover:bg-muted/50 flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors"
               [class.bg-primary/5]="conv.unread_count > 0">
               <!-- Avatar -->
-              <div class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                {{ getInitials(conv.other_user_name) }}
-              </div>
+              @if (getAvatarUrl(conv.other_user_profile_file_id); as avatarUrl) {
+                <img [src]="avatarUrl" [alt]="conv.other_user_name"
+                  (error)="onAvatarError(conv.other_user_profile_file_id)"
+                  class="h-9 w-9 shrink-0 rounded-full object-cover" />
+              } @else {
+                <div class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                  {{ getInitials(conv.other_user_name) }}
+                </div>
+              }
               <!-- Info -->
               <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between">
@@ -72,9 +78,15 @@
             <div
               (click)="startNewChat(user)"
               class="hover:bg-muted/50 flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors">
-              <div class="bg-green-500/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-green-600">
-                {{ getInitials(user.full_name) }}
-              </div>
+              @if (getAvatarUrl(user.profile_file_id); as avatarUrl) {
+                <img [src]="avatarUrl" [alt]="user.full_name"
+                  (error)="onAvatarError(user.profile_file_id)"
+                  class="h-9 w-9 shrink-0 rounded-full object-cover" />
+              } @else {
+                <div class="bg-green-500/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-green-600">
+                  {{ getInitials(user.full_name) }}
+                </div>
+              }
               <div class="min-w-0 flex-1">
                 <p class="text-foreground truncate text-xs font-semibold">{{ user.full_name }}</p>
                 <p class="text-muted-foreground text-[11px]">Start conversation</p>
@@ -102,9 +114,15 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <div class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-            {{ getInitials(activeChatName) }}
-          </div>
+          @if (getAvatarUrl(activeChatProfileFileId); as avatarUrl) {
+            <img [src]="avatarUrl" [alt]="activeChatName"
+              (error)="onAvatarError(activeChatProfileFileId)"
+              class="h-8 w-8 shrink-0 rounded-full object-cover" />
+          } @else {
+            <div class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+              {{ getInitials(activeChatName) }}
+            </div>
+          }
           <p class="text-foreground truncate text-sm font-semibold">{{ activeChatName }}</p>
           <div class="flex-1"></div>
           <button (click)="toggle()" class="text-muted-foreground hover:text-foreground shrink-0">
