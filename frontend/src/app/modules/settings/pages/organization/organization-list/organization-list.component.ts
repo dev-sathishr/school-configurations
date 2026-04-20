@@ -1,22 +1,20 @@
-import { Component, ViewChild } from '@angular/core';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
-import { PermissionService } from '../../../../../core/services/permission.service';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
+import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-organization-list',
   templateUrl: './organization-list.component.html',
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
-export class OrganizationListComponent {
-  @ViewChild(TableComponent) table!: TableComponent;
-
+export class OrganizationListComponent extends BaseListComponent {
   apiUrl = '/organizations';
-  deleteUrl = '/organizations/delete-multiple';
+  override deleteUrl = '/organizations/delete-multiple';
+  routeBase = '/settings/organization';
 
   columns: ColumnConfig[] = [
     { key: 'o.name', label: 'Name', sortable: true, searchable: true, type: 'avatar', avatarKey: 'logo_file_id' },
@@ -43,10 +41,4 @@ export class OrganizationListComponent {
     mapped['location_count'] = row.location_count ?? 0;
     return mapped;
   };
-
-  constructor(private cs: CommonService, public ps: PermissionService) {}
-
-  addNew() { this.cs.navigate({ url: '/settings/organization/new' }); }
-  editSelected(row: any) { this.cs.navigate({ url: `/settings/organization/${row.id}/edit` }); }
-  viewSelected(row: any) { this.cs.navigate({ url: `/settings/organization/${row.id}/view` }); }
 }

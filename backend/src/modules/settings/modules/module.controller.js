@@ -1,97 +1,51 @@
 const moduleService = require('./module.service');
 const res = require('../../../shared/helpers/response.helper');
-
-function handleError(resp, result) {
-  if (result.error === 'notFound') return res.notFound(resp, result.message);
-  if (result.error === 'badRequest') return res.badRequest(resp, result.message);
-  if (result.error === 'conflict') return res.conflict(resp, result.message);
-  return null;
-}
+const { wrap } = require('../../../shared/middleware/async-handler');
 
 async function getAll(req, resp) {
-  try {
-    const result = await moduleService.getAll(req.query, req.viewOwn ? req.user.id : null);
-    return res.success(resp, result);
-  } catch (err) {
-    console.error('Get modules error:', err);
-    return res.error(resp);
-  }
+  const result = await moduleService.getAll(req.query, req.viewOwn ? req.user.id : null);
+  return res.success(resp, result);
 }
 
 async function getById(req, resp) {
-  try {
-    const result = await moduleService.getById(req.params.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, { module: result.module });
-  } catch (err) {
-    console.error('Get module error:', err);
-    return res.error(resp);
-  }
+  const result = await moduleService.getById(req.params.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { data: result.data });
 }
 
 async function getDropdown(req, resp) {
-  try {
-    const result = await moduleService.getDropdown(req.query);
-    return res.success(resp, result);
-  } catch (err) {
-    console.error('Get modules dropdown error:', err);
-    return res.error(resp);
-  }
+  const result = await moduleService.getDropdown(req.query);
+  return res.success(resp, result);
 }
 
 async function create(req, resp) {
-  try {
-    const result = await moduleService.create(req.body, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.created(resp, { module: result.module }, 'Module created successfully');
-  } catch (err) {
-    console.error('Create module error:', err);
-    return res.error(resp);
-  }
+  const result = await moduleService.create(req.body, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.created(resp, { data: result.data }, 'Module created successfully');
 }
 
 async function update(req, resp) {
-  try {
-    const result = await moduleService.update(req.params.id, req.body, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, { module: result.module }, 'Module updated successfully');
-  } catch (err) {
-    console.error('Update module error:', err);
-    return res.error(resp);
-  }
+  const result = await moduleService.update(req.params.id, req.body, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { data: result.data }, 'Module updated successfully');
 }
 
 async function remove(req, resp) {
-  try {
-    const result = await moduleService.remove(req.params.id, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, {}, 'Module deleted successfully');
-  } catch (err) {
-    console.error('Delete module error:', err);
-    return res.error(resp);
-  }
+  const result = await moduleService.remove(req.params.id, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, {}, 'Module deleted successfully');
 }
 
 async function removeMultiple(req, resp) {
-  try {
-    const result = await moduleService.removeMultiple(req.body.ids, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, { deleted_count: result.deleted_count }, `${result.deleted_count} module(s) deleted successfully`);
-  } catch (err) {
-    console.error('Delete multiple modules error:', err);
-    return res.error(resp);
-  }
+  const result = await moduleService.removeMultiple(req.body.ids, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { deleted_count: result.deleted_count }, `${result.deleted_count} module(s) deleted successfully`);
 }
 
 async function importRows(req, resp) {
-  try {
-    const result = await moduleService.importRows(req.body.rows, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, result, `${result.success_count} module(s) imported, ${result.error_count} failed`);
-  } catch (err) {
-    console.error('Import modules error:', err);
-    return res.error(resp);
-  }
+  const result = await moduleService.importRows(req.body.rows, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, result, `${result.success_count} module(s) imported, ${result.error_count} failed`);
 }
 
-module.exports = { getAll, getById, getDropdown, create, update, remove, removeMultiple, importRows };
+module.exports = wrap({ getAll, getById, getDropdown, create, update, remove, removeMultiple, importRows });

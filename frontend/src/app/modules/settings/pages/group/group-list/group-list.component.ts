@@ -1,22 +1,20 @@
-import { Component, ViewChild } from '@angular/core';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
-import { PermissionService } from '../../../../../core/services/permission.service';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
+import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-group-list',
   templateUrl: './group-list.component.html',
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
-export class GroupListComponent {
-  @ViewChild(TableComponent) table!: TableComponent;
-
+export class GroupListComponent extends BaseListComponent {
   apiUrl = '/groups';
-  deleteUrl = '/groups/delete-multiple';
+  override deleteUrl = '/groups/delete-multiple';
+  routeBase = '/settings/group';
 
   columns: ColumnConfig[] = [
     { key: 'g.name', label: 'Name', sortable: true, searchable: true },
@@ -44,10 +42,4 @@ export class GroupListComponent {
     mapped['menu_count'] = row.menu_count ?? 0;
     return mapped;
   };
-
-  constructor(private cs: CommonService, public ps: PermissionService) {}
-
-  addNew() { this.cs.navigate({ url: '/settings/group/new' }); }
-  editSelected(item: any) { this.cs.navigate({ url: `/settings/group/${item.id}/edit` }); }
-  viewSelected(item: any) { this.cs.navigate({ url: `/settings/group/${item.id}/view` }); }
 }

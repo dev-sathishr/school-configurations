@@ -11,6 +11,7 @@ import { TableComponent } from '../../../../../shared/components/table/table.com
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { PermissionService } from '../../../../../core/services/permission.service';
 import { LocationContextService } from '../../../../../core/services/location-context.service';
+import * as V from '../../../../../shared/validators/common';
 
 @Component({
   selector: 'app-class-form',
@@ -101,22 +102,22 @@ export class ClassFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
-      code: ['', [Validators.maxLength(50)]],
+      name: ['', V.LONG_NAME],
+      code: ['', V.maxLength(50)],
       strength: [0],
       academic_level: ['primary', Validators.required],
       is_active: [true],
-      notes: ['', [Validators.maxLength(500)]],
+      notes: ['', V.NOTES],
     });
 
     this.levelForm = this.fb.group({
       location_id: ['', Validators.required],
       class_general_id: ['', Validators.required],
       section: [''],
-      code: ['', [Validators.required, Validators.maxLength(100)]],
+      code: ['', V.requiredMaxLength(100)],
       capacity: [0],
       is_active: [true],
-      notes: ['', [Validators.maxLength(500)]],
+      notes: ['', V.NOTES],
     });
 
     // Pre-fill the location when we can make an unambiguous choice (exactly

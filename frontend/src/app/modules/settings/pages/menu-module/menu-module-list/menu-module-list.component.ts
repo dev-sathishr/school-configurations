@@ -1,20 +1,19 @@
-import { Component, ViewChild } from '@angular/core';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
+import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-menu-module-list',
   templateUrl: './menu-module-list.component.html',
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent],
 })
-export class MenuModuleListComponent {
-  @ViewChild(TableComponent) table!: TableComponent;
-
+export class MenuModuleListComponent extends BaseListComponent {
   apiUrl = '/menu-modules';
-  deleteUrl = '/menu-modules/delete-multiple';
+  override deleteUrl = '/menu-modules/delete-multiple';
+  routeBase = '/settings/menu-module';
 
   columns: ColumnConfig[] = [
     { key: 'mod.name', label: 'Module', sortable: true, searchable: true },
@@ -26,9 +25,4 @@ export class MenuModuleListComponent {
     'mod.name': 'module_name', 'men.name': 'menu_name',
     'mm.display_order': 'display_order',
   };
-
-  constructor(private cs: CommonService) {}
-
-  addNew() { this.cs.navigate({ url: '/settings/menu-module/new' }); }
-  editSelected(item: any) { this.cs.navigate({ url: `/settings/menu-module/${item.id}/edit` }); }
 }

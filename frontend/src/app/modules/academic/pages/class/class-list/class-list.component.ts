@@ -1,11 +1,10 @@
-import { Component, ViewChild } from '@angular/core';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
-import { PermissionService } from '../../../../../core/services/permission.service';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
+import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 
 const LEVEL_LABELS: Record<string, string> = {
   nursery: 'Nursery',
@@ -20,11 +19,10 @@ const LEVEL_LABELS: Record<string, string> = {
   templateUrl: './class-list.component.html',
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
-export class ClassListComponent {
-  @ViewChild(TableComponent) table!: TableComponent;
-
+export class ClassListComponent extends BaseListComponent {
   apiUrl = '/classes';
-  deleteUrl = '/classes/delete-multiple';
+  override deleteUrl = '/classes/delete-multiple';
+  routeBase = '/academic/class';
 
   columns: ColumnConfig[] = [
     { key: 'c.name', label: 'Name', sortable: true, searchable: true },
@@ -52,10 +50,4 @@ export class ClassListComponent {
     mapped['level_count'] = row.level_count ?? 0;
     return mapped;
   };
-
-  constructor(private cs: CommonService, public ps: PermissionService) {}
-
-  addNew() { this.cs.navigate({ url: '/academic/class/new' }); }
-  editSelected(row: any) { this.cs.navigate({ url: `/academic/class/${row.id}/edit` }); }
-  viewSelected(row: any) { this.cs.navigate({ url: `/academic/class/${row.id}/view` }); }
 }

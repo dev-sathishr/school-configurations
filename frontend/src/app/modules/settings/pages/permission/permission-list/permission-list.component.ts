@@ -1,22 +1,20 @@
-import { Component, ViewChild } from '@angular/core';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
-import { PermissionService } from '../../../../../core/services/permission.service';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
+import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-permission-list',
   templateUrl: './permission-list.component.html',
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
-export class PermissionListComponent {
-  @ViewChild(TableComponent) table!: TableComponent;
-
+export class PermissionListComponent extends BaseListComponent {
   apiUrl = '/permissions';
-  deleteUrl = '/permissions/delete-multiple';
+  override deleteUrl = '/permissions/delete-multiple';
+  routeBase = '/settings/permission';
 
   columns: ColumnConfig[] = [
     { key: 'p.name', label: 'Name', sortable: true, searchable: true },
@@ -41,10 +39,4 @@ export class PermissionListComponent {
     mapped['p.description'] = row.description || '-';
     return mapped;
   };
-
-  constructor(private cs: CommonService, public ps: PermissionService) {}
-
-  addNew() { this.cs.navigate({ url: '/settings/permission/new' }); }
-  editSelected(item: any) { this.cs.navigate({ url: `/settings/permission/${item.id}/edit` }); }
-  viewSelected(item: any) { this.cs.navigate({ url: `/settings/permission/${item.id}/view` }); }
 }

@@ -98,9 +98,9 @@ export class UserPreferencesService {
 
   load(): Observable<UserPreferences> {
     return this.http
-      .get<{ preferences: UserPreferences }>(`${environment.apiUrl}/me/preferences`)
+      .get<{ data: UserPreferences }>(`${environment.apiUrl}/me/preferences`)
       .pipe(
-        map((res) => mergeWithDefaults(res.preferences)),
+        map((res) => mergeWithDefaults(res.data)),
         tap((merged) => {
           this._prefs.set(merged);
           this.writeCache(merged);

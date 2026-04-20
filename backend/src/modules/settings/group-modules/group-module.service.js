@@ -9,7 +9,7 @@ async function getAll(query) {
 async function getById(id) {
   const groupModule = await groupModuleRepo.findById(id);
   if (!groupModule) return { error: 'notFound', message: 'Group Module mapping not found' };
-  return { group_module: groupModule };
+  return { data: groupModule };
 }
 
 async function create(body, userId) {
@@ -20,7 +20,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'This group is already linked to this module' };
 
   const groupModule = await groupModuleRepo.create(body, userId);
-  return { group_module: groupModule };
+  return { data: groupModule };
 }
 
 async function update(id, body, userId) {
@@ -35,7 +35,7 @@ async function update(id, body, userId) {
   }
 
   const groupModule = await groupModuleRepo.update(id, body, current, userId);
-  return { group_module: groupModule };
+  return { data: groupModule };
 }
 
 async function remove(id, userId) {

@@ -1,5 +1,8 @@
 const db = require('../../../config/database');
 const { paginate } = require('../../../shared/helpers/pagination.helper');
+const repoHelper = require('../../../shared/helpers/repo.helper');
+
+const TABLE = 'settings.menu_modules';
 
 const SELECT_FIELDS = `mm.id, mm.menu_id, mm.module_id, mm.display_order,
   men.name AS menu_name, men.code AS menu_code,
@@ -68,16 +71,11 @@ async function update(id, data, current, userId) {
 }
 
 async function softDelete(id, userId) {
-  await db.query('UPDATE settings.menu_modules SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [userId, id]);
+  return repoHelper.softDelete({ table: TABLE, id, userId });
 }
 
 async function softDeleteMultiple(ids, userId) {
-  const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
-  const result = await db.query(
-    `UPDATE settings.menu_modules SET deleted_at = NOW(), deleted_by = $1 WHERE id IN (${placeholders}) AND deleted_at IS NULL RETURNING id`,
-    [userId, ...ids]
-  );
-  return result.rowCount;
+  return repoHelper.softDeleteMultiple({ table: TABLE, ids, userId });
 }
 
 module.exports = { findAll, findById, findByMenuAndModule, create, update, softDelete, softDeleteMultiple };

@@ -1,29 +1,23 @@
-import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { CommonService } from '../../../../../shared/services/common/common.service';
-import { PermissionService } from '../../../../../core/services/permission.service';
+import { Component, ViewChild } from '@angular/core';
+import { FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FileUploadComponent, UploadedFile } from '../../../../../shared/components/file-upload/file-upload.component';
+import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+
 @Component({
   selector: 'app-user-form',
   templateUrl: './user-form.component.html',
   imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, BreadcrumbComponent, FileUploadComponent],
 })
-export class UserFormComponent implements OnInit {
+export class UserFormComponent extends FormPageBase {
   @ViewChild('profileUpload') profileUpload!: FileUploadComponent;
 
-  form!: FormGroup;
-  editMode = false;
-  viewMode = false;
-  editId = '';
-  submitted = false;
-  saving = false;
-  loading = false;
-  errorMessage = '';
+  listRoute = '/settings/user';
+  resourcePath = '/users';
+
   groupLabel = '';
   profileImage: UploadedFile | null = null;
 
@@ -34,16 +28,8 @@ export class UserFormComponent implements OnInit {
   locationsLoading = false;
   locationError = '';
 
-  constructor(
-    private cs: CommonService,
-    private fb: FormBuilder,
-    private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef,
-    public ps: PermissionService,
-  ) {}
-
-  ngOnInit(): void {
-    this.form = this.fb.group({
+  protected buildForm(): FormGroup {
+    return this.fb.group({
       username: ['', Validators.required],
       password: [''],
       full_name: ['', Validators.required],
@@ -52,47 +38,76 @@ export class UserFormComponent implements OnInit {
       group_id: ['', Validators.required],
       is_active: [true],
     });
+  }
 
-    this.loadLocations();
+  // Load the location dropdown in parallel with the record fetch, and toggle
+  // the password required validator based on create vs edit — edit leaves it
+  // blank to mean "keep current".
+  override ngOnInit(): void {
+    this.form = this.buildForm();
     const id = this.cs.getRouteParam(this.route, 'id');
-    if (id) {
-      const segments = this.route.snapshot.url;
-      const lastPath = segments[segments.length - 1]?.path;
-      this.viewMode = lastPath === 'view';
-      this.editMode = !this.viewMode;
-      this.editId = id;
-      this.loading = true;
-      this.cs.getService({ url: `/users/${id}` }).subscribe({
-        next: (res: any) => {
-          const user = res.user || res.data || res;
-          this.form.patchValue({
-            ...user,
-            phone: { code: user.phone_code || '+91', number: user.phone || '' },
-          });
-          this.groupLabel = user.group_name || '';
-          this.profileImage = user.profile_image || null;
-          this.form.get('password')?.clearValidators();
-          this.form.get('password')?.updateValueAndValidity();
-
-          // Load user locations
-          if (user.locations && user.locations.length > 0) {
-            this.selectedLocationIds = user.locations.map((l: any) => l.id);
-            const defaultLoc = user.locations.find((l: any) => l.is_default);
-            this.defaultLocationId = defaultLoc?.id || user.locations[0].id;
-          }
-
-          this.loading = false;
-          this.cdr.detectChanges();
-        },
-        error: () => { this.loading = false; this.cdr.detectChanges(); this.cs.navigate({ url: '/settings/user' }); },
-      });
-    } else {
+    if (!id) {
       this.form.get('password')?.setValidators(Validators.required);
       this.form.get('password')?.updateValueAndValidity();
     }
+    this.loadLocations();
+    this.detectModeAndLoad();
   }
 
-  get f() { return this.form.controls; }
+  protected override onRecordLoaded(user: any): void {
+    this.form.patchValue({
+      ...user,
+      phone: { code: user.phone_code || '+91', number: user.phone || '' },
+    });
+    this.groupLabel = user.group_name || '';
+    this.profileImage = user.profile_image || null;
+    this.form.get('password')?.clearValidators();
+    this.form.get('password')?.updateValueAndValidity();
+
+    if (user.locations?.length) {
+      this.selectedLocationIds = user.locations.map((l: any) => l.id);
+      const defaultLoc = user.locations.find((l: any) => l.is_default);
+      this.defaultLocationId = defaultLoc?.id || user.locations[0].id;
+    }
+  }
+
+  protected override beforeSubmit(): boolean {
+    this.locationError = this.selectedLocationIds.length === 0 ? 'At least one location is required' : '';
+    return !this.locationError;
+  }
+
+  protected override toPayload(): any {
+    const val = this.form.value;
+    const data: any = {
+      ...val,
+      phone: val.phone?.number || null,
+      phone_code: val.phone?.code || '+91',
+      location_ids: this.selectedLocationIds,
+      default_location_id: this.defaultLocationId,
+    };
+    // Empty password on edit means "don't change"; drop it so the backend
+    // doesn't overwrite with an empty hash.
+    if (this.editMode && !data.password) delete data.password;
+    return data;
+  }
+
+  protected override afterSave(res: any): void {
+    const createdId = res?.data?.id;
+    const pendingUpload = !this.editMode && createdId ? this.profileUpload?.uploadPendingFile(createdId) : null;
+    if (pendingUpload) {
+      pendingUpload.subscribe({
+        next: () => this.navigateAfterSave(),
+        error: () => this.navigateAfterSave(),
+      });
+    } else {
+      this.navigateAfterSave();
+    }
+  }
+
+  private navigateAfterSave(): void {
+    this.saving = false;
+    this.cs.navigate({ url: this.listRoute });
+  }
 
   private loadLocations(): void {
     this.locationsLoading = true;
@@ -117,13 +132,11 @@ export class UserFormComponent implements OnInit {
     const idx = this.selectedLocationIds.indexOf(id);
     if (idx >= 0) {
       this.selectedLocationIds = this.selectedLocationIds.filter(v => v !== id);
-      // If removed the default, pick next available as default
       if (this.defaultLocationId === id) {
         this.defaultLocationId = this.selectedLocationIds[0] || '';
       }
     } else {
       this.selectedLocationIds = [...this.selectedLocationIds, id];
-      // Auto-set default if this is the first selection
       if (!this.defaultLocationId) {
         this.defaultLocationId = id;
       }
@@ -133,55 +146,5 @@ export class UserFormComponent implements OnInit {
 
   setDefaultLocation(id: string): void {
     this.defaultLocationId = id;
-  }
-
-  onSubmit() {
-    this.submitted = true;
-    this.errorMessage = '';
-    this.locationError = this.selectedLocationIds.length === 0 ? 'At least one location is required' : '';
-
-    if (this.form.invalid || this.locationError) return;
-
-    this.saving = true;
-    const val = this.form.value;
-    const data: any = {
-      ...val,
-      phone: val.phone?.number || null,
-      phone_code: val.phone?.code || '+91',
-      location_ids: this.selectedLocationIds,
-      default_location_id: this.defaultLocationId,
-    };
-    if (this.editMode && !data.password) delete data.password;
-
-    const req = this.editMode
-      ? this.cs.putService({ url: `/users/${this.editId}`, payload: data })
-      : this.cs.postService({ url: '/users', payload: data });
-
-    req.subscribe({
-      next: (res: any) => {
-        const createdId = res?.data?.id || res?.user?.id;
-        const pendingUpload = !this.editMode && createdId ? this.profileUpload?.uploadPendingFile(createdId) : null;
-        if (pendingUpload) {
-          pendingUpload.subscribe({
-            next: () => this.navigateAfterSave(),
-            error: () => this.navigateAfterSave(),
-          });
-        } else {
-          this.navigateAfterSave();
-        }
-      },
-      error: (err: any) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
-    });
-  }
-
-  private navigateAfterSave(): void {
-    this.saving = false;
-    this.cs.navigate({ url: '/settings/user' });
-  }
-
-  cancel() { this.cs.navigate({ url: '/settings/user' }); }
-
-  switchToEdit() {
-    this.cs.navigate({ url: `/settings/user/${this.editId}/edit` });
   }
 }

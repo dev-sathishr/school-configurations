@@ -30,4 +30,21 @@ function conflict(res, message = 'Conflict') {
   return error(res, message, 409);
 }
 
-module.exports = { success, created, error, badRequest, unauthorized, forbidden, notFound, conflict };
+/**
+ * Maps a service's `{ error, message }` failure shape to the right HTTP
+ * response. Returns `null` when there is no error so callers can do:
+ *
+ *   if (result.error) return handleError(resp, result);
+ *   return res.success(resp, { data: result.data });
+ *
+ * Falls through to a generic 400 if the service invents a new error code so
+ * new shapes fail loudly rather than leaking 500s.
+ */
+function handleError(res, result) {
+  if (!result || !result.error) return null;
+  const map = { notFound, badRequest, conflict, forbidden, unauthorized };
+  const fn = map[result.error] || badRequest;
+  return fn(res, result.message);
+}
+
+module.exports = { success, created, error, badRequest, unauthorized, forbidden, notFound, conflict, handleError };

@@ -1,107 +1,56 @@
 const menuService = require('./menu.service');
 const res = require('../../../shared/helpers/response.helper');
-
-function handleError(resp, result) {
-  if (result.error === 'notFound') return res.notFound(resp, result.message);
-  if (result.error === 'badRequest') return res.badRequest(resp, result.message);
-  if (result.error === 'conflict') return res.conflict(resp, result.message);
-  return null;
-}
+const { wrap } = require('../../../shared/middleware/async-handler');
 
 async function getAll(req, resp) {
-  try {
-    const result = await menuService.getAll(req.query, req.viewOwn ? req.user.id : null);
-    return res.success(resp, result);
-  } catch (err) {
-    console.error('Get menus error:', err);
-    return res.error(resp);
-  }
+  const result = await menuService.getAll(req.query, req.viewOwn ? req.user.id : null);
+  return res.success(resp, result);
 }
 
 async function getById(req, resp) {
-  try {
-    const result = await menuService.getById(req.params.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, { menu: result.menu });
-  } catch (err) {
-    console.error('Get menu error:', err);
-    return res.error(resp);
-  }
+  const result = await menuService.getById(req.params.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { data: result.data });
 }
 
 async function getDropdown(req, resp) {
-  try {
-    const result = await menuService.getDropdown(req.query);
-    return res.success(resp, result);
-  } catch (err) {
-    console.error('Get menus dropdown error:', err);
-    return res.error(resp);
-  }
+  const result = await menuService.getDropdown(req.query);
+  return res.success(resp, result);
 }
 
 async function getMenusWithModules(req, resp) {
-  try {
-    const result = await menuService.getMenusWithModules();
-    return res.success(resp, result);
-  } catch (err) {
-    console.error('Get menus with modules error:', err);
-    return res.error(resp);
-  }
+  const result = await menuService.getMenusWithModules();
+  return res.success(resp, result);
 }
 
 async function create(req, resp) {
-  try {
-    const result = await menuService.create(req.body, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.created(resp, { menu: result.menu }, 'Menu created successfully');
-  } catch (err) {
-    console.error('Create menu error:', err);
-    return res.error(resp);
-  }
+  const result = await menuService.create(req.body, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.created(resp, { data: result.data }, 'Menu created successfully');
 }
 
 async function update(req, resp) {
-  try {
-    const result = await menuService.update(req.params.id, req.body, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, { menu: result.menu }, 'Menu updated successfully');
-  } catch (err) {
-    console.error('Update menu error:', err);
-    return res.error(resp);
-  }
+  const result = await menuService.update(req.params.id, req.body, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { data: result.data }, 'Menu updated successfully');
 }
 
 async function remove(req, resp) {
-  try {
-    const result = await menuService.remove(req.params.id, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, {}, 'Menu deleted successfully');
-  } catch (err) {
-    console.error('Delete menu error:', err);
-    return res.error(resp);
-  }
+  const result = await menuService.remove(req.params.id, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, {}, 'Menu deleted successfully');
 }
 
 async function removeMultiple(req, resp) {
-  try {
-    const result = await menuService.removeMultiple(req.body.ids, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, { deleted_count: result.deleted_count }, `${result.deleted_count} menu(s) deleted successfully`);
-  } catch (err) {
-    console.error('Delete multiple menus error:', err);
-    return res.error(resp);
-  }
+  const result = await menuService.removeMultiple(req.body.ids, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { deleted_count: result.deleted_count }, `${result.deleted_count} menu(s) deleted successfully`);
 }
 
 async function importRows(req, resp) {
-  try {
-    const result = await menuService.importRows(req.body.rows, req.user.id);
-    if (result.error) return handleError(resp, result);
-    return res.success(resp, result, `${result.success_count} menu(s) imported, ${result.error_count} failed`);
-  } catch (err) {
-    console.error('Import menus error:', err);
-    return res.error(resp);
-  }
+  const result = await menuService.importRows(req.body.rows, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, result, `${result.success_count} menu(s) imported, ${result.error_count} failed`);
 }
 
-module.exports = { getAll, getById, getDropdown, getMenusWithModules, create, update, remove, removeMultiple, importRows };
+module.exports = wrap({ getAll, getById, getDropdown, getMenusWithModules, create, update, remove, removeMultiple, importRows });

@@ -9,7 +9,7 @@ async function getAll(query, viewOwnUserId) {
 async function getById(id) {
   const menu = await menuRepo.findByIdWithModules(id);
   if (!menu) return { error: 'notFound', message: 'Menu not found' };
-  return { menu };
+  return { data: menu };
 }
 
 async function getDropdown(query) {
@@ -29,7 +29,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Menu code already exists' };
 
   const menu = await menuRepo.create(body, userId);
-  return { menu };
+  return { data: menu };
 }
 
 async function update(id, body, userId) {
@@ -42,7 +42,7 @@ async function update(id, body, userId) {
   }
 
   const menu = await menuRepo.update(id, body, current, userId);
-  return { menu };
+  return { data: menu };
 }
 
 async function remove(id, userId) {

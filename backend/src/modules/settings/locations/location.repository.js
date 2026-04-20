@@ -42,7 +42,15 @@ async function findById(id) {
   return result.rows[0] || null;
 }
 
+// Allowed field names for findByField. This value is interpolated directly
+// into SQL so an attacker-controlled value could inject; the whitelist makes
+// sure the column is one we deliberately support.
+const FIND_BY_FIELDS = ['id', 'code', 'email', 'organization_id'];
+
 async function findByField(field, value) {
+  if (!FIND_BY_FIELDS.includes(field)) {
+    throw new Error(`findByField: unsupported field "${field}"`);
+  }
   const result = await db.query(`SELECT * FROM settings.locations WHERE ${field} = $1 AND deleted_at IS NULL`, [value]);
   return result.rows[0] || null;
 }
@@ -85,17 +93,15 @@ async function update(id, data, current, userId) {
   return result.rows[0];
 }
 
+const repoHelper = require('../../../shared/helpers/repo.helper');
+const TABLE = 'settings.locations';
+
 async function softDelete(id, userId) {
-  await db.query('UPDATE settings.locations SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [userId, id]);
+  return repoHelper.softDelete({ table: TABLE, id, userId });
 }
 
 async function softDeleteMultiple(ids, userId) {
-  const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
-  const result = await db.query(
-    `UPDATE settings.locations SET deleted_at = NOW(), deleted_by = $1 WHERE id IN (${placeholders}) AND deleted_at IS NULL RETURNING id`,
-    [userId, ...ids]
-  );
-  return result.rowCount;
+  return repoHelper.softDeleteMultiple({ table: TABLE, ids, userId });
 }
 
 async function checkUnique(field, value, excludeId = null, extraConditions = {}) {

@@ -1,13 +1,11 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { Component } from '@angular/core';
+import { FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
-import { CommonService } from '../../../../../shared/services/common/common.service';
-import { PermissionService } from '../../../../../core/services/permission.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
+import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
 
 interface PermissionType {
   id: string;
@@ -19,7 +17,7 @@ interface ModulePermission {
   module_id: string;
   module_name: string;
   module_code: string;
-  permissions: Record<string, boolean>; // permission_id -> checked
+  permissions: Record<string, boolean>;
 }
 
 interface MenuTree {
@@ -36,37 +34,36 @@ interface MenuTree {
   templateUrl: './group-form.component.html',
   imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, BreadcrumbComponent],
 })
-export class GroupFormComponent implements OnInit {
-  form!: FormGroup;
-  editMode = false;
-  viewMode = false;
-  editId = '';
-  submitted = false;
-  saving = false;
-  loading = false;
-  errorMessage = '';
+export class GroupFormComponent extends FormPageBase {
+  listRoute = '/settings/group';
+  resourcePath = '/groups';
 
   permissionTypes: PermissionType[] = [];
   menuTree: MenuTree[] = [];
   matrixLoading = false;
 
-  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef, public ps: PermissionService) {}
-
-  ngOnInit(): void {
-    this.form = this.fb.group({
+  protected buildForm(): FormGroup {
+    return this.fb.group({
       name: ['', Validators.required],
       code: ['', Validators.required],
       description: [''],
       is_active: [true],
     });
+  }
 
+  // The menu × permission matrix has to exist before we can mark what's
+  // enabled on the record, so load those two endpoints first and only then
+  // fetch the record.
+  override ngOnInit(): void {
+    this.form = this.buildForm();
     this.matrixLoading = true;
     forkJoin({
       menus: this.cs.getService({ url: '/menus/with-modules' }),
       permissions: this.cs.getService({ url: '/permissions/dropdown' }),
     }).subscribe({
       next: (res: any) => {
-        this.permissionTypes = (res.permissions.data || res.permissions || []).map((p: any) => ({ id: p.id, name: p.name, code: p.code }));
+        this.permissionTypes = (res.permissions.data || res.permissions || [])
+          .map((p: any) => ({ id: p.id, name: p.name, code: p.code }));
 
         const menus = res.menus.data || res.menus || [];
         this.menuTree = menus.map((m: any) => ({
@@ -88,55 +85,49 @@ export class GroupFormComponent implements OnInit {
         }));
 
         this.matrixLoading = false;
-        this.loadEditData();
+        this.detectModeAndLoad();
       },
       error: () => { this.matrixLoading = false; this.cdr.detectChanges(); },
     });
   }
 
-  private loadEditData() {
-    const id = this.cs.getRouteParam(this.route, 'id');
-    if (id) {
-      const segments = this.route.snapshot.url;
-      const lastPath = segments[segments.length - 1]?.path;
-      this.viewMode = lastPath === 'view';
-      this.editMode = !this.viewMode;
-      this.editId = id;
-      this.loading = true;
-      this.cs.getService({ url: `/groups/${id}` }).subscribe({
-        next: (res: any) => {
-          const group = res.group || res.data || res;
-          this.form.patchValue(group);
+  protected override onRecordLoaded(group: any): void {
+    this.form.patchValue(group);
 
-          const menuIdSet = new Set<string>(group.menu_ids || []);
-          for (const menu of this.menuTree) {
-            menu.selected = menuIdSet.has(menu.id);
+    const menuIdSet = new Set<string>(group.menu_ids || []);
+    for (const menu of this.menuTree) {
+      menu.selected = menuIdSet.has(menu.id);
+    }
+
+    if (Array.isArray(group.permissions)) {
+      for (const gp of group.permissions) {
+        for (const menu of this.menuTree) {
+          const mod = menu.modules.find(m => m.module_id === gp.module_id);
+          if (mod && mod.permissions[gp.permission_id] !== undefined) {
+            mod.permissions[gp.permission_id] = true;
           }
-
-          if (group.permissions && Array.isArray(group.permissions)) {
-            for (const gp of group.permissions) {
-              for (const menu of this.menuTree) {
-                const mod = menu.modules.find(m => m.module_id === gp.module_id);
-                if (mod && mod.permissions[gp.permission_id] !== undefined) {
-                  mod.permissions[gp.permission_id] = true;
-                }
-              }
-            }
-          }
-
-          this.loading = false;
-          this.cdr.detectChanges();
-        },
-        error: () => { this.loading = false; this.cdr.detectChanges(); this.cs.navigate({ url: '/settings/group' }); },
-      });
-    } else {
-      this.cdr.detectChanges();
+        }
+      }
     }
   }
 
-  get f() { return this.form.controls; }
+  protected override toPayload(): any {
+    const data: any = { ...this.form.value };
+    data.menu_ids = this.menuTree.filter(m => m.selected).map(m => m.id);
+    data.permissions = [];
+    for (const menu of this.menuTree) {
+      for (const mod of menu.modules) {
+        for (const [permId, checked] of Object.entries(mod.permissions)) {
+          if (checked) {
+            data.permissions.push({ module_id: mod.module_id, permission_id: permId });
+          }
+        }
+      }
+    }
+    return data;
+  }
 
-  toggleMenu(menu: MenuTree) {
+  toggleMenu(menu: MenuTree): void {
     menu.selected = !menu.selected;
     if (!menu.selected) {
       for (const mod of menu.modules) {
@@ -147,14 +138,14 @@ export class GroupFormComponent implements OnInit {
     }
   }
 
-  onPermissionChange(menu: MenuTree) {
+  onPermissionChange(menu: MenuTree): void {
     const hasAny = menu.modules.some(m => Object.values(m.permissions).some(v => v));
     if (hasAny && !menu.selected) {
       menu.selected = true;
     }
   }
 
-  toggleAllForModule(mod: ModulePermission, menu: MenuTree) {
+  toggleAllForModule(mod: ModulePermission, menu: MenuTree): void {
     const allChecked = this.isAllCheckedForModule(mod);
     for (const ptId of Object.keys(mod.permissions)) {
       mod.permissions[ptId] = !allChecked;
@@ -172,39 +163,4 @@ export class GroupFormComponent implements OnInit {
     const count = vals.filter(Boolean).length;
     return count > 0 && count < vals.length;
   }
-
-  onSubmit() {
-    this.submitted = true;
-    this.errorMessage = '';
-    if (this.form.invalid) return;
-
-    this.saving = true;
-    const data: any = { ...this.form.value };
-
-    data.menu_ids = this.menuTree.filter(m => m.selected).map(m => m.id);
-
-    data.permissions = [];
-    for (const menu of this.menuTree) {
-      for (const mod of menu.modules) {
-        for (const [permId, checked] of Object.entries(mod.permissions)) {
-          if (checked) {
-            data.permissions.push({ module_id: mod.module_id, permission_id: permId });
-          }
-        }
-      }
-    }
-
-    const req = this.editMode
-      ? this.cs.putService({ url: `/groups/${this.editId}`, payload: data })
-      : this.cs.postService({ url: '/groups', payload: data });
-
-    req.subscribe({
-      next: () => { this.saving = false; this.cs.navigate({ url: '/settings/group' }); },
-      error: (err: any) => { this.saving = false; this.errorMessage = err.error?.message || 'Something went wrong'; },
-    });
-  }
-
-  cancel() { this.cs.navigate({ url: '/settings/group' }); }
-
-  switchToEdit() { this.cs.navigate({ url: `/settings/group/${this.editId}/edit` }); }
 }

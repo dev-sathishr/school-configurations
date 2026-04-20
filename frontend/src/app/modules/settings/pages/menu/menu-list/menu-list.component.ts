@@ -1,22 +1,20 @@
-import { Component, ViewChild } from '@angular/core';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
-import { PermissionService } from '../../../../../core/services/permission.service';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
+import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-menu-list',
   templateUrl: './menu-list.component.html',
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
-export class MenuListComponent {
-  @ViewChild(TableComponent) table!: TableComponent;
-
+export class MenuListComponent extends BaseListComponent {
   apiUrl = '/menus';
-  deleteUrl = '/menus/delete-multiple';
+  override deleteUrl = '/menus/delete-multiple';
+  routeBase = '/settings/menu';
 
   columns: ColumnConfig[] = [
     { key: 'm.name', label: 'Name', sortable: true, searchable: true },
@@ -48,10 +46,4 @@ export class MenuListComponent {
     mapped['module_count'] = row.module_count ?? 0;
     return mapped;
   };
-
-  constructor(private cs: CommonService, public ps: PermissionService) {}
-
-  addNew() { this.cs.navigate({ url: '/settings/menu/new' }); }
-  editSelected(item: any) { this.cs.navigate({ url: `/settings/menu/${item.id}/edit` }); }
-  viewSelected(item: any) { this.cs.navigate({ url: `/settings/menu/${item.id}/view` }); }
 }

@@ -11,7 +11,7 @@ async function getAll(query, viewOwnUserId) {
 async function getById(id) {
   const group = await groupRepo.findByIdWithPermissions(id);
   if (!group) return { error: 'notFound', message: 'Group not found' };
-  return { group };
+  return { data: group };
 }
 
 async function getDropdown(query) {
@@ -26,7 +26,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Group code already exists' };
 
   const group = await groupRepo.create(body, userId);
-  return { group };
+  return { data: group };
 }
 
 async function update(id, body, userId) {
@@ -69,7 +69,7 @@ async function update(id, body, userId) {
     console.error('Error notifying pending users:', err);
   }
 
-  return { group };
+  return { data: group };
 }
 
 async function remove(id, userId) {

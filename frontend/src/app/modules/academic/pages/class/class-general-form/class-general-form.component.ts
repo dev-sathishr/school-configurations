@@ -1,25 +1,20 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
+import { FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
+import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import * as V from '../../../../../shared/validators/common';
 
 @Component({
   selector: 'app-class-general-form',
   templateUrl: './class-general-form.component.html',
   imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, BreadcrumbComponent],
 })
-export class ClassGeneralFormComponent implements OnInit {
-  form!: FormGroup;
-  editMode = false;
-  editId = '';
-  submitted = false;
-  saving = false;
-  loading = false;
-  errorMessage = '';
+export class ClassGeneralFormComponent extends FormPageBase {
+  listRoute = '/academic/class';
+  resourcePath = '/classes';
 
   academicLevelOptions = [
     { value: 'nursery', label: 'Nursery' },
@@ -29,70 +24,31 @@ export class ClassGeneralFormComponent implements OnInit {
     { value: 'higher_secondary', label: 'Higher Secondary' },
   ];
 
-  constructor(private cs: CommonService, private fb: FormBuilder, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {}
-
-  ngOnInit(): void {
-    this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
-      code: ['', [Validators.maxLength(50)]],
+  protected buildForm(): FormGroup {
+    return this.fb.group({
+      name: ['', V.LONG_NAME],
+      code: ['', V.maxLength(50)],
       strength: [0],
       academic_level: ['primary', Validators.required],
       is_active: [true],
-      notes: ['', [Validators.maxLength(500)]],
+      notes: ['', V.NOTES],
     });
+  }
 
-    const id = this.cs.getRouteParam(this.route, 'id');
-    if (id) {
-      this.editMode = true;
-      this.editId = id;
-      this.loading = true;
-      this.cs.getService({ url: `/classes/${id}` }).subscribe({
-        next: (res: any) => {
-          this.form.patchValue(res.data);
-          this.loading = false;
-          this.cdr.detectChanges();
-        },
-        error: () => { this.loading = false; this.cs.navigate({ url: '/academic/class' }); },
-      });
+  // On create, jump into the levels tab of the new class so the user can
+  // immediately start adding sections. On edit, fall back to the list.
+  protected override afterSave(res: any): void {
+    this.saving = false;
+    const createdId = res?.data?.id;
+    this.cs.showToastr({
+      type: 'success',
+      message: this.editMode ? 'Class updated' : 'Class created',
+      description: this.editMode ? 'Changes saved successfully' : 'New class has been added',
+    });
+    if (!this.editMode && createdId) {
+      this.cs.navigate({ url: `${this.listRoute}/${createdId}/edit`, queryParams: { tab: 'levels' } });
+    } else {
+      this.cs.navigate({ url: this.listRoute });
     }
   }
-
-  get f() { return this.form.controls; }
-
-  onSubmit(): void {
-    this.submitted = true;
-    this.errorMessage = '';
-    if (this.form.invalid) return;
-
-    this.saving = true;
-    const data = this.form.value;
-
-    const req = this.editMode
-      ? this.cs.putService({ url: `/classes/${this.editId}`, payload: data })
-      : this.cs.postService({ url: '/classes', payload: data });
-
-    req.subscribe({
-      next: (res: any) => {
-        this.saving = false;
-        const createdId = res?.data?.id;
-        this.cs.showToastr({
-          type: 'success',
-          message: this.editMode ? 'Class updated' : 'Class created',
-          description: this.editMode ? 'Changes saved successfully' : 'New class has been added',
-        });
-        if (!this.editMode && createdId) {
-          // After create, navigate to edit page on Levels tab
-          this.cs.navigate({ url: `/academic/class/${createdId}/edit`, queryParams: { tab: 'levels' } });
-        } else {
-          this.cs.navigate({ url: '/academic/class' });
-        }
-      },
-      error: (err: any) => {
-        this.saving = false;
-        this.errorMessage = err.error?.message || 'Something went wrong';
-      },
-    });
-  }
-
-  cancel() { this.cs.navigate({ url: '/academic/class' }); }
 }

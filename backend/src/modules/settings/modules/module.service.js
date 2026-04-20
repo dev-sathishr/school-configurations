@@ -8,7 +8,7 @@ async function getAll(query, viewOwnUserId) {
 async function getById(id) {
   const mod = await moduleRepo.findById(id);
   if (!mod) return { error: 'notFound', message: 'Module not found' };
-  return { module: mod };
+  return { data: mod };
 }
 
 async function getDropdown(query) {
@@ -23,7 +23,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Module code already exists' };
 
   const mod = await moduleRepo.create(body, userId);
-  return { module: mod };
+  return { data: mod };
 }
 
 async function update(id, body, userId) {
@@ -36,7 +36,7 @@ async function update(id, body, userId) {
   }
 
   const mod = await moduleRepo.update(id, body, current, userId);
-  return { module: mod };
+  return { data: mod };
 }
 
 async function remove(id, userId) {

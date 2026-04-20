@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ToastService } from '../../shared/services/toast/toast.service';
 
@@ -27,8 +28,13 @@ export interface User {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private apiUrl = environment.apiUrl;
-  private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser());
-  public currentUser$ = this.currentUserSubject.asObservable();
+
+  // Signal-based source of truth. The `currentUser$` observable is a thin
+  // facade for legacy / template `| async` consumers; new code should read
+  // the signal directly (`authService.currentUser` getter already unwraps).
+  private readonly _currentUser = signal<User | null>(this.getStoredUser());
+  public readonly currentUser$ = toObservable(this._currentUser);
+
   private loggingOut = false;
 
   constructor(private http: HttpClient, private router: Router, private toast: ToastService) {}
@@ -39,7 +45,7 @@ export class AuthService {
         localStorage.setItem('access_token', res.access_token);
         localStorage.setItem('refresh_token', res.refresh_token);
         localStorage.setItem('user', JSON.stringify(res.user));
-        this.currentUserSubject.next(res.user);
+        this._currentUser.set(res.user);
         this.toast.success('Signed in', `Welcome back, ${res.user.full_name || res.user.username}`);
       })
     );
@@ -66,7 +72,7 @@ export class AuthService {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
-    this.currentUserSubject.next(null);
+    this._currentUser.set(null);
     // Navigate first — AuthGuard will block re-entry and PermissionService
     // resets its loaded flag on next login via the guard
     this.router.navigate(['/auth/sign-in']);
@@ -80,8 +86,9 @@ export class AuthService {
     return !!this.getToken();
   }
 
+  /** Synchronous snapshot. Reads the signal. */
   get currentUser(): User | null {
-    return this.currentUserSubject.value;
+    return this._currentUser();
   }
 
   private getStoredUser(): User | null {

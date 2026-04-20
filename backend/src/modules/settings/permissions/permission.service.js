@@ -8,7 +8,7 @@ async function getAll(query, viewOwnUserId) {
 async function getById(id) {
   const permission = await permissionRepo.findById(id);
   if (!permission) return { error: 'notFound', message: 'Permission not found' };
-  return { permission };
+  return { data: permission };
 }
 
 async function getDropdown(query) {
@@ -23,7 +23,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Permission code already exists' };
 
   const permission = await permissionRepo.create(body, userId);
-  return { permission };
+  return { data: permission };
 }
 
 async function update(id, body, userId) {
@@ -36,7 +36,7 @@ async function update(id, body, userId) {
   }
 
   const permission = await permissionRepo.update(id, body, current, userId);
-  return { permission };
+  return { data: permission };
 }
 
 async function remove(id, userId) {

@@ -1,22 +1,20 @@
-import { Component, ViewChild } from '@angular/core';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
-import { PermissionService } from '../../../../../core/services/permission.service';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
+import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-location-list',
   templateUrl: './location-list.component.html',
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
-export class LocationListComponent {
-  @ViewChild(TableComponent) table!: TableComponent;
-
+export class LocationListComponent extends BaseListComponent {
   apiUrl = '/locations';
-  deleteUrl = '/locations/delete-multiple';
+  override deleteUrl = '/locations/delete-multiple';
+  routeBase = '/settings/location';
 
   columns: ColumnConfig[] = [
     { key: 'organization_name', label: 'Organization', sortable: true, searchable: true },
@@ -47,10 +45,4 @@ export class LocationListComponent {
     mapped['primary_contact_no'] = row.primary_contact_no ? `${row.primary_contact_code || '+91'} ${row.primary_contact_no}` : '-';
     return mapped;
   };
-
-  constructor(private cs: CommonService, public ps: PermissionService) {}
-
-  addNew() { this.cs.navigate({ url: '/settings/location/new' }); }
-  editSelected(row: any) { this.cs.navigate({ url: `/settings/location/${row.id}/edit` }); }
-  viewSelected(row: any) { this.cs.navigate({ url: `/settings/location/${row.id}/view` }); }
 }

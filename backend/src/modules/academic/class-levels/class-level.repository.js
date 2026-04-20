@@ -91,25 +91,15 @@ async function update(id, data, current, userId) {
   return result.rows[0];
 }
 
+const repoHelper = require('../../../shared/helpers/repo.helper');
+const TABLE = 'academic.class_levels';
+
 async function softDelete(id, userId) {
-  await db.query('UPDATE academic.class_levels SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [userId, id]);
+  return repoHelper.softDelete({ table: TABLE, id, userId });
 }
 
 async function softDeleteMultiple(ids, userId, scope) {
-  const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
-  const params = [userId, ...ids];
-  let sql = `UPDATE academic.class_levels SET deleted_at = NOW(), deleted_by = $1
-             WHERE id IN (${placeholders}) AND deleted_at IS NULL`;
-
-  if (scope) {
-    const scopePlaceholders = scope.map((_, i) => `$${params.length + i + 1}`).join(', ');
-    sql += ` AND location_id IN (${scopePlaceholders})`;
-    params.push(...scope);
-  }
-
-  sql += ' RETURNING id';
-  const result = await db.query(sql, params);
-  return result.rowCount;
+  return repoHelper.softDeleteMultiple({ table: TABLE, ids, userId, scopeColumn: 'location_id', scope });
 }
 
 async function checkUnique(classGeneralId, code, excludeId = null) {

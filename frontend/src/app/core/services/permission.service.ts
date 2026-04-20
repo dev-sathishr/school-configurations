@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { Observable, tap } from 'rxjs';
 import { CommonService } from '../../shared/services/common/common.service';
 
 export interface ModulePermissions {
@@ -24,13 +25,16 @@ export interface PermittedMenu {
 
 @Injectable({ providedIn: 'root' })
 export class PermissionService {
-  private _menus = new BehaviorSubject<PermittedMenu[]>([]);
+  // Signal-based source of truth; observable facade for legacy subscribers
+  // (menu.service, navbar). New code should read the signal directly.
+  private readonly _menus = signal<PermittedMenu[]>([]);
+  readonly menus$ = toObservable(this._menus);
+
   private _loaded = false;
 
-  menus$ = this._menus.asObservable();
-
+  /** Synchronous snapshot — reads the signal. */
   get menus(): PermittedMenu[] {
-    return this._menus.value;
+    return this._menus();
   }
 
   get loaded(): boolean {
@@ -43,23 +47,23 @@ export class PermissionService {
     return this.cs.getService({ url: '/auth/me/permissions' }).pipe(
       tap((res: any) => {
         const menus = res.menus || [];
-        this._menus.next(menus);
+        this._menus.set(menus);
         this._loaded = true;
       })
     );
   }
 
   clear(): void {
-    this._menus.next([]);
+    this._menus.set([]);
     this._loaded = false;
   }
 
   hasMenuAccess(menuCode: string): boolean {
-    return this._menus.value.some((m) => m.code === menuCode);
+    return this._menus().some((m) => m.code === menuCode);
   }
 
   hasModulePermission(moduleCode: string, permission: string): boolean {
-    for (const menu of this._menus.value) {
+    for (const menu of this._menus()) {
       const mod = menu.modules.find((m) => m.code === moduleCode);
       if (mod) return !!mod.permissions[permission.toLowerCase()];
     }
@@ -67,7 +71,7 @@ export class PermissionService {
   }
 
   hasAnyPermission(moduleCode: string): boolean {
-    for (const menu of this._menus.value) {
+    for (const menu of this._menus()) {
       const mod = menu.modules.find((m) => m.code === moduleCode);
       if (mod) return Object.values(mod.permissions).some((v) => v);
     }
@@ -99,7 +103,7 @@ export class PermissionService {
   }
 
   getModulePermissions(moduleCode: string): Record<string, boolean> | null {
-    for (const menu of this._menus.value) {
+    for (const menu of this._menus()) {
       const mod = menu.modules.find((m) => m.code === moduleCode);
       if (mod) return mod.permissions;
     }
@@ -107,6 +111,6 @@ export class PermissionService {
   }
 
   getAllModules(): ModulePermissions[] {
-    return this._menus.value.flatMap((m) => m.modules);
+    return this._menus().flatMap((m) => m.modules);
   }
 }

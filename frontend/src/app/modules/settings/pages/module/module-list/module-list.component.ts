@@ -1,22 +1,20 @@
-import { Component, ViewChild } from '@angular/core';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
-import { PermissionService } from '../../../../../core/services/permission.service';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
+import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-module-list',
   templateUrl: './module-list.component.html',
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
-export class ModuleListComponent {
-  @ViewChild(TableComponent) table!: TableComponent;
-
+export class ModuleListComponent extends BaseListComponent {
   apiUrl = '/modules';
-  deleteUrl = '/modules/delete-multiple';
+  override deleteUrl = '/modules/delete-multiple';
+  routeBase = '/settings/module';
 
   columns: ColumnConfig[] = [
     { key: 'm.name', label: 'Name', sortable: true, searchable: true },
@@ -42,10 +40,4 @@ export class ModuleListComponent {
     mapped['m.route_path'] = row.route_path || '-';
     return mapped;
   };
-
-  constructor(private cs: CommonService, public ps: PermissionService) {}
-
-  addNew() { this.cs.navigate({ url: '/settings/module/new' }); }
-  editSelected(item: any) { this.cs.navigate({ url: `/settings/module/${item.id}/edit` }); }
-  viewSelected(item: any) { this.cs.navigate({ url: `/settings/module/${item.id}/view` }); }
 }

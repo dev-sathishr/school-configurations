@@ -16,7 +16,7 @@ async function getById(id) {
     fileRepo.findOneByEntity('user', id, 'profile_image'),
   ]);
 
-  return { user: { ...user, locations, profile_image: profileImage || null } };
+  return { data: { ...user, locations, profile_image: profileImage || null } };
 }
 
 async function create(body, userId) {
@@ -37,7 +37,7 @@ async function create(body, userId) {
     await userRepo.saveUserLocations(user.id, body.location_ids, defaultLocId, userId);
   }
 
-  return { user };
+  return { data: user };
 }
 
 async function update(id, body, userId) {
@@ -69,7 +69,7 @@ async function update(id, body, userId) {
     await userRepo.saveUserLocations(id, locIds, defaultLocId, userId);
   }
 
-  return { user };
+  return { data: user };
 }
 
 async function remove(id, userId) {

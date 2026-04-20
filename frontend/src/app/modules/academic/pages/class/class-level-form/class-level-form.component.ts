@@ -11,6 +11,7 @@ import { TableComponent } from '../../../../../shared/components/table/table.com
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { PermissionService } from '../../../../../core/services/permission.service';
 import { LocationContextService } from '../../../../../core/services/location-context.service';
+import * as V from '../../../../../shared/validators/common';
 
 @Component({
   selector: 'app-class-level-form',
@@ -73,10 +74,10 @@ export class ClassLevelFormComponent implements OnInit {
     this.form = this.fb.group({
       location_id: ['', Validators.required],
       class_general_id: ['', Validators.required],
-      name: ['', [Validators.required, Validators.maxLength(100)]],
+      name: ['', V.requiredMaxLength(100)],
       capacity: [0],
       is_active: [true],
-      notes: ['', [Validators.maxLength(500)]],
+      notes: ['', V.NOTES],
     });
 
     // Listen for class dropdown changes to update the table

@@ -1,22 +1,20 @@
-import { Component, ViewChild } from '@angular/core';
-import { CommonService } from '../../../../../shared/services/common/common.service';
+import { Component } from '@angular/core';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
-import { PermissionService } from '../../../../../core/services/permission.service';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
+import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 
 @Component({
   selector: 'app-user-list',
   templateUrl: './user-list.component.html',
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
-export class UserListComponent {
-  @ViewChild(TableComponent) table!: TableComponent;
-
+export class UserListComponent extends BaseListComponent {
   apiUrl = '/users';
-  deleteUrl = '/users/delete-multiple';
+  override deleteUrl = '/users/delete-multiple';
+  routeBase = '/settings/user';
 
   columns: ColumnConfig[] = [
     { key: 'u.full_name', label: 'Full Name', sortable: true, searchable: true, type: 'avatar', avatarKey: 'profile_file_id' },
@@ -50,10 +48,4 @@ export class UserListComponent {
     }) : '-';
     return mapped;
   };
-
-  constructor(private cs: CommonService, public ps: PermissionService) {}
-
-  addNew() { this.cs.navigate({ url: '/settings/user/new' }); }
-  editSelected(user: any) { this.cs.navigate({ url: `/settings/user/${user.id}/edit` }); }
-  viewSelected(user: any) { this.cs.navigate({ url: `/settings/user/${user.id}/view` }); }
 }

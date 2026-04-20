@@ -1,4 +1,5 @@
 const db = require('../../config/database');
+const repoHelper = require('../../shared/helpers/repo.helper');
 
 async function create(data, userId) {
   const result = await db.query(`
@@ -40,10 +41,7 @@ async function findOneByEntity(entityType, entityId, fileType) {
 }
 
 async function softDelete(id, userId) {
-  await db.query(
-    'UPDATE settings.files SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2',
-    [userId, id]
-  );
+  return repoHelper.softDelete({ table: 'settings.files', id, userId });
 }
 
 // Soft delete all files for an entity+fileType (used when replacing a logo/profile image)

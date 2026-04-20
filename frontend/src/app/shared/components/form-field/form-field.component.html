@@ -36,34 +36,13 @@
         [ngClass]="{ 'border-red-500!': hasError }"
         class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none"></textarea>
     } @else if (fieldType === 'phone') {
-      <div class="phone-input-wrapper border-border relative flex rounded-md border focus-within:border-primary"
-        [ngClass]="{ 'border-red-500!': phoneError }">
-        <app-select-dropdown
-          triggerType="custom"
-          [options]="countryOptions"
-          [value]="selectedCode"
-          (valueChange)="onCountrySelect($event)"
-          searchPlaceholder="Search country..."
-          [showSearch]="true"
-          class="shrink-0">
-          <button trigger type="button"
-            class="text-foreground bg-muted/10 flex h-[34px] shrink-0 items-center gap-1 border-r border-border px-2.5 text-sm hover:bg-muted/20 focus:outline-none">
-            <span class="text-base leading-none">{{ selectedCountry?.flag || '🌐' }}</span>
-            <span class="text-muted-foreground text-xs">{{ selectedCode }}</span>
-            <span class="text-muted-foreground/50 text-[10px]">▼</span>
-          </button>
-        </app-select-dropdown>
-        <input
-          type="tel"
-          [ngModel]="phoneNumber"
-          [ngModelOptions]="{ standalone: true }"
-          (input)="onPhoneInput($event)"
-          [placeholder]="placeholder || 'Phone number'"
-          class="phone-input-number text-foreground h-[34px] flex-1 px-3 text-sm focus:outline-none" />
-      </div>
-      @if (phoneError) {
-        <span class="mt-1 block text-xs text-red-500">{{ phoneError }}</span>
-      }
+      <app-form-field-phone
+        [formGroup]="formGroup"
+        [controlName]="controlName"
+        [label]="label"
+        [placeholder]="placeholder"
+        [required]="required"
+        [submitted]="submitted" />
     } @else {
       <input [type]="fieldType" [formControlName]="controlName" [placeholder]="placeholder"
         [attr.maxlength]="maxLength"

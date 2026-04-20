@@ -1,48 +1,32 @@
 const notificationRepo = require('./notification.repository');
 const res = require('../../shared/helpers/response.helper');
+const { wrap, asyncHandler } = require('../../shared/middleware/async-handler');
 const { addConnection, removeConnection, broadcast, getOnlineUserIds } = require('../../shared/services/sse.service');
 
 async function getMyNotifications(req, resp) {
-  try {
-    const notifications = await notificationRepo.findByUser(req.user.id);
-    const unread_count = await notificationRepo.getUnreadCount(req.user.id);
-    return res.success(resp, { notifications, unread_count });
-  } catch (err) {
-    console.error('Get notifications error:', err);
-    return res.error(resp);
-  }
+  const notifications = await notificationRepo.findByUser(req.user.id);
+  const unread_count = await notificationRepo.getUnreadCount(req.user.id);
+  return res.success(resp, { notifications, unread_count });
 }
 
 async function getUnreadCount(req, resp) {
-  try {
-    const unread_count = await notificationRepo.getUnreadCount(req.user.id);
-    return res.success(resp, { unread_count });
-  } catch (err) {
-    console.error('Get unread count error:', err);
-    return res.error(resp);
-  }
+  const unread_count = await notificationRepo.getUnreadCount(req.user.id);
+  return res.success(resp, { unread_count });
 }
 
 async function markAsRead(req, resp) {
-  try {
-    await notificationRepo.markAsRead(req.params.id, req.user.id);
-    return res.success(resp, {}, 'Notification marked as read');
-  } catch (err) {
-    console.error('Mark as read error:', err);
-    return res.error(resp);
-  }
+  await notificationRepo.markAsRead(req.params.id, req.user.id);
+  return res.success(resp, {}, 'Notification marked as read');
 }
 
 async function markAllAsRead(req, resp) {
-  try {
-    await notificationRepo.markAllAsRead(req.user.id);
-    return res.success(resp, {}, 'All notifications marked as read');
-  } catch (err) {
-    console.error('Mark all as read error:', err);
-    return res.error(resp);
-  }
+  await notificationRepo.markAllAsRead(req.user.id);
+  return res.success(resp, {}, 'All notifications marked as read');
 }
 
+// SSE stream — long-lived connection, writes events directly. asyncHandler
+// still forwards unexpected errors to the global handler (e.g. if the initial
+// DB read fails before we open the stream).
 async function stream(req, resp) {
   const userId = req.user.id;
 
@@ -80,4 +64,7 @@ async function stream(req, resp) {
   });
 }
 
-module.exports = { getMyNotifications, getUnreadCount, markAsRead, markAllAsRead, stream };
+module.exports = {
+  ...wrap({ getMyNotifications, getUnreadCount, markAsRead, markAllAsRead }),
+  stream: asyncHandler(stream),
+};

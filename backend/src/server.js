@@ -27,6 +27,7 @@ const classLevelRoutes = require('./modules/academic/class-levels/class-level.ro
 
 const { lookupPincode } = require('./shared/helpers/pincode.helper');
 const { authenticate } = require('./shared/middleware/auth.middleware');
+const resHelper = require('./shared/helpers/response.helper');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -59,6 +60,15 @@ app.get('/api/v1/pincode/:pincode', authenticate, lookupPincode);
 // Health check
 app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// Global error handler — catches anything forwarded by asyncHandler. Keep this
+// last, after all routes, so Express treats it as the error-handling
+// middleware (signature with 4 args is load-bearing).
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(`[${req.method} ${req.originalUrl}]`, err);
+  return resHelper.error(res);
 });
 
 app.listen(PORT, () => {

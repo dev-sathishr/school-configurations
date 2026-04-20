@@ -9,7 +9,7 @@ async function getAll(query) {
 async function getById(id) {
   const menuModule = await menuModuleRepo.findById(id);
   if (!menuModule) return { error: 'notFound', message: 'Menu Module mapping not found' };
-  return { menu_module: menuModule };
+  return { data: menuModule };
 }
 
 async function create(body, userId) {
@@ -20,7 +20,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'This menu is already linked to this module' };
 
   const menuModule = await menuModuleRepo.create(body, userId);
-  return { menu_module: menuModule };
+  return { data: menuModule };
 }
 
 async function update(id, body, userId) {
@@ -35,7 +35,7 @@ async function update(id, body, userId) {
   }
 
   const menuModule = await menuModuleRepo.update(id, body, current, userId);
-  return { menu_module: menuModule };
+  return { data: menuModule };
 }
 
 async function remove(id, userId) {
