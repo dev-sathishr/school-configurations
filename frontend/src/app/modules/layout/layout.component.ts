@@ -9,6 +9,7 @@ import { UsageTrackingService } from '../../core/services/usage-tracking.service
 import { MenuService } from './services/menu.service';
 import { LoadingBarComponent } from '../../shared/components/loading-bar/loading-bar.component';
 import { SessionTimeoutWarningComponent } from '../../shared/components/session-timeout-warning/session-timeout-warning.component';
+import { ConfirmHostComponent } from '../../shared/components/confirm-host/confirm-host.component';
 
 @Component({
   selector: 'app-layout',
@@ -16,7 +17,7 @@ import { SessionTimeoutWarningComponent } from '../../shared/components/session-
   styleUrls: ['./layout.component.css'],
   imports: [
     SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, SubheaderComponent,
-    LoadingBarComponent, SessionTimeoutWarningComponent,
+    LoadingBarComponent, SessionTimeoutWarningComponent, ConfirmHostComponent,
   ],
 })
 export class LayoutComponent implements OnInit {

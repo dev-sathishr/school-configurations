@@ -19,7 +19,7 @@ export class FormFieldComponent {
   @Input({ required: true }) formGroup!: FormGroup;
   @Input({ required: true }) controlName!: string;
   @Input({ required: true }) label!: string;
-  @Input() fieldType: 'text' | 'email' | 'password' | 'url' | 'number' | 'select' | 'async-select' | 'textarea' | 'checkbox' | 'phone' = 'text';
+  @Input() fieldType: 'text' | 'email' | 'password' | 'url' | 'number' | 'date' | 'select' | 'async-select' | 'textarea' | 'checkbox' | 'phone' = 'text';
   @Input() placeholder = '';
   @Input() required = false;
   @Input() submitted = false;
@@ -57,6 +57,9 @@ export class FormFieldComponent {
     if (errors['pattern']) {
       const example = this.placeholder?.replace(/^e\.g\.\s*/i, '') || '';
       return example ? `Invalid format. e.g. ${example}` : 'Invalid format';
+    }
+    if (errors['academicYear']) {
+      return 'End year must be exactly one year after the start year (e.g. 2025-2026)';
     }
     return '';
   }

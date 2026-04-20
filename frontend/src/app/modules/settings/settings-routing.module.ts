@@ -18,6 +18,8 @@ import { PermissionListComponent } from './pages/permission/permission-list/perm
 import { PermissionFormComponent } from './pages/permission/permission-form/permission-form.component';
 import { SessionListComponent } from './pages/session/session-list/session-list.component';
 import { SessionDetailComponent } from './pages/session/session-detail/session-detail.component';
+import { AcademicYearListComponent } from './pages/academic-year/academic-year-list/academic-year-list.component';
+import { AcademicYearFormComponent } from './pages/academic-year/academic-year-form/academic-year-form.component';
 import { ModulePermissionGuard } from '../../core/guards/module-permission.guard';
 import { UnsavedChangesGuard } from '../../core/guards/unsaved-changes.guard';
 
@@ -65,6 +67,11 @@ const routes: Routes = [
 
       { path: 'session', component: SessionListComponent },
       { path: 'session/:id/view', component: SessionDetailComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'SESSIONS', permission: 'VIEW' } },
+
+      { path: 'academic-year', component: AcademicYearListComponent },
+      { path: 'academic-year/new', component: AcademicYearFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ACADEMIC_YEARS', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
+      { path: 'academic-year/:id/view', component: AcademicYearFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ACADEMIC_YEARS', permission: 'VIEW' } },
+      { path: 'academic-year/:id/edit', component: AcademicYearFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ACADEMIC_YEARS', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },
     ],
   },
 ];

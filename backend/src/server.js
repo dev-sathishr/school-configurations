@@ -25,6 +25,7 @@ const sessionRoutes = require('./modules/settings/sessions/session.routes');
 // Academic
 const classRoutes = require('./modules/academic/classes/class.routes');
 const classLevelRoutes = require('./modules/academic/class-levels/class-level.routes');
+const academicYearRoutes = require('./modules/academic/academic-years/academic-year.routes');
 
 const { lookupPincode } = require('./shared/helpers/pincode.helper');
 const { authenticate } = require('./shared/middleware/auth.middleware');
@@ -55,6 +56,7 @@ app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/files', fileRoutes);
 app.use('/api/v1/classes', classRoutes);
 app.use('/api/v1/class-levels', classLevelRoutes);
+app.use('/api/v1/academic-years', academicYearRoutes);
 
 // Shared
 app.get('/api/v1/pincode/:pincode', authenticate, lookupPincode);

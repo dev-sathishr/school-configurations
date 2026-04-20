@@ -88,6 +88,14 @@ export class SettingsHomeComponent implements OnInit {
       color: 'bg-yellow-500/10 text-yellow-600',
       moduleCode: 'SESSIONS',
     },
+    {
+      icon: 'assets/icons/heroicons/outline/bookmark.svg',
+      label: 'Academic Years',
+      description: 'Set up school calendars per location — one default per year',
+      route: '/settings/academic-year',
+      color: 'bg-pink-500/10 text-pink-600',
+      moduleCode: 'ACADEMIC_YEARS',
+    },
   ];
 
   cards = signal<SettingsCard[]>([]);

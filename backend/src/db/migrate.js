@@ -600,6 +600,43 @@ async function migrate() {
       CREATE INDEX IF NOT EXISTS idx_class_level_location ON academic.class_levels (location_id) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_class_level_location already exists'));
 
+    // Academic years — scoped per location so multi-campus schools can run
+    // their own calendars. `is_default` marks the current year for that
+    // location; service + partial unique index both enforce one-default-per-location.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS academic.academic_years (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        location_id UUID NOT NULL REFERENCES settings.locations(id),
+        academic_year VARCHAR(20) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        is_default BOOLEAN DEFAULT false,
+        is_active BOOLEAN DEFAULT true,
+        notes TEXT,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ,
+        CHECK (end_date > start_date)
+      );
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_academic_year_unique
+        ON academic.academic_years (location_id, LOWER(academic_year))
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_academic_year_unique already exists'));
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_academic_year_location
+        ON academic.academic_years (location_id) WHERE deleted_at IS NULL;
+    `).catch(() => {});
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_academic_year_default
+        ON academic.academic_years (location_id)
+        WHERE is_default = true AND deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_academic_year_default already exists'));
+
     // Sessions — one row per login, records device + location + lifecycle.
     // `revoked_at` is admin force-logout, `logout_at` is user-initiated or
     // refresh-token based end. Both null == active.

@@ -157,6 +157,10 @@ async function seed() {
     const modules = [
       // Academic modules
       { name: 'Classes', code: 'CLASSES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: '/academic/class', display_order: 1 },
+      // Academic Years is a calendar master used as *config* by admins; it
+      // lives under SETTINGS, not ACADEMIC, so route_path + menu_module
+      // point there. display_order picks up where the settings modules end.
+      { name: 'Academic Years', code: 'ACADEMIC_YEARS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/academic-year', display_order: 9 },
       // Settings modules
       { name: 'Organizations', code: 'ORGANIZATIONS', icon: 'assets/icons/heroicons/outline/cube.svg', route_path: '/settings/organization', display_order: 1 },
       { name: 'Locations', code: 'LOCATIONS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/location', display_order: 2 },
@@ -194,6 +198,7 @@ async function seed() {
       { menu: 'SETTINGS', module: 'GROUPS', display_order: 6 },
       { menu: 'SETTINGS', module: 'PERMISSIONS', display_order: 7 },
       { menu: 'SETTINGS', module: 'SESSIONS', display_order: 8 },
+      { menu: 'SETTINGS', module: 'ACADEMIC_YEARS', display_order: 9 },
     ];
 
     let mmInserted = 0;

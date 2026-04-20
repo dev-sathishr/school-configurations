@@ -85,3 +85,28 @@ export function maxLength(max: number): ValidatorFn[] {
 export function requiredRange(min: number, max: number): ValidatorFn[] {
   return [Validators.required, Validators.minLength(min), Validators.maxLength(max)];
 }
+
+// --- Domain-specific custom validators ---
+
+/**
+ * Academic year: strictly `YYYY-YYYY` where the second year is exactly one
+ * more than the first (so "2025-2026" passes, "2025-2030" doesn't). Empty
+ * values pass — combine with `Validators.required` when the field is mandatory.
+ *
+ * Emits the standard `pattern` error for shape violations and a custom
+ * `academicYear` error for the sequence check, so `form-field` can render
+ * a helpful message via its default pattern fallback.
+ */
+export const academicYearFormat: ValidatorFn = (control) => {
+  const value = control.value;
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{4})$/.exec(String(value));
+  if (!match) return { pattern: { requiredPattern: 'YYYY-YYYY', actualValue: value } };
+  const start = Number(match[1]);
+  const end = Number(match[2]);
+  if (end !== start + 1) return { academicYear: { start, end } };
+  return null;
+};
+
+/** Required academic year with strict YYYY-YYYY format + sequence check. */
+export const ACADEMIC_YEAR: ValidatorFn[] = [Validators.required, academicYearFormat];

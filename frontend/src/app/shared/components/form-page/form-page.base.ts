@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Directive, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../services/common/common.service';
+import { ConfirmService } from '../../services/confirm/confirm.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { CanComponentDeactivate } from '../../../core/guards/unsaved-changes.guard';
 
@@ -42,6 +43,7 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
   protected readonly cs = inject(CommonService);
   protected readonly route = inject(ActivatedRoute);
   protected readonly cdr = inject(ChangeDetectorRef);
+  protected readonly confirmService = inject(ConfirmService);
   /** Public so templates can gate buttons via `ps.canEdit(...)` etc. */
   readonly ps = inject(PermissionService);
 
@@ -151,14 +153,42 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
       : this.cs.postService({ url: this.resourcePath, payload });
 
     req.subscribe({
-      next: (res: any) => this.afterSave(res),
+      next: (res: any) => {
+        // Save succeeded → the form is no longer dirty. Marking pristine
+        // here (rather than only in afterSave) means every subclass benefits
+        // even when they override afterSave with custom navigation or
+        // chained uploads — otherwise the CanDeactivate guard would prompt
+        // "leave this page?" on the post-save redirect.
+        this.form.markAsPristine();
+        this.afterSave(res);
+      },
       error: (err: any) => this.handleSaveError(err),
     });
   }
 
+  /**
+   * Default save-error handler. Rules:
+   *   - 409 Conflict / 403 Forbidden → toast only (transient, server rejection,
+   *     nothing the inline banner adds that the toast doesn't).
+   *   - Everything else → inline banner + toast, so non-conflict server issues
+   *     stay visible while the user decides what to do.
+   * Subclasses can override for fully custom handling.
+   */
   protected handleSaveError(err: any): void {
     this.saving = false;
-    this.errorMessage = err?.error?.message || 'Something went wrong';
+    const message = err?.error?.message || 'Something went wrong';
+    const status = err?.status;
+
+    if (status === 409 || status === 403) {
+      this.cs.showToastr({ type: 'error', message });
+      this.errorMessage = '';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.errorMessage = message;
+    this.cs.showToastr({ type: 'error', message });
+    this.cdr.detectChanges();
   }
 
   cancel(): void {
@@ -172,16 +202,21 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
   /**
    * Route guard hook — asked by `UnsavedChangesGuard` when the user tries to
    * leave this page. Lets the form through silently when there's nothing
-   * dirty (fresh view, already saved, or mid-submit); otherwise prompts the
-   * user so they can bail out and keep their changes.
+   * dirty (fresh view, already saved, or mid-submit); otherwise opens the
+   * shared confirm dialog and returns a Promise the guard resolves on.
    *
-   * Uses the native `confirm()` dialog on purpose: router navigation happens
-   * outside Angular's change detection context in some edge cases (popstate
-   * from browser back button) and a synchronous prompt is the only reliable
-   * way to block it.
+   * Browser-level navigation (tab close, hard refresh) still falls back to
+   * the native confirm via the `window.onbeforeunload` handler set up
+   * separately — custom dialogs can't block that path.
    */
-  canDeactivate(): boolean {
+  canDeactivate(): boolean | Promise<boolean> {
     if (!this.form || this.form.pristine || this.saving) return true;
-    return window.confirm('You have unsaved changes. Leave this page?');
+    return this.confirmService.ask({
+      title: 'Leave this page?',
+      message: 'You have unsaved changes. If you leave now, they will be lost.',
+      confirmText: 'Leave',
+      cancelText: 'Stay',
+      tone: 'danger',
+    });
   }
 }
