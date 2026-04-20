@@ -68,7 +68,14 @@
                 [columns]="effectiveColumns"></tr>
             } @empty {
               <tr>
-                <td class="py-4 text-center text-sm" [attr.colspan]="visibleColumnCount">No records found</td>
+                <td [attr.colspan]="visibleColumnCount" class="p-0">
+                  <app-empty-state
+                    [title]="hasActiveFilters ? 'No matching records' : 'No records yet'"
+                    [description]="hasActiveFilters
+                      ? 'Try clearing filters or adjusting your search.'
+                      : 'Nothing here yet — new records will show up in this list.'">
+                  </app-empty-state>
+                </td>
               </tr>
             }
           }

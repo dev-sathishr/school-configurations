@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../services/common/common.service';
 import { PermissionService } from '../../../core/services/permission.service';
+import { CanComponentDeactivate } from '../../../core/guards/unsaved-changes.guard';
 
 /**
  * Base class for CRUD form pages. Centralizes the edit/view mode detection,
@@ -36,7 +37,7 @@ import { PermissionService } from '../../../core/services/permission.service';
  *                              files) before navigating away.
  */
 @Directive()
-export abstract class FormPageBase implements OnInit {
+export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
   protected readonly fb = inject(FormBuilder);
   protected readonly cs = inject(CommonService);
   protected readonly route = inject(ActivatedRoute);
@@ -166,5 +167,21 @@ export abstract class FormPageBase implements OnInit {
 
   switchToEdit(): void {
     this.cs.navigate({ url: `${this.listRoute}/${this.editId}/edit` });
+  }
+
+  /**
+   * Route guard hook — asked by `UnsavedChangesGuard` when the user tries to
+   * leave this page. Lets the form through silently when there's nothing
+   * dirty (fresh view, already saved, or mid-submit); otherwise prompts the
+   * user so they can bail out and keep their changes.
+   *
+   * Uses the native `confirm()` dialog on purpose: router navigation happens
+   * outside Angular's change detection context in some edge cases (popstate
+   * from browser back button) and a synchronous prompt is the only reliable
+   * way to block it.
+   */
+  canDeactivate(): boolean {
+    if (!this.form || this.form.pristine || this.saving) return true;
+    return window.confirm('You have unsaved changes. Leave this page?');
   }
 }

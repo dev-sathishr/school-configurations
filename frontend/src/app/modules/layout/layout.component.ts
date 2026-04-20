@@ -7,12 +7,17 @@ import { SubheaderComponent } from './components/subheader/subheader.component';
 import { ThemeService } from '../../core/services/theme.service';
 import { UsageTrackingService } from '../../core/services/usage-tracking.service';
 import { MenuService } from './services/menu.service';
+import { LoadingBarComponent } from '../../shared/components/loading-bar/loading-bar.component';
+import { SessionTimeoutWarningComponent } from '../../shared/components/session-timeout-warning/session-timeout-warning.component';
 
 @Component({
   selector: 'app-layout',
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.css'],
-  imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, SubheaderComponent],
+  imports: [
+    SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, SubheaderComponent,
+    LoadingBarComponent, SessionTimeoutWarningComponent,
+  ],
 })
 export class LayoutComponent implements OnInit {
   private mainContent: HTMLElement | null = null;

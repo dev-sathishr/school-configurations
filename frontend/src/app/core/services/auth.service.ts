@@ -92,6 +92,29 @@ export class AuthService {
     return localStorage.getItem('access_token');
   }
 
+  /** Epoch milliseconds when the current access token expires, or null if
+   *  no token / malformed. Used by `SessionTimeoutService` to schedule the
+   *  warning modal and the hard-logout fallback. */
+  getTokenExpiryMs(): number | null {
+    const token = this.getToken();
+    if (!token) return null;
+    const payload = decodeJwtPayload(token);
+    const exp = payload?.['exp'];
+    return typeof exp === 'number' ? exp * 1000 : null;
+  }
+
+  /** Mint a new access token using the stored refresh token. Resolves with
+   *  the new expiry ms so the timeout service can reschedule; rejects (or
+   *  resolves null) if refresh fails — caller should log the user out. */
+  refreshAccessToken(): Observable<{ access_token: string }> {
+    const refreshToken = localStorage.getItem('refresh_token');
+    return this.http.post<{ access_token: string }>(`${this.apiUrl}/auth/refresh`, { refresh_token: refreshToken }).pipe(
+      tap((res) => {
+        localStorage.setItem('access_token', res.access_token);
+      })
+    );
+  }
+
   /**
    * True only when we hold a token that hasn't expired yet. We decode the
    * JWT client-side purely to check `exp` — signature verification stays

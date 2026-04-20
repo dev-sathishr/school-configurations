@@ -7,6 +7,7 @@ import { PermissionService } from '../services/permission.service';
 import { UserPreferencesService } from '../services/user-preferences.service';
 import { LocationContextService } from '../services/location-context.service';
 import { SessionTrackingService } from '../services/session-tracking.service';
+import { SessionTimeoutService } from '../services/session-timeout.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthGuard implements CanActivate {
@@ -15,6 +16,7 @@ export class AuthGuard implements CanActivate {
     private permissionService: PermissionService,
     private prefsService: UserPreferencesService,
     private locationContext: LocationContextService,
+    private sessionTimeout: SessionTimeoutService,
     sessionTracking: SessionTrackingService,
     private router: Router,
   ) {
@@ -30,9 +32,15 @@ export class AuthGuard implements CanActivate {
       this.permissionService.clear();
       this.prefsService.clear();
       this.locationContext.clear();
+      this.sessionTimeout.stop();
       this.router.navigate(['/auth/sign-in']);
       return false;
     }
+
+    // Safe to call repeatedly — it clears prior timers and re-reads the
+    // current token's `exp`. Kept here (not in AuthService.login) so page
+    // refreshes with a still-valid token also get scheduled.
+    this.sessionTimeout.schedule();
 
     if (this.permissionService.loaded) {
       return true;

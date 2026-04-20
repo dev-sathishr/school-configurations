@@ -12,6 +12,7 @@ import { ExportFormat, exportRows } from './exporters';
 import { CommonService } from '../../services/common/common.service';
 import { LoaderComponent } from '../loader/loader.component';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
+import { EmptyStateComponent } from '../empty-state/empty-state.component';
 
 @Component({
   standalone: true,
@@ -20,7 +21,7 @@ import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.compone
   imports: [
     FormsModule, AngularSvgIconModule,
     TableActionComponent, TableFooterComponent, TableHeaderComponent, TableRowComponent,
-    LoaderComponent, ConfirmDialogComponent, ImportDialogComponent,
+    LoaderComponent, ConfirmDialogComponent, ImportDialogComponent, EmptyStateComponent,
   ],
 })
 export class TableComponent implements OnInit, OnDestroy {
@@ -58,6 +59,14 @@ export class TableComponent implements OnInit, OnDestroy {
   private initialized = signal(false);
 
   totalCount = () => this.pagination().total_count;
+
+  /** True when the user has narrowed the result set via search or any column
+   *  filter. Used by the empty state to choose between "nothing exists" vs
+   *  "nothing matches" copy. */
+  get hasActiveFilters(): boolean {
+    if (this.filterService.searchField()) return true;
+    return Object.values(this.filterService.columnFilters()).some((v) => !!v);
+  }
 
   /**
    * All configured columns plus the shared audit columns (created_at, created_by,
