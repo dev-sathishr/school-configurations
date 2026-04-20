@@ -5,6 +5,8 @@ import { ModalComponent } from '../modal/modal.component';
 import { FormFieldComponent, SelectOption } from '../form-field/form-field.component';
 import { ButtonComponent } from '../button/button.component';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
+import { API } from '../../../core/api/endpoints';
+import { ADDRESS_TYPE_OPTIONS } from '../../../core/constants/enums';
 
 export interface Address {
   id?: string;
@@ -59,14 +61,7 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
   private defaultCenter = { lat: 20.5937, lng: 78.9629 };
   private defaultZoom = 5;
 
-  addressTypes: SelectOption[] = [
-    { value: 'primary', label: 'Primary' },
-    { value: 'registered', label: 'Registered' },
-    { value: 'communication', label: 'Communication' },
-    { value: 'billing', label: 'Billing' },
-    { value: 'branch', label: 'Branch' },
-    { value: 'other', label: 'Other' },
-  ];
+  addressTypes: SelectOption[] = ADDRESS_TYPE_OPTIONS;
 
   constructor(private fb: FormBuilder, private cs: CommonService, private cdr: ChangeDetectorRef, private zone: NgZone) {}
 
@@ -437,7 +432,7 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
 
   private lookupPincode(pincode: string): void {
     this.pincodeLoading = true;
-    this.cs.getService({ url: `/pincode/${pincode}` }).subscribe({
+    this.cs.getService({ url: API.pincode.lookup(pincode) }).subscribe({
       next: (res: any) => {
         const data = res.data;
         this.form.get('city')?.setValue(data.city || '');

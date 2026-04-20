@@ -5,6 +5,8 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
 import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
+import { API } from '../../../../../core/api/endpoints';
+import { STATUS_BADGES, statusLabel } from '../../../../../core/constants/enums';
 
 @Component({
   selector: 'app-organization-list',
@@ -12,8 +14,8 @@ import { BaseListComponent } from '../../../../../shared/components/base-list/ba
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
 export class OrganizationListComponent extends BaseListComponent {
-  apiUrl = '/organizations';
-  override deleteUrl = '/organizations/delete-multiple';
+  apiUrl = API.organizations.base;
+  override deleteUrl = API.organizations.deleteMultiple;
   routeBase = '/settings/organization';
 
   columns: ColumnConfig[] = [
@@ -22,10 +24,7 @@ export class OrganizationListComponent extends BaseListComponent {
     { key: 'o.email', label: 'Email', sortable: true, searchable: true },
     { key: 'o.primary_contact_no', label: 'Contact', sortable: true },
     { key: 'location_count', label: 'Locations', sortable: true },
-    { key: 'o.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: {
-      'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
-      'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
-    }},
+    { key: 'o.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
   ];
 
   displayKeyMap: Record<string, string> = {
@@ -36,7 +35,7 @@ export class OrganizationListComponent extends BaseListComponent {
   };
 
   rowTransform = (row: any, mapped: any) => {
-    mapped['o.is_active'] = row.is_active ? 'Active' : 'Inactive';
+    mapped['o.is_active'] = statusLabel(row.is_active);
     mapped['o.primary_contact_no'] = row.primary_contact_no ? `${row.primary_contact_code} ${row.primary_contact_no}` : '-';
     mapped['location_count'] = row.location_count ?? 0;
     return mapped;

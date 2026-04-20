@@ -3,12 +3,8 @@ import { TableComponent } from '../../../../../shared/components/table/table.com
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
-
-const STATUS_BADGES: Record<string, { label: string; class: string }> = {
-  active:  { label: 'Active',  class: 'bg-green-500/10 text-green-700' },
-  ended:   { label: 'Ended',   class: 'bg-muted text-muted-foreground' },
-  revoked: { label: 'Revoked', class: 'bg-red-500/10 text-red-700' },
-};
+import { API } from '../../../../../core/api/endpoints';
+import { SESSION_STATUS_BADGES } from '../../../../../core/constants/enums';
 
 @Component({
   selector: 'app-session-list',
@@ -16,7 +12,7 @@ const STATUS_BADGES: Record<string, { label: string; class: string }> = {
   imports: [TableComponent, BreadcrumbComponent],
 })
 export class SessionListComponent extends BaseListComponent {
-  apiUrl = '/sessions';
+  apiUrl = API.sessions.base;
   routeBase = '/settings/session';
 
   columns: ColumnConfig[] = [
@@ -26,7 +22,7 @@ export class SessionListComponent extends BaseListComponent {
     { key: 'duration', label: 'Duration' },
     { key: 'ip_address', label: 'IP', searchable: true },
     { key: 'location', label: 'Location', type: 'link', linkUrlKey: 'location_map_url' },
-    { key: 'status', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
+    { key: 'status', label: 'Status', sortable: true, type: 'badge', badgeMap: SESSION_STATUS_BADGES },
     { key: 'last_activity_at', label: 'Last Activity', sortable: true, type: 'date' },
   ];
 

@@ -6,6 +6,8 @@ import { LoaderComponent } from '../../../../../shared/components/loader/loader.
 import { AddressComponent, Address } from '../../../../../shared/components/address/address.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import { API } from '../../../../../core/api/endpoints';
+import { LOCATION_TYPE_OPTIONS } from '../../../../../core/constants/enums';
 import * as V from '../../../../../shared/validators/common';
 
 @Component({
@@ -15,21 +17,13 @@ import * as V from '../../../../../shared/validators/common';
 })
 export class LocationFormComponent extends FormPageBase {
   listRoute = '/settings/location';
-  resourcePath = '/locations';
+  resourcePath = API.locations.base;
 
   addressError = '';
   orgLabel = '';
   addresses: Address[] = [];
 
-  locationTypes = [
-    { value: 'main_branch', label: 'Main Branch' },
-    { value: 'branch', label: 'Branch' },
-    { value: 'campus', label: 'Campus' },
-    { value: 'annexure', label: 'Annexure' },
-    { value: 'hostel', label: 'Hostel' },
-    { value: 'playground', label: 'Playground' },
-    { value: 'other', label: 'Other' },
-  ];
+  locationTypes = LOCATION_TYPE_OPTIONS;
 
   protected buildForm(): FormGroup {
     return this.fb.group({

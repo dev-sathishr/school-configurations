@@ -4,12 +4,8 @@ import { ColumnConfig } from '../../../../shared/components/table/services/table
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { CommonService } from '../../../../shared/services/common/common.service';
-
-const STATUS_BADGES: Record<string, { label: string; class: string }> = {
-  active:  { label: 'Active',  class: 'bg-green-500/10 text-green-700' },
-  ended:   { label: 'Ended',   class: 'bg-muted text-muted-foreground' },
-  revoked: { label: 'Revoked', class: 'bg-red-500/10 text-red-700' },
-};
+import { API } from '../../../../core/api/endpoints';
+import { SESSION_STATUS_BADGES } from '../../../../core/constants/enums';
 
 @Component({
   selector: 'app-my-sessions',
@@ -21,7 +17,7 @@ export class MySessionsComponent {
 
   private readonly cs = inject(CommonService);
 
-  apiUrl = '/sessions/me';
+  apiUrl = API.sessions.mine;
 
   columns: ColumnConfig[] = [
     { key: 'device', label: 'Device', sortable: false, searchable: false },
@@ -29,7 +25,7 @@ export class MySessionsComponent {
     { key: 'location', label: 'Location', type: 'link', linkUrlKey: 'location_map_url' },
     { key: 'login_at', label: 'Login', sortable: true, type: 'date' },
     { key: 'last_activity_at', label: 'Last Activity', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
+    { key: 'status', label: 'Status', sortable: true, type: 'badge', badgeMap: SESSION_STATUS_BADGES },
   ];
 
   displayKeyMap: Record<string, string> = {
@@ -61,7 +57,7 @@ export class MySessionsComponent {
 
   confirmRevokeOthers(): void {
     this.revoking = true;
-    this.cs.postService({ url: '/sessions/me/revoke-others', payload: {} }).subscribe({
+    this.cs.postService({ url: API.sessions.revokeOthers, payload: {} }).subscribe({
       next: (res: any) => {
         this.revoking = false;
         this.showConfirm = false;

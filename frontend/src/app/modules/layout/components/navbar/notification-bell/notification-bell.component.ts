@@ -4,6 +4,7 @@ import { CommonService } from '../../../../../shared/services/common/common.serv
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ToastService } from '../../../../../shared/services/toast/toast.service';
 import { environment } from 'src/environments/environment';
+import { API } from '../../../../../core/api/endpoints';
 
 interface Notification {
   id: string;
@@ -113,7 +114,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     const token = this.authService.getToken();
     if (!token) return;
 
-    const url = `${environment.apiUrl}/notifications/stream?token=${token}`;
+    const url = `${environment.apiUrl}${API.notifications.stream}?token=${token}`;
 
     this.ngZone.runOutsideAngular(() => {
       this.eventSource = new EventSource(url);
@@ -171,7 +172,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   private loadNotifications(): void {
-    this.cs.getService({ url: '/notifications' }).subscribe({
+    this.cs.getService({ url: API.notifications.base }).subscribe({
       next: (res: any) => {
         this.notifications = res.notifications || [];
         this.unreadCount = res.unread_count || 0;
@@ -189,14 +190,14 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     if (!n.is_read) {
       n.is_read = true;
       this.unreadCount = Math.max(0, this.unreadCount - 1);
-      this.cs.putService({ url: `/notifications/${n.id}/read`, payload: {} }).subscribe();
+      this.cs.putService({ url: API.notifications.markRead(n.id), payload: {} }).subscribe();
     }
   }
 
   markAllRead(): void {
     this.notifications.forEach(n => n.is_read = true);
     this.unreadCount = 0;
-    this.cs.putService({ url: '/notifications/read-all', payload: {} }).subscribe();
+    this.cs.putService({ url: API.notifications.markAllRead, payload: {} }).subscribe();
   }
 
   timeAgo(dateStr: string): string {

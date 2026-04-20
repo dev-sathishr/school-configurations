@@ -6,6 +6,7 @@ import { FormFieldComponent } from '../../../../../shared/components/form-field/
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import { API } from '../../../../../core/api/endpoints';
 
 interface PermissionType {
   id: string;
@@ -36,7 +37,7 @@ interface MenuTree {
 })
 export class GroupFormComponent extends FormPageBase {
   listRoute = '/settings/group';
-  resourcePath = '/groups';
+  resourcePath = API.groups.base;
 
   permissionTypes: PermissionType[] = [];
   menuTree: MenuTree[] = [];
@@ -58,8 +59,8 @@ export class GroupFormComponent extends FormPageBase {
     this.form = this.buildForm();
     this.matrixLoading = true;
     forkJoin({
-      menus: this.cs.getService({ url: '/menus/with-modules' }),
-      permissions: this.cs.getService({ url: '/permissions/dropdown' }),
+      menus: this.cs.getService({ url: API.menus.withModules }),
+      permissions: this.cs.getService({ url: API.permissions.dropdown }),
     }).subscribe({
       next: (res: any) => {
         this.permissionTypes = (res.permissions.data || res.permissions || [])

@@ -5,14 +5,8 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
 import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
-
-const LEVEL_LABELS: Record<string, string> = {
-  nursery: 'Nursery',
-  primary: 'Primary',
-  middle: 'Middle',
-  secondary: 'Secondary',
-  higher_secondary: 'Higher Secondary',
-};
+import { API } from '../../../../../core/api/endpoints';
+import { ACADEMIC_LEVEL_LABELS, STATUS_BADGES, statusLabel } from '../../../../../core/constants/enums';
 
 @Component({
   selector: 'app-class-list',
@@ -20,8 +14,8 @@ const LEVEL_LABELS: Record<string, string> = {
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
 export class ClassListComponent extends BaseListComponent {
-  apiUrl = '/classes';
-  override deleteUrl = '/classes/delete-multiple';
+  apiUrl = API.classes.base;
+  override deleteUrl = API.classes.deleteMultiple;
   routeBase = '/academic/class';
 
   columns: ColumnConfig[] = [
@@ -30,10 +24,7 @@ export class ClassListComponent extends BaseListComponent {
     { key: 'c.academic_level', label: 'Level', sortable: true },
     { key: 'c.strength', label: 'Strength', sortable: true },
     { key: 'level_count', label: 'Sections', sortable: true },
-    { key: 'c.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: {
-      'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
-      'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
-    }},
+    { key: 'c.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
   ];
 
   displayKeyMap: Record<string, string> = {
@@ -43,8 +34,8 @@ export class ClassListComponent extends BaseListComponent {
   };
 
   rowTransform = (row: any, mapped: any) => {
-    mapped['c.is_active'] = row.is_active ? 'Active' : 'Inactive';
-    mapped['c.academic_level'] = LEVEL_LABELS[row.academic_level] || row.academic_level;
+    mapped['c.is_active'] = statusLabel(row.is_active);
+    mapped['c.academic_level'] = ACADEMIC_LEVEL_LABELS[row.academic_level as keyof typeof ACADEMIC_LEVEL_LABELS] || row.academic_level;
     mapped['c.code'] = row.code || '-';
     mapped['c.strength'] = row.strength || 0;
     mapped['level_count'] = row.level_count ?? 0;

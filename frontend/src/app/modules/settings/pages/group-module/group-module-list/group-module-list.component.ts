@@ -4,6 +4,7 @@ import { ColumnConfig } from '../../../../../shared/components/table/services/ta
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
+import { API } from '../../../../../core/api/endpoints';
 
 @Component({
   selector: 'app-group-module-list',
@@ -11,8 +12,8 @@ import { BaseListComponent } from '../../../../../shared/components/base-list/ba
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent],
 })
 export class GroupModuleListComponent extends BaseListComponent {
-  apiUrl = '/group-modules';
-  override deleteUrl = '/group-modules/delete-multiple';
+  apiUrl = API.groupModules.base;
+  override deleteUrl = API.groupModules.deleteMultiple;
   routeBase = '/settings/group-module';
 
   columns: ColumnConfig[] = [

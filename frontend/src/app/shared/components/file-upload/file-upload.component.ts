@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { API } from '../../../core/api/endpoints';
 
 export interface UploadedFile {
   id: string;
@@ -254,7 +255,7 @@ export class FileUploadComponent implements OnChanges {
 
   fileUrl(id: string): string {
     const token = localStorage.getItem('access_token');
-    return `${this.apiUrl}/files/${id}?token=${token}`;
+    return `${this.apiUrl}${API.files.detail(id)}?token=${token}`;
   }
 
   formatSize(bytes: number): string {
@@ -340,7 +341,7 @@ export class FileUploadComponent implements OnChanges {
     formData.append('entity_id', this.entityId);
     formData.append('file_type', this.fileType);
 
-    this.http.post<any>(`${this.apiUrl}/files/upload`, formData).subscribe({
+    this.http.post<any>(`${this.apiUrl}${API.files.upload}`, formData).subscribe({
       next: (res) => {
         this.currentFile = res.file;
         this.uploading = false;
@@ -367,7 +368,7 @@ export class FileUploadComponent implements OnChanges {
     this.pendingFile = null;
     this.pendingPreview = null;
 
-    return this.http.post<any>(`${this.apiUrl}/files/upload`, formData);
+    return this.http.post<any>(`${this.apiUrl}${API.files.upload}`, formData);
   }
 
   removePending(): void {
@@ -379,7 +380,7 @@ export class FileUploadComponent implements OnChanges {
   removeFile(): void {
     if (!this.currentFile) return;
     const fileId = this.currentFile.id;
-    this.http.delete(`${this.apiUrl}/files/${fileId}`).subscribe({
+    this.http.delete(`${this.apiUrl}${API.files.detail(fileId)}`).subscribe({
       next: () => {
         this.currentFile = null;
         this.fileRemoved.emit(fileId);
@@ -389,7 +390,7 @@ export class FileUploadComponent implements OnChanges {
   }
 
   private loadExistingFile(): void {
-    this.http.get<any>(`${this.apiUrl}/files/entity/${this.entityType}/${this.entityId}?file_type=${this.fileType}`).subscribe({
+    this.http.get<any>(`${this.apiUrl}${API.files.byEntity(this.entityType, this.entityId)}?file_type=${this.fileType}`).subscribe({
       next: (res) => {
         const files = res.files || [];
         this.currentFile = files.length > 0 ? files[0] : null;

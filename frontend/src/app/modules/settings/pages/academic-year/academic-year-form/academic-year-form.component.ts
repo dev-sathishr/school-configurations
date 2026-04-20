@@ -7,6 +7,7 @@ import { LoaderComponent } from '../../../../../shared/components/loader/loader.
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
 import { LocationContextService } from '../../../../../core/services/location-context.service';
+import { API } from '../../../../../core/api/endpoints';
 import * as V from '../../../../../shared/validators/common';
 
 @Component({
@@ -16,7 +17,7 @@ import * as V from '../../../../../shared/validators/common';
 })
 export class AcademicYearFormComponent extends FormPageBase {
   listRoute = '/settings/academic-year';
-  resourcePath = '/academic-years';
+  resourcePath = API.academicYears.base;
 
   private readonly locationCtx = inject(LocationContextService);
 
@@ -44,7 +45,52 @@ export class AcademicYearFormComponent extends FormPageBase {
       const preferred = this.locationCtx.preferredLocationId();
       if (preferred) this.form.patchValue({ location_id: preferred });
     }
+    this.wireRangeAutofill();
     this.detectModeAndLoad();
+  }
+
+  /**
+   * Smart autofill between the three date fields so the user only ever picks
+   * one thing:
+   *
+   *   - Type `2025-2026` → start_date = 2025-06-01, end_date = 2026-05-31
+   *     (typical Indian academic calendar; user can still adjust).
+   *   - Pick a start_date → end_date auto-fills to one year later minus one
+   *     day, and the academic_year label syncs to the matching YYYY-YYYY.
+   *
+   * Only rewrites a field that's empty (or in the academic-year case, the
+   * other two) so we don't clobber manual edits. `emitEvent: false` on the
+   * patch prevents the subscriptions from re-entering each other.
+   */
+  private wireRangeAutofill(): void {
+    this.form.get('academic_year')?.valueChanges.subscribe((val: string) => {
+      const match = /^(\d{4})-(\d{4})$/.exec(String(val || ''));
+      if (!match) return;
+      const start = Number(match[1]);
+      if (Number(match[2]) !== start + 1) return;
+      if (!this.form.get('start_date')?.value) {
+        this.form.get('start_date')?.setValue(`${start}-06-01`, { emitEvent: false });
+      }
+      if (!this.form.get('end_date')?.value) {
+        this.form.get('end_date')?.setValue(`${start + 1}-05-31`, { emitEvent: false });
+      }
+    });
+
+    this.form.get('start_date')?.valueChanges.subscribe((val: string) => {
+      if (!val) return;
+      const start = new Date(val);
+      if (isNaN(start.getTime())) return;
+      if (!this.form.get('end_date')?.value) {
+        const end = new Date(start);
+        end.setFullYear(end.getFullYear() + 1);
+        end.setDate(end.getDate() - 1);
+        this.form.get('end_date')?.setValue(end.toISOString().slice(0, 10), { emitEvent: false });
+      }
+      if (!this.form.get('academic_year')?.value) {
+        const y = start.getFullYear();
+        this.form.get('academic_year')?.setValue(`${y}-${y + 1}`, { emitEvent: false });
+      }
+    });
   }
 
   protected override onRecordLoaded(data: any): void {

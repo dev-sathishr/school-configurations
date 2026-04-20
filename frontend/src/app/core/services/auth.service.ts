@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ToastService } from '../../shared/services/toast/toast.service';
+import { API } from '../api/endpoints';
 
 interface LoginResponse {
   message: string;
@@ -50,7 +51,7 @@ export class AuthService {
     password: string,
     context: { latitude?: number; longitude?: number; location_label?: string } = {},
   ): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { username, password, ...context }).pipe(
+    return this.http.post<LoginResponse>(`${this.apiUrl}${API.auth.login}`, { username, password, ...context }).pipe(
       tap((res) => {
         localStorage.setItem('access_token', res.access_token);
         localStorage.setItem('refresh_token', res.refresh_token);
@@ -64,7 +65,7 @@ export class AuthService {
   logout(): void {
     if (this.loggingOut) return;
     this.loggingOut = true;
-    this.http.post(`${this.apiUrl}/auth/logout`, {}).subscribe({
+    this.http.post(`${this.apiUrl}${API.auth.logout}`, {}).subscribe({
       complete: () => {
         this.clearSession();
         this.loggingOut = false;
@@ -108,7 +109,7 @@ export class AuthService {
    *  resolves null) if refresh fails — caller should log the user out. */
   refreshAccessToken(): Observable<{ access_token: string }> {
     const refreshToken = localStorage.getItem('refresh_token');
-    return this.http.post<{ access_token: string }>(`${this.apiUrl}/auth/refresh`, { refresh_token: refreshToken }).pipe(
+    return this.http.post<{ access_token: string }>(`${this.apiUrl}${API.auth.refresh}`, { refresh_token: refreshToken }).pipe(
       tap((res) => {
         localStorage.setItem('access_token', res.access_token);
       })

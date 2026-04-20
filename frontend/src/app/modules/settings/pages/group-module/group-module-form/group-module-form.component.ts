@@ -5,6 +5,7 @@ import { FormFieldComponent } from '../../../../../shared/components/form-field/
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import { API } from '../../../../../core/api/endpoints';
 
 @Component({
   selector: 'app-group-module-form',
@@ -13,7 +14,7 @@ import { FormPageBase } from '../../../../../shared/components/form-page/form-pa
 })
 export class GroupModuleFormComponent extends FormPageBase {
   listRoute = '/settings/group-module';
-  resourcePath = '/group-modules';
+  resourcePath = API.groupModules.base;
 
   groupLabel = '';
   menuLabel = '';

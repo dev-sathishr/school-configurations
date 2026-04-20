@@ -4,6 +4,7 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionService } from '../../../../core/services/permission.service';
 import { environment } from 'src/environments/environment';
+import { API } from '../../../../core/api/endpoints';
 
 @Component({
   selector: 'app-no-access',
@@ -57,7 +58,7 @@ export class NoAccessComponent implements OnInit, OnDestroy {
     const token = this.authService.getToken();
     if (!token) return;
 
-    const url = `${environment.apiUrl}/notifications/stream?token=${token}`;
+    const url = `${environment.apiUrl}${API.notifications.stream}?token=${token}`;
 
     this.ngZone.runOutsideAngular(() => {
       this.eventSource = new EventSource(url);

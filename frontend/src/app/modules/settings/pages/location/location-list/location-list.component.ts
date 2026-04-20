@@ -5,6 +5,8 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
 import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
+import { API } from '../../../../../core/api/endpoints';
+import { LOCATION_TYPE_BADGES, STATUS_BADGES, statusLabel } from '../../../../../core/constants/enums';
 
 @Component({
   selector: 'app-location-list',
@@ -12,26 +14,17 @@ import { BaseListComponent } from '../../../../../shared/components/base-list/ba
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
 export class LocationListComponent extends BaseListComponent {
-  apiUrl = '/locations';
-  override deleteUrl = '/locations/delete-multiple';
+  apiUrl = API.locations.base;
+  override deleteUrl = API.locations.deleteMultiple;
   routeBase = '/settings/location';
 
   columns: ColumnConfig[] = [
     { key: 'organization_name', label: 'Organization', sortable: true, searchable: true },
     { key: 'l.name', label: 'Name', sortable: true, searchable: true },
     { key: 'l.code', label: 'Code', sortable: true, searchable: true },
-    { key: 'l.type', label: 'Type', sortable: true, type: 'badge', badgeMap: {
-      'main_branch': { label: 'Main Branch', class: 'bg-blue-500/10 text-blue-700' },
-      'branch': { label: 'Branch', class: 'bg-green-500/10 text-green-700' },
-      'campus': { label: 'Campus', class: 'bg-purple-500/10 text-purple-700' },
-      'hostel': { label: 'Hostel', class: 'bg-orange-500/10 text-orange-700' },
-      'other': { label: 'Other', class: 'bg-muted text-muted-foreground' },
-    }},
+    { key: 'l.type', label: 'Type', sortable: true, type: 'badge', badgeMap: LOCATION_TYPE_BADGES },
     { key: 'primary_contact_no', label: 'Primary Mobile', sortable: true, searchable: true },
-    { key: 'l.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: {
-      'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
-      'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
-    }},
+    { key: 'l.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
   ];
 
   displayKeyMap: Record<string, string> = {
@@ -41,7 +34,7 @@ export class LocationListComponent extends BaseListComponent {
 
   rowTransform = (row: any, mapped: any) => {
     mapped['organization_name'] = row.organization?.name || '-';
-    mapped['l.is_active'] = row.is_active ? 'Active' : 'Inactive';
+    mapped['l.is_active'] = statusLabel(row.is_active);
     mapped['primary_contact_no'] = row.primary_contact_no ? `${row.primary_contact_code || '+91'} ${row.primary_contact_no}` : '-';
     return mapped;
   };

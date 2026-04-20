@@ -5,6 +5,8 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
 import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
+import { API } from '../../../../../core/api/endpoints';
+import { STATUS_BADGES, statusLabel } from '../../../../../core/constants/enums';
 
 @Component({
   selector: 'app-module-list',
@@ -12,8 +14,8 @@ import { BaseListComponent } from '../../../../../shared/components/base-list/ba
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
 export class ModuleListComponent extends BaseListComponent {
-  apiUrl = '/modules';
-  override deleteUrl = '/modules/delete-multiple';
+  apiUrl = API.modules.base;
+  override deleteUrl = API.modules.deleteMultiple;
   routeBase = '/settings/module';
 
   columns: ColumnConfig[] = [
@@ -21,13 +23,7 @@ export class ModuleListComponent extends BaseListComponent {
     { key: 'm.code', label: 'Code', sortable: true, searchable: true },
     { key: 'm.route_path', label: 'Route Path', sortable: true },
     { key: 'm.display_order', label: 'Order', sortable: true },
-    {
-      key: 'm.is_active', label: 'Status', sortable: true, type: 'badge',
-      badgeMap: {
-        'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
-        'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
-      },
-    },
+    { key: 'm.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
   ];
 
   displayKeyMap: Record<string, string> = {
@@ -36,7 +32,7 @@ export class ModuleListComponent extends BaseListComponent {
   };
 
   rowTransform = (row: any, mapped: any) => {
-    mapped['m.is_active'] = row.is_active ? 'Active' : 'Inactive';
+    mapped['m.is_active'] = statusLabel(row.is_active);
     mapped['m.route_path'] = row.route_path || '-';
     return mapped;
   };

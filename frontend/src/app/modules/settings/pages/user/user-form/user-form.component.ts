@@ -6,6 +6,7 @@ import { LoaderComponent } from '../../../../../shared/components/loader/loader.
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FileUploadComponent, UploadedFile } from '../../../../../shared/components/file-upload/file-upload.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import { API } from '../../../../../core/api/endpoints';
 
 @Component({
   selector: 'app-user-form',
@@ -16,7 +17,7 @@ export class UserFormComponent extends FormPageBase {
   @ViewChild('profileUpload') profileUpload!: FileUploadComponent;
 
   listRoute = '/settings/user';
-  resourcePath = '/users';
+  resourcePath = API.users.base;
 
   groupLabel = '';
   profileImage: UploadedFile | null = null;
@@ -111,7 +112,7 @@ export class UserFormComponent extends FormPageBase {
 
   private loadLocations(): void {
     this.locationsLoading = true;
-    this.cs.getService({ url: '/locations/dropdown?size=100' }).subscribe({
+    this.cs.getService({ url: `${API.locations.dropdown}?size=100` }).subscribe({
       next: (res: any) => {
         this.allLocations = (res.data || []).map((l: any) => {
           const match = l.name.match(/^(.+)\s\(([^)]+)\)$/);

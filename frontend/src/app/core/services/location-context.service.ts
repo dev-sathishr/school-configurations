@@ -2,6 +2,7 @@ import { computed, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { CommonService } from '../../shared/services/common/common.service';
 import { AuthService } from './auth.service';
+import { API } from '../api/endpoints';
 
 export interface PermittedLocation {
   id: string;
@@ -69,7 +70,7 @@ export class LocationContextService {
   constructor(private cs: CommonService, private auth: AuthService) {}
 
   load(): Observable<any> {
-    return this.cs.getService({ url: '/auth/me/locations' }).pipe(
+    return this.cs.getService({ url: API.auth.myLocations }).pipe(
       tap((res: any) => {
         const locations: PermittedLocation[] = res?.locations || [];
         this.permitted.set(locations);

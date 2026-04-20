@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Observable, tap } from 'rxjs';
 import { CommonService } from '../../shared/services/common/common.service';
+import { API } from '../api/endpoints';
 
 export interface ModulePermissions {
   id: string;
@@ -44,7 +45,7 @@ export class PermissionService {
   constructor(private cs: CommonService) {}
 
   load(): Observable<any> {
-    return this.cs.getService({ url: '/auth/me/permissions' }).pipe(
+    return this.cs.getService({ url: API.auth.myPermissions }).pipe(
       tap((res: any) => {
         const menus = res.menus || [];
         this._menus.set(menus);

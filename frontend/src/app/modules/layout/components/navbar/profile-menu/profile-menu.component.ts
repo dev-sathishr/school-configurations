@@ -5,6 +5,7 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
 import { AuthService, User } from '../../../../../core/services/auth.service';
 import { ClickOutsideDirective } from '../../../../../shared/directives/click-outside.directive';
 import { environment } from 'src/environments/environment';
+import { API } from '../../../../../core/api/endpoints';
 
 @Component({
   selector: 'app-profile-menu',
@@ -33,7 +34,7 @@ export class ProfileMenuComponent implements OnInit {
     this.currentUser = this.authService.currentUser;
     if (this.currentUser?.profile_file_id) {
       const token = this.authService.getToken();
-      this.profileImageUrl = `${environment.apiUrl}/files/${this.currentUser.profile_file_id}?token=${token}`;
+      this.profileImageUrl = `${environment.apiUrl}${API.files.detail(this.currentUser.profile_file_id)}?token=${token}`;
     }
   }
 

@@ -16,7 +16,7 @@ import { CanComponentDeactivate } from '../../../core/guards/unsaved-changes.gua
  *   @Component({ ... })
  *   export class PermissionFormComponent extends FormPageBase {
  *     listRoute = '/settings/permission';
- *     resourcePath = '/permissions';
+ *     resourcePath = API.permissions.base;
  *
  *     protected buildForm(): FormGroup {
  *       return this.fb.group({
@@ -60,7 +60,8 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
   /** Frontend list route — used by `cancel()` and default post-save nav. */
   abstract listRoute: string;
 
-  /** API path — `/users`, `/locations`, etc. No trailing slash. */
+  /** API path — `API.users.base`, `API.locations.base`, etc. Must come from
+   *  `core/api/endpoints.ts`, not a raw literal. No trailing slash. */
   abstract resourcePath: string;
 
   /** Subclass returns the reactive form. Called once in `ngOnInit`. */

@@ -11,6 +11,8 @@ import { TableComponent } from '../../../../../shared/components/table/table.com
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { PermissionService } from '../../../../../core/services/permission.service';
 import { LocationContextService } from '../../../../../core/services/location-context.service';
+import { API } from '../../../../../core/api/endpoints';
+import { ACADEMIC_LEVEL_OPTIONS, STATUS_BADGES, statusLabel } from '../../../../../core/constants/enums';
 import * as V from '../../../../../shared/validators/common';
 
 @Component({
@@ -42,13 +44,7 @@ export class ClassFormComponent implements OnInit {
   classLabel = '';
   selectedClassId = '';
 
-  academicLevelOptions = [
-    { value: 'nursery', label: 'Nursery' },
-    { value: 'primary', label: 'Primary' },
-    { value: 'middle', label: 'Middle' },
-    { value: 'secondary', label: 'Secondary' },
-    { value: 'higher_secondary', label: 'Higher Secondary' },
-  ];
+  academicLevelOptions = ACADEMIC_LEVEL_OPTIONS;
 
   sectionOptions = Array.from({ length: 26 }, (_, i) => {
     const letter = String.fromCharCode(65 + i);
@@ -68,16 +64,13 @@ export class ClassFormComponent implements OnInit {
 
   // Levels table
   levelsApiUrl = '';
-  levelsDeleteUrl = '/class-levels/delete-multiple';
+  levelsDeleteUrl = API.classLevels.deleteMultiple;
   levelsColumns: ColumnConfig[] = [
     { key: 'cl.code', label: 'Code', sortable: true, searchable: true },
     { key: 'cl.section', label: 'Section', sortable: true },
     { key: 'cl.capacity', label: 'Capacity', sortable: true },
     { key: 'loc.name', label: 'Location', sortable: true },
-    { key: 'cl.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: {
-      'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
-      'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
-    }},
+    { key: 'cl.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
   ];
   levelsDisplayKeyMap: Record<string, string> = {
     'cl.code': 'code', 'cl.section': 'section', 'cl.capacity': 'capacity',
@@ -85,7 +78,7 @@ export class ClassFormComponent implements OnInit {
     'cl.is_active': 'is_active',
   };
   levelsRowTransform = (row: any, mapped: any) => {
-    mapped['cl.is_active'] = row.is_active ? 'Active' : 'Inactive';
+    mapped['cl.is_active'] = statusLabel(row.is_active);
     mapped['cl.capacity'] = row.capacity || 0;
     mapped['cl.section'] = row.section || '-';
     mapped['loc.name'] = row.location_name
@@ -134,14 +127,14 @@ export class ClassFormComponent implements OnInit {
       this.editId = id;
       this.classGeneralSaved = true;
       this.selectedClassId = id;
-      this.levelsApiUrl = `/class-levels?class_general_id=${id}`;
+      this.levelsApiUrl = API.classLevels.byClass(id);
       this.levelForm.patchValue({ class_general_id: id });
 
       const tab = this.route.snapshot.queryParamMap.get('tab');
       if (tab === 'levels') this.activeTab = 'levels';
 
       this.loading = true;
-      this.cs.getService({ url: `/classes/${id}` }).subscribe({
+      this.cs.getService({ url: API.classes.detail(id) }).subscribe({
         next: (res: any) => {
           const d = res.data;
           this.form.patchValue(d);
@@ -159,7 +152,7 @@ export class ClassFormComponent implements OnInit {
       if (classId && classId !== this.selectedClassId) {
         this.selectedClassId = classId;
         // Fetch class code to support auto-code generation
-        this.cs.getService({ url: `/classes/${classId}` }).subscribe({
+        this.cs.getService({ url: API.classes.detail(classId) }).subscribe({
           next: (res: any) => {
             this.currentClassCode = res.data?.code || res.data?.name || '';
             this.updateLevelCode();
@@ -195,8 +188,8 @@ export class ClassFormComponent implements OnInit {
     const data = this.form.value;
 
     const req = this.editMode
-      ? this.cs.putService({ url: `/classes/${this.editId}`, payload: data })
-      : this.cs.postService({ url: '/classes', payload: data });
+      ? this.cs.putService({ url: API.classes.detail(this.editId), payload: data })
+      : this.cs.postService({ url: API.classes.base, payload: data });
 
     req.subscribe({
       next: (res: any) => {
@@ -217,7 +210,7 @@ export class ClassFormComponent implements OnInit {
           this.classLabel = created.code ? `${created.name} (${created.code})` : created.name;
           this.currentClassCode = created.code || created.name || '';
           this.levelForm.patchValue({ class_general_id: created.id });
-          this.levelsApiUrl = `/class-levels?class_general_id=${created.id}`;
+          this.levelsApiUrl = API.classLevels.byClass(created.id);
           this.activeTab = 'levels';
           // Newly created class has no sections yet — expand the form so the
           // user can add the first one without clicking the toggle.
@@ -245,8 +238,8 @@ export class ClassFormComponent implements OnInit {
     const data = this.levelForm.value;
 
     const req = this.levelEditMode
-      ? this.cs.putService({ url: `/class-levels/${this.levelEditId}`, payload: data })
-      : this.cs.postService({ url: '/class-levels', payload: data });
+      ? this.cs.putService({ url: API.classLevels.detail(this.levelEditId), payload: data })
+      : this.cs.postService({ url: API.classLevels.base, payload: data });
 
     req.subscribe({
       next: () => {
@@ -314,7 +307,7 @@ export class ClassFormComponent implements OnInit {
   private refreshLevelsTable(classId: string): void {
     this.levelsApiUrl = '';
     this.cdr.detectChanges();
-    this.levelsApiUrl = `/class-levels?class_general_id=${classId}`;
+    this.levelsApiUrl = API.classLevels.byClass(classId);
     this.cdr.detectChanges();
   }
 

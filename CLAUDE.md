@@ -53,6 +53,8 @@
 | URL field | `website: ['', V.URL]` |
 | Permission-gated button | `*appHasPermission="['MODULE_CODE', 'ACTION']"` or `[disabled]="!ps.canEdit('MODULE_CODE')"` |
 | Call the API | `this.cs.getService({ url, params })` — never `HttpClient` directly |
+| API URL | `API.users.base`, `API.classes.detail(id)` — from `core/api/endpoints.ts`, never raw literals |
+| Enum / badge / option list | Import from `core/constants/enums.ts` — `STATUS_BADGES`, `LOCATION_TYPE_OPTIONS`, etc. |
 | New backend module | 4 files: `.routes.js`, `.controller.js`, `.service.js`, `.repository.js` |
 | Controller method | No try/catch. Wrap exports with `wrap({...})` from `async-handler` |
 | Soft delete in repo | `repoHelper.softDelete({ table, id, userId })` |
@@ -167,8 +169,8 @@ Subclass declares only what's specific. Template calls inherited methods.
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
 export class UserListComponent extends BaseListComponent {
-  apiUrl = '/users';                           // REST path
-  override deleteUrl = '/users/delete-multiple'; // optional; omit if no bulk delete
+  apiUrl = API.users.base;                           // from core/api/endpoints.ts
+  override deleteUrl = API.users.deleteMultiple;     // optional; omit if no bulk delete
   routeBase = '/settings/user';                // frontend route prefix
 
   columns: ColumnConfig[] = [ /* ... */ ];
@@ -216,7 +218,7 @@ Defined in [frontend/src/app/shared/components/form-page/form-page.base.ts](fron
 
 **Required** overrides:
 - `listRoute` — `'/settings/user'` etc.
-- `resourcePath` — `'/users'` etc.
+- `resourcePath` — `API.users.base` etc. (always from `core/api/endpoints.ts`)
 - `buildForm(): FormGroup`
 
 **Optional** hooks — override only when needed:
@@ -240,7 +242,7 @@ Defined in [frontend/src/app/shared/components/form-page/form-page.base.ts](fron
 })
 export class PermissionFormComponent extends FormPageBase {
   listRoute = '/settings/permission';
-  resourcePath = '/permissions';
+  resourcePath = API.permissions.base;
 
   protected buildForm(): FormGroup {
     return this.fb.group({
@@ -259,7 +261,7 @@ export class PermissionFormComponent extends FormPageBase {
 export class OrganizationFormComponent extends FormPageBase {
   @ViewChild('logoUpload') logoUpload!: FileUploadComponent;
   listRoute = '/settings/organization';
-  resourcePath = '/organizations';
+  resourcePath = API.organizations.base;
 
   addresses: Address[] = [];
   addressError = '';
@@ -348,6 +350,41 @@ import * as V from '@shared/validators/common';
 
 **Rule**: don't invent a new constant for a one-off field — use a factory. Only add a preset to `common.ts` if it's used in 3+ forms.
 
+### 3.3b Domain enums — `core/constants/enums.ts`
+
+Every allowed-value list (location types, academic levels, session statuses, address types, status badges) lives in [core/constants/enums.ts](frontend/src/app/core/constants/enums.ts). Never redeclare these inline.
+
+| Export | Use for |
+|---|---|
+| `LOCATION_TYPE_OPTIONS` / `LocationType` | `<app-form-field fieldType="select">` for location.type |
+| `LOCATION_TYPE_BADGES` | `<app-table>` badge map on location list |
+| `ACADEMIC_LEVEL_OPTIONS` / `ACADEMIC_LEVEL_LABELS` / `AcademicLevel` | class/section forms + class list transform |
+| `ADDRESS_TYPE_OPTIONS` / `AddressType` | address modal dropdown |
+| `SESSION_STATUS_BADGES` / `SessionStatus` | session lists + session-detail type |
+| `STATUS_BADGES` + `statusLabel(isActive)` | every list's `is_active` column (Active / Inactive) |
+| `DEFAULT_FLAG_BADGES` + `defaultFlagLabel(isDefault)` | "Default" star badge (academic-year list) |
+
+Pattern:
+```ts
+import { ACADEMIC_LEVEL_OPTIONS, STATUS_BADGES, statusLabel } from 'src/app/core/constants/enums';
+
+academicLevelOptions = ACADEMIC_LEVEL_OPTIONS;
+
+columns: ColumnConfig[] = [
+  { key: 'c.is_active', label: 'Status', type: 'badge', badgeMap: STATUS_BADGES },
+];
+
+rowTransform = (row, mapped) => {
+  mapped['c.is_active'] = statusLabel(row.is_active);
+  return mapped;
+};
+```
+
+**Rules**:
+- Adding a new allowed value for an existing enum → update the union type + options array + badge/label map in `enums.ts`, nothing else. Backend's validation rules must match.
+- Adding a brand-new enum → add a section here, not an inline constant in the consumer.
+- No copy-pasting `bg-green-500/10 text-green-700` style badge maps. Use `STATUS_BADGES` (for active/inactive) or add the new map here.
+
 ### 3.4 Shared components inventory
 
 All under `shared/components/`:
@@ -427,16 +464,25 @@ All core services (`AuthService`, `PermissionService`, `LocationContextService`,
 
 ### 3.8 API calls
 
-Always `CommonService`, never raw `HttpClient`:
+Always `CommonService`, never raw `HttpClient`. Every URL must come from `core/api/endpoints.ts` — no raw URL string literals anywhere else in the app:
 
 ```ts
+import { API } from 'src/app/core/api/endpoints';
+
 constructor(private cs: CommonService) {}
 
-this.cs.getService({ url: '/users', params: { page: 1, size: 10 } }).subscribe({ /* ... */ });
-this.cs.postService({ url: '/users', payload }).subscribe({ /* ... */ });
-this.cs.putService({ url: `/users/${id}`, payload }).subscribe({ /* ... */ });
-this.cs.deleteService({ url: `/users/${id}` }).subscribe({ /* ... */ });
+this.cs.getService({ url: API.users.base, params: { page: 1, size: 10 } }).subscribe({ /* ... */ });
+this.cs.postService({ url: API.users.base, payload }).subscribe({ /* ... */ });
+this.cs.putService({ url: API.users.detail(id), payload }).subscribe({ /* ... */ });
+this.cs.deleteService({ url: API.users.detail(id) }).subscribe({ /* ... */ });
 ```
+
+The `endpoints.ts` file mirrors the backend module layout. When the backend renames or reshapes a route, update the one entry in `endpoints.ts` — everything else rides along.
+
+Rules:
+- No raw `/users`, `/groups/dropdown`, `/files/${id}`, etc. in component/service code.
+- Detail routes are functions so the caller can't forget the id: `API.users.detail(id)`.
+- For new endpoints, add a named entry to `endpoints.ts` in the matching module group instead of inlining the string.
 
 Auth headers are attached by the interceptor automatically. Base URL is configured in environment.
 
@@ -689,10 +735,10 @@ Exceptions (kept for semantic reasons):
 ### 5.2 Opening a list page
 
 1. Route: `/settings/user` → `UserListComponent` lazily loaded
-2. Template renders `<app-table>` with `apiUrl = '/users'`
+2. Template renders `<app-table>` with `apiUrl = API.users.base`
 3. `TableComponent.ngOnInit` initializes filter service, opens the "initialized" gate
 4. Effect fires: reads filter signals + `extraParams` signal → `loadData()`
-5. `cs.getService({ url: '/users', params: { page, size, filter[...], location_ids, ... } })`
+5. `cs.getService({ url: API.users.base, params: { page, size, filter[...], location_ids, ... } })`
 6. Auth interceptor adds `Authorization: Bearer ...` header
 7. Backend: `authenticate` → `checkModuleView('USERS')` (sets `req.viewOwn`) → `getAll`
 8. Controller: `userService.getAll(req.query, req.viewOwn ? req.user.id : null)`
@@ -709,7 +755,7 @@ Exceptions (kept for semantic reasons):
    - `this.form = this.buildForm()`
    - `detectModeAndLoad()`:
      - Reads `id` param → sets `editMode` / `viewMode` / `editId`
-     - If `id` present: `GET /users/:id` → `onRecordLoaded(unwrapResponse(res))` → `form.patchValue` + labels + sticky state
+     - If `id` present: `GET API.users.detail(id)` → `onRecordLoaded(unwrapResponse(res))` → `form.patchValue` + labels + sticky state
 4. User edits the form, clicks Save
 5. `onSubmit()`:
    - `submitted = true`
@@ -751,17 +797,20 @@ Exceptions (kept for semantic reasons):
 
 **Frontend**:
 
-1. `modules/academic/pages/subject/subject-list/` — extends `BaseListComponent`; `apiUrl = '/subjects'`, `routeBase = '/academic/subject'`, columns, displayKeyMap
-2. `modules/academic/pages/subject/subject-form/` — extends `FormPageBase`; `listRoute = '/academic/subject'`, `resourcePath = '/subjects'`, `buildForm()` returns reactive form with validators from `V.*`
-3. Template: `<app-breadcrumb>`, `<app-button *appHasPermission="['SUBJECTS', 'CREATE']">`, `<app-table ... [extraParams]="locationCtx.scopeExtraParams()" ...>`
-4. Route config in the academic module routing — add the two routes
-5. Done. Pattern is identical to every other module; if you need anything not covered, revisit this file.
+1. `core/api/endpoints.ts` — add a `subjects: { base, detail, deleteMultiple, import, dropdown }` group mirroring the backend routes
+2. `modules/academic/pages/subject/subject-list/` — extends `BaseListComponent`; `apiUrl = API.subjects.base`, `routeBase = '/academic/subject'`, columns, displayKeyMap
+3. `modules/academic/pages/subject/subject-form/` — extends `FormPageBase`; `listRoute = '/academic/subject'`, `resourcePath = API.subjects.base`, `buildForm()` returns reactive form with validators from `V.*`
+4. Template: `<app-breadcrumb>`, `<app-button *appHasPermission="['SUBJECTS', 'CREATE']">`, `<app-table ... [extraParams]="locationCtx.scopeExtraParams()" ...>`
+5. Route config in the academic module routing — add the two routes
+6. Done. Pattern is identical to every other module; if you need anything not covered, revisit this file.
 
 ---
 
 ## 6. Common pitfalls
 
 - ❌ **Raw `HttpClient` in a component** — use `CommonService`
+- ❌ **Raw URL string literals** (`'/users'`, `` `/sessions/${id}/revoke` ``) — import from `core/api/endpoints.ts` as `API.xxx.yyy`
+- ❌ **Inline `{ value, label }` option arrays or `Active: { class: 'bg-green-500/10...' }` badge maps** — import from `core/constants/enums.ts`
 - ❌ **Local `handleError` or try/catch in controllers** — use `wrap()` + `res.handleError`
 - ❌ **Inline `[Validators.required, Validators.minLength(3), Validators.maxLength(100)]`** — use `V.NAME`
 - ❌ **New list written from scratch** — extend `BaseListComponent`

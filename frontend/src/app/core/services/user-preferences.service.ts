@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, map, tap } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { AuthService } from './auth.service';
+import { API } from '../api/endpoints';
 
 export interface AppearancePrefs {
   menu: 'sidebar' | 'header';
@@ -98,7 +99,7 @@ export class UserPreferencesService {
 
   load(): Observable<UserPreferences> {
     return this.http
-      .get<{ data: UserPreferences }>(`${environment.apiUrl}/me/preferences`)
+      .get<{ data: UserPreferences }>(`${environment.apiUrl}${API.preferences.base}`)
       .pipe(
         map((res) => mergeWithDefaults(res.data)),
         tap((merged) => {
@@ -212,7 +213,7 @@ export class UserPreferencesService {
 
     // Atomic server-side increment — fire & forget.
     this.http
-      .post(`${environment.apiUrl}/me/preferences/track`, { type, id })
+      .post(`${environment.apiUrl}${API.preferences.track}`, { type, id })
       .subscribe({ error: () => {} });
   }
 
@@ -243,7 +244,7 @@ export class UserPreferencesService {
     const patch = this.buildPatch();
     this.dirty.clear();
     this.http
-      .patch<{ preferences: UserPreferences }>(`${environment.apiUrl}/me/preferences`, patch)
+      .patch<{ preferences: UserPreferences }>(`${environment.apiUrl}${API.preferences.base}`, patch)
       .subscribe({ error: () => {} });
   }
 
@@ -258,7 +259,7 @@ export class UserPreferencesService {
     const token = this.auth.getToken();
     if (!token) return;
     try {
-      fetch(`${environment.apiUrl}/me/preferences`, {
+      fetch(`${environment.apiUrl}${API.preferences.base}`, {
         method: 'PATCH',
         keepalive: true,
         headers: {

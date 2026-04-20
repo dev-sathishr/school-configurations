@@ -5,6 +5,7 @@ import { FormFieldComponent } from '../../../../../shared/components/form-field/
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import { API } from '../../../../../core/api/endpoints';
 
 interface ModuleItem {
   id: string;
@@ -21,7 +22,7 @@ interface ModuleItem {
 })
 export class MenuFormComponent extends FormPageBase implements OnInit {
   listRoute = '/settings/menu';
-  resourcePath = '/menus';
+  resourcePath = API.menus.base;
 
   parentLabel = '';
   allModules: ModuleItem[] = [];
@@ -45,7 +46,7 @@ export class MenuFormComponent extends FormPageBase implements OnInit {
   override ngOnInit(): void {
     this.form = this.buildForm();
     this.modulesLoading = true;
-    this.cs.getService({ url: '/modules/dropdown' }).subscribe({
+    this.cs.getService({ url: API.modules.dropdown }).subscribe({
       next: (res: any) => {
         const items = res.data || res || [];
         this.allModules = items.map((m: any) => ({ id: m.id, name: m.name, code: m.code, selected: false, display_order: 0 }));

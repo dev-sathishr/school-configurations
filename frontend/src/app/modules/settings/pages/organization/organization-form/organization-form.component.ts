@@ -7,6 +7,7 @@ import { AddressComponent, Address } from '../../../../../shared/components/addr
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FileUploadComponent, UploadedFile } from '../../../../../shared/components/file-upload/file-upload.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import { API } from '../../../../../core/api/endpoints';
 import * as V from '../../../../../shared/validators/common';
 
 @Component({
@@ -18,7 +19,7 @@ export class OrganizationFormComponent extends FormPageBase {
   @ViewChild('logoUpload') logoUpload!: FileUploadComponent;
 
   listRoute = '/settings/organization';
-  resourcePath = '/organizations';
+  resourcePath = API.organizations.base;
 
   addressError = '';
   addresses: Address[] = [];

@@ -5,6 +5,7 @@ import { FormFieldComponent } from '../../../../../shared/components/form-field/
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import { API } from '../../../../../core/api/endpoints';
 
 @Component({
   selector: 'app-module-form',
@@ -13,7 +14,7 @@ import { FormPageBase } from '../../../../../shared/components/form-page/form-pa
 })
 export class ModuleFormComponent extends FormPageBase {
   listRoute = '/settings/module';
-  resourcePath = '/modules';
+  resourcePath = API.modules.base;
 
   protected buildForm(): FormGroup {
     return this.fb.group({

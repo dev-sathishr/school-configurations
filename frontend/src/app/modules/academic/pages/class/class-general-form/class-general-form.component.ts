@@ -5,6 +5,8 @@ import { FormFieldComponent } from '../../../../../shared/components/form-field/
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import { API } from '../../../../../core/api/endpoints';
+import { ACADEMIC_LEVEL_OPTIONS } from '../../../../../core/constants/enums';
 import * as V from '../../../../../shared/validators/common';
 
 @Component({
@@ -14,15 +16,9 @@ import * as V from '../../../../../shared/validators/common';
 })
 export class ClassGeneralFormComponent extends FormPageBase {
   listRoute = '/academic/class';
-  resourcePath = '/classes';
+  resourcePath = API.classes.base;
 
-  academicLevelOptions = [
-    { value: 'nursery', label: 'Nursery' },
-    { value: 'primary', label: 'Primary' },
-    { value: 'middle', label: 'Middle' },
-    { value: 'secondary', label: 'Secondary' },
-    { value: 'higher_secondary', label: 'Higher Secondary' },
-  ];
+  academicLevelOptions = ACADEMIC_LEVEL_OPTIONS;
 
   protected buildForm(): FormGroup {
     return this.fb.group({

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { TableFilterService, ColumnConfig } from '../../services/table-filter.service';
 import { environment } from 'src/environments/environment';
+import { API } from '../../../../../core/api/endpoints';
 
 @Component({
   selector: '[app-table-row]',
@@ -42,7 +43,7 @@ export class TableRowComponent {
 
   getAvatarUrl(fileId: string): string {
     const token = localStorage.getItem('access_token');
-    return `${environment.apiUrl}/files/${fileId}?token=${token}`;
+    return `${environment.apiUrl}${API.files.detail(fileId)}?token=${token}`;
   }
 
   avatarErrors: Set<string> = new Set();

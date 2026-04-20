@@ -5,6 +5,7 @@ import { FormFieldComponent } from '../../../../../shared/components/form-field/
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
+import { API } from '../../../../../core/api/endpoints';
 
 @Component({
   selector: 'app-permission-form',
@@ -13,7 +14,7 @@ import { FormPageBase } from '../../../../../shared/components/form-page/form-pa
 })
 export class PermissionFormComponent extends FormPageBase {
   listRoute = '/settings/permission';
-  resourcePath = '/permissions';
+  resourcePath = API.permissions.base;
 
   protected buildForm(): FormGroup {
     return this.fb.group({

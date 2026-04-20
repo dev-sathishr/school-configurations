@@ -6,16 +6,8 @@ import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
 import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 import { LocationContextService } from '../../../../../core/services/location-context.service';
-
-const STATUS_BADGES = {
-  'Active':   { label: 'Active',   class: 'bg-green-500/10 text-green-700' },
-  'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
-};
-
-const DEFAULT_BADGES = {
-  'Default': { label: '★ Default', class: 'bg-primary/10 text-primary' },
-  '—':       { label: '—',         class: 'bg-muted/20 text-muted-foreground' },
-};
+import { API } from '../../../../../core/api/endpoints';
+import { STATUS_BADGES, DEFAULT_FLAG_BADGES, statusLabel, defaultFlagLabel } from '../../../../../core/constants/enums';
 
 @Component({
   selector: 'app-academic-year-list',
@@ -25,15 +17,15 @@ const DEFAULT_BADGES = {
 export class AcademicYearListComponent extends BaseListComponent {
   readonly locationCtx = inject(LocationContextService);
 
-  apiUrl = '/academic-years';
-  override deleteUrl = '/academic-years/delete-multiple';
+  apiUrl = API.academicYears.base;
+  override deleteUrl = API.academicYears.deleteMultiple;
   routeBase = '/settings/academic-year';
 
   columns: ColumnConfig[] = [
     { key: 'ay.academic_year', label: 'Academic Year', sortable: true, searchable: true },
     { key: 'loc.name', label: 'Location', sortable: true, searchable: true },
     { key: 'period', label: 'Period' },
-    { key: 'ay.is_default', label: 'Default', sortable: true, type: 'badge', badgeMap: DEFAULT_BADGES },
+    { key: 'ay.is_default', label: 'Default', sortable: true, type: 'badge', badgeMap: DEFAULT_FLAG_BADGES },
     { key: 'ay.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
   ];
 
@@ -47,8 +39,8 @@ export class AcademicYearListComponent extends BaseListComponent {
   rowTransform = (row: any, mapped: any) => {
     mapped['loc.name'] = row.location_code ? `${row.location_name} (${row.location_code})` : (row.location_name || '-');
     mapped['period'] = this.formatPeriod(row.start_date, row.end_date);
-    mapped['ay.is_default'] = row.is_default ? 'Default' : '—';
-    mapped['ay.is_active'] = row.is_active ? 'Active' : 'Inactive';
+    mapped['ay.is_default'] = defaultFlagLabel(row.is_default);
+    mapped['ay.is_active'] = statusLabel(row.is_active);
     return mapped;
   };
 

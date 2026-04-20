@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { environment } from 'src/environments/environment';
+import { API } from '../../../../../core/api/endpoints';
 
 interface ChatUser {
   id: string;
@@ -97,7 +98,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   }
 
   private loadUnreadCount(): void {
-    this.cs.getService({ url: '/chat/unread-count' }).subscribe({
+    this.cs.getService({ url: API.chat.unreadCount }).subscribe({
       next: (res: any) => {
         this.unreadTotal.set(res.unread_total || 0);
       },
@@ -127,7 +128,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   // --- List view ---
 
   loadConversations(): void {
-    this.cs.getService({ url: '/chat/conversations' }).subscribe({
+    this.cs.getService({ url: API.chat.conversations }).subscribe({
       next: (res: any) => {
         const convs = res.conversations || [];
         this.conversations.set(convs);
@@ -139,7 +140,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
 
   loadUsers(): void {
     if (this.users().length > 0) return;
-    this.cs.getService({ url: '/chat/users' }).subscribe({
+    this.cs.getService({ url: API.chat.users }).subscribe({
       next: (res: any) => {
         const users = res.users || [];
         this.users.set(users);
@@ -175,7 +176,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   }
 
   startNewChat(user: ChatUser): void {
-    this.cs.postService({ url: '/chat/conversations', payload: { user_id: user.id } }).subscribe({
+    this.cs.postService({ url: API.chat.startConversation, payload: { user_id: user.id } }).subscribe({
       next: (res: any) => {
         this.activeConversationId = res.conversation_id;
         this.activeChatUserId.set(user.id);
@@ -198,7 +199,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   }
 
   loadMessages(): void {
-    this.cs.getService({ url: `/chat/conversations/${this.activeConversationId}/messages` }).subscribe({
+    this.cs.getService({ url: API.chat.messages(this.activeConversationId) }).subscribe({
       next: (res: any) => {
         this.messages.set(res.messages || []);
         this.scrollToBottom();
@@ -210,7 +211,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
     if (!this.newMessage.trim() || this.sending()) return;
     this.sending.set(true);
     this.cs.postService({
-      url: `/chat/conversations/${this.activeConversationId}/messages`,
+      url: API.chat.messages(this.activeConversationId),
       payload: { content: this.newMessage.trim() },
     }).subscribe({
       next: (res: any) => {
@@ -243,7 +244,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
     const token = this.authService.getToken();
     if (!token) return;
 
-    const url = `${environment.apiUrl}/notifications/stream?token=${token}`;
+    const url = `${environment.apiUrl}${API.notifications.stream}?token=${token}`;
 
     this.ngZone.runOutsideAngular(() => {
       this.eventSource = new EventSource(url);
@@ -277,7 +278,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
             this.messages.update(list => [...list, data.message]);
             this.scrollToBottom();
             // Mark as read
-            this.cs.putService({ url: `/chat/conversations/${this.activeConversationId}/read`, payload: {} }).subscribe(() => {
+            this.cs.putService({ url: API.chat.markRead(this.activeConversationId), payload: {} }).subscribe(() => {
               this.unreadTotal.update(v => Math.max(0, v - 1));
             });
           }
@@ -325,7 +326,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   getAvatarUrl(fileId: string | null | undefined): string | null {
     if (!fileId || this.avatarErrors().has(fileId)) return null;
     const token = this.authService.getToken();
-    return `${environment.apiUrl}/files/${fileId}?token=${token}`;
+    return `${environment.apiUrl}${API.files.detail(fileId)}?token=${token}`;
   }
 
   onAvatarError(fileId: string | null | undefined): void {

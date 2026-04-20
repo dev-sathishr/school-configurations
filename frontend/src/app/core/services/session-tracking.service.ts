@@ -4,6 +4,7 @@ import { filter } from 'rxjs/operators';
 import { CommonService } from '../../shared/services/common/common.service';
 import { AuthService } from './auth.service';
 import { PermissionService } from './permission.service';
+import { API } from '../api/endpoints';
 
 /**
  * Logs route changes to `POST /sessions/activity` so the admin can audit
@@ -41,7 +42,7 @@ export class SessionTrackingService {
 
     const moduleCode = this.resolveModuleCode(route);
     this.cs.postService({
-      url: '/sessions/activity',
+      url: API.sessions.activity,
       payload: { route_path: route, module_code: moduleCode },
     }).subscribe({ error: () => { /* non-critical — swallow */ } });
   }

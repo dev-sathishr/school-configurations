@@ -11,6 +11,8 @@ import { TableComponent } from '../../../../../shared/components/table/table.com
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { PermissionService } from '../../../../../core/services/permission.service';
 import { LocationContextService } from '../../../../../core/services/location-context.service';
+import { API } from '../../../../../core/api/endpoints';
+import { STATUS_BADGES, statusLabel } from '../../../../../core/constants/enums';
 import * as V from '../../../../../shared/validators/common';
 
 @Component({
@@ -40,15 +42,12 @@ export class ClassLevelFormComponent implements OnInit {
 
   // Levels table
   levelsApiUrl = '';
-  levelsDeleteUrl = '/class-levels/delete-multiple';
+  levelsDeleteUrl = API.classLevels.deleteMultiple;
   levelsColumns: ColumnConfig[] = [
     { key: 'cl.name', label: 'Section', sortable: true, searchable: true },
     { key: 'cl.capacity', label: 'Capacity', sortable: true },
     { key: 'loc.name', label: 'Location', sortable: true },
-    { key: 'cl.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: {
-      'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
-      'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
-    }},
+    { key: 'cl.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
   ];
   levelsDisplayKeyMap: Record<string, string> = {
     'cl.name': 'name', 'cl.capacity': 'capacity',
@@ -56,7 +55,7 @@ export class ClassLevelFormComponent implements OnInit {
     'cl.is_active': 'is_active',
   };
   levelsRowTransform = (row: any, mapped: any) => {
-    mapped['cl.is_active'] = row.is_active ? 'Active' : 'Inactive';
+    mapped['cl.is_active'] = statusLabel(row.is_active);
     mapped['cl.capacity'] = row.capacity || 0;
     mapped['loc.name'] = row.location_name
       ? (row.location_code ? `${row.location_name} (${row.location_code})` : row.location_name)
@@ -90,7 +89,7 @@ export class ClassLevelFormComponent implements OnInit {
     if (classGeneralId) {
       this.form.patchValue({ class_general_id: classGeneralId });
       this.selectedClassId = classGeneralId;
-      this.levelsApiUrl = `/class-levels?class_general_id=${classGeneralId}`;
+      this.levelsApiUrl = API.classLevels.byClass(classGeneralId);
       this.loadClassLabel(classGeneralId);
     }
 
@@ -107,7 +106,7 @@ export class ClassLevelFormComponent implements OnInit {
       this.editMode = true;
       this.editId = id;
       this.loading = true;
-      this.cs.getService({ url: `/class-levels/${id}` }).subscribe({
+      this.cs.getService({ url: API.classLevels.detail(id) }).subscribe({
         next: (res: any) => {
           const d = res.data;
           this.form.patchValue(d);
@@ -121,7 +120,7 @@ export class ClassLevelFormComponent implements OnInit {
             code: d.location_code || '',
           } : null);
           this.selectedClassId = d.class_general_id;
-          this.levelsApiUrl = `/class-levels?class_general_id=${d.class_general_id}`;
+          this.levelsApiUrl = API.classLevels.byClass(d.class_general_id);
           this.loading = false;
           this.cdr.detectChanges();
         },
@@ -131,7 +130,7 @@ export class ClassLevelFormComponent implements OnInit {
   }
 
   private loadClassLabel(classId: string): void {
-    this.cs.getService({ url: `/classes/${classId}` }).subscribe({
+    this.cs.getService({ url: API.classes.detail(classId) }).subscribe({
       next: (res: any) => {
         const d = res.data;
         this.classLabel = d.code ? `${d.name} (${d.code})` : d.name;
@@ -148,7 +147,7 @@ export class ClassLevelFormComponent implements OnInit {
       // Temporarily clear to force table re-creation
       this.levelsApiUrl = '';
       this.cdr.detectChanges();
-      this.levelsApiUrl = `/class-levels?class_general_id=${classId}`;
+      this.levelsApiUrl = API.classLevels.byClass(classId);
       this.cdr.detectChanges();
     } else {
       this.levelsApiUrl = '';
@@ -164,8 +163,8 @@ export class ClassLevelFormComponent implements OnInit {
     const data = this.form.value;
 
     const req = this.editMode
-      ? this.cs.putService({ url: `/class-levels/${this.editId}`, payload: data })
-      : this.cs.postService({ url: '/class-levels', payload: data });
+      ? this.cs.putService({ url: API.classLevels.detail(this.editId), payload: data })
+      : this.cs.postService({ url: API.classLevels.base, payload: data });
 
     req.subscribe({
       next: () => {

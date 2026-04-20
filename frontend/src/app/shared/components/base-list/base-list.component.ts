@@ -10,12 +10,14 @@ import { TableComponent } from '../table/table.component';
  *
  *   @Component({ imports: [TableComponent, ButtonComponent, BreadcrumbComponent] })
  *   export class UserListComponent extends BaseListComponent {
- *     apiUrl = '/users';
- *     deleteUrl = '/users/delete-multiple';
+ *     apiUrl = API.users.base;
+ *     deleteUrl = API.users.deleteMultiple;
  *     routeBase = '/settings/user';
  *     columns = [...];
  *     displayKeyMap = {...};
  *   }
+ *
+ * URLs must come from `core/api/endpoints.ts` — no raw literals here or anywhere.
  *
  * Lists that don't support view/delete simply don't wire those buttons in
  * their template — the methods exist but stay unused.

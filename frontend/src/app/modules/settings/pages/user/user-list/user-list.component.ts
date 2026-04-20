@@ -5,6 +5,8 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
 import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
+import { API } from '../../../../../core/api/endpoints';
+import { STATUS_BADGES, statusLabel } from '../../../../../core/constants/enums';
 
 @Component({
   selector: 'app-user-list',
@@ -12,8 +14,8 @@ import { BaseListComponent } from '../../../../../shared/components/base-list/ba
   imports: [TableComponent, ButtonComponent, BreadcrumbComponent, HasPermissionDirective],
 })
 export class UserListComponent extends BaseListComponent {
-  apiUrl = '/users';
-  override deleteUrl = '/users/delete-multiple';
+  apiUrl = API.users.base;
+  override deleteUrl = API.users.deleteMultiple;
   routeBase = '/settings/user';
 
   columns: ColumnConfig[] = [
@@ -22,13 +24,7 @@ export class UserListComponent extends BaseListComponent {
     { key: 'u.email', label: 'Email', sortable: true, searchable: true },
     { key: 'u.phone', label: 'Phone', sortable: true, searchable: true },
     { key: 'g.name', label: 'Group', sortable: true },
-    {
-      key: 'u.is_active', label: 'Status', sortable: true, type: 'badge',
-      badgeMap: {
-        'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
-        'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
-      },
-    },
+    { key: 'u.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
     { key: 'u.last_login', label: 'Last Login', sortable: true },
   ];
 
@@ -40,7 +36,7 @@ export class UserListComponent extends BaseListComponent {
   };
 
   rowTransform = (row: any, mapped: any) => {
-    mapped['u.is_active'] = row.is_active ? 'Active' : 'Inactive';
+    mapped['u.is_active'] = statusLabel(row.is_active);
     mapped['g.name'] = row.group_name || '-';
     mapped['u.phone'] = row.phone ? `${row.phone_code || '+91'} ${row.phone}` : '-';
     mapped['u.last_login'] = row.last_login ? new Date(row.last_login).toLocaleDateString('en-IN', {

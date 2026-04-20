@@ -8,6 +8,8 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { ConfirmDialogComponent } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { API } from '../../../../../core/api/endpoints';
+import { SessionStatus } from '../../../../../core/constants/enums';
 
 interface SessionActivity {
   id: string;
@@ -38,7 +40,7 @@ interface SessionDetail {
   longitude: number | null;
   location_label: string | null;
   login_method: string;
-  status: 'active' | 'ended' | 'revoked';
+  status: SessionStatus;
   activity: SessionActivity[];
 }
 
@@ -67,7 +69,7 @@ export class SessionDetailComponent implements OnInit {
 
   private load(id: string): void {
     this.loading = true;
-    this.cs.getService({ url: `/sessions/${id}` }).subscribe({
+    this.cs.getService({ url: API.sessions.detail(id) }).subscribe({
       next: (res: any) => {
         this.session = res.data;
         this.loading = false;
@@ -89,7 +91,7 @@ export class SessionDetailComponent implements OnInit {
   get avatarUrl(): string | null {
     if (!this.session?.profile_file_id || this.avatarFailed) return null;
     const token = localStorage.getItem('access_token');
-    return `${environment.apiUrl}/files/${this.session.profile_file_id}?token=${token}`;
+    return `${environment.apiUrl}${API.files.detail(this.session.profile_file_id)}?token=${token}`;
   }
 
   get initial(): string {
@@ -107,7 +109,7 @@ export class SessionDetailComponent implements OnInit {
   confirmRevoke(): void {
     if (!this.session) return;
     this.revoking = true;
-    this.cs.postService({ url: `/sessions/${this.session.id}/revoke`, payload: {} }).subscribe({
+    this.cs.postService({ url: API.sessions.revoke(this.session.id), payload: {} }).subscribe({
       next: () => {
         this.revoking = false;
         this.showRevokeConfirm = false;

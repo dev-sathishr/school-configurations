@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { AuthService, User } from '../../../../core/services/auth.service';
 import { environment } from 'src/environments/environment';
+import { API } from '../../../../core/api/endpoints';
 
 @Component({
   selector: 'app-profile-overview',
@@ -18,7 +19,7 @@ export class OverviewComponent implements OnInit {
     this.user = this.authService.currentUser;
     if (this.user?.profile_file_id) {
       const token = this.authService.getToken();
-      this.profileImageUrl = `${environment.apiUrl}/files/${this.user.profile_file_id}?token=${token}`;
+      this.profileImageUrl = `${environment.apiUrl}${API.files.detail(this.user.profile_file_id)}?token=${token}`;
     }
   }
 
