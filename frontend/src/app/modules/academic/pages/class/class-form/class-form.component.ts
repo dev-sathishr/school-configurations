@@ -63,6 +63,7 @@ export class ClassFormComponent implements OnInit {
     { key: 'cl.code', label: 'Code', sortable: true, searchable: true },
     { key: 'cl.section', label: 'Section', sortable: true },
     { key: 'cl.capacity', label: 'Capacity', sortable: true },
+    { key: 'loc.name', label: 'Location', sortable: true },
     { key: 'cl.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: {
       'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
       'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
@@ -70,12 +71,16 @@ export class ClassFormComponent implements OnInit {
   ];
   levelsDisplayKeyMap: Record<string, string> = {
     'cl.code': 'code', 'cl.section': 'section', 'cl.capacity': 'capacity',
+    'loc.name': 'location_name',
     'cl.is_active': 'is_active',
   };
   levelsRowTransform = (row: any, mapped: any) => {
     mapped['cl.is_active'] = row.is_active ? 'Active' : 'Inactive';
     mapped['cl.capacity'] = row.capacity || 0;
     mapped['cl.section'] = row.section || '-';
+    mapped['loc.name'] = row.location_name
+      ? (row.location_code ? `${row.location_name} (${row.location_code})` : row.location_name)
+      : '-';
     return mapped;
   };
 
@@ -96,6 +101,7 @@ export class ClassFormComponent implements OnInit {
     });
 
     this.levelForm = this.fb.group({
+      location_id: ['', Validators.required],
       class_general_id: ['', Validators.required],
       section: [''],
       code: ['', [Validators.required, Validators.maxLength(100)]],
@@ -198,6 +204,9 @@ export class ClassFormComponent implements OnInit {
           this.levelForm.patchValue({ class_general_id: created.id });
           this.levelsApiUrl = `/class-levels?class_general_id=${created.id}`;
           this.activeTab = 'levels';
+          // Newly created class has no sections yet — expand the form so the
+          // user can add the first one without clicking the toggle.
+          this.levelFormExpanded = true;
           this.cdr.detectChanges();
         } else {
           this.cs.navigate({ url: '/academic/class' });
@@ -241,6 +250,8 @@ export class ClassFormComponent implements OnInit {
     });
   }
 
+  levelLocationLabel = '';
+
   editLevel(row: any): void {
     this.levelEditMode = true;
     this.levelEditId = row.id;
@@ -249,9 +260,13 @@ export class ClassFormComponent implements OnInit {
       section: row.section || '',
       code: row.code,
       capacity: row.capacity,
+      location_id: row.location_id || '',
       is_active: row.is_active,
       notes: row.notes || '',
     });
+    this.levelLocationLabel = row.location_name
+      ? (row.location_code ? `${row.location_name} (${row.location_code})` : row.location_name)
+      : '';
     this.levelSubmitted = false;
     this.levelError = '';
     this.levelFormExpanded = true;
@@ -270,7 +285,8 @@ export class ClassFormComponent implements OnInit {
   private resetLevelForm(): void {
     this.levelEditMode = false;
     this.levelEditId = '';
-    this.levelForm.reset({ class_general_id: this.selectedClassId, section: '', code: '', capacity: 0, is_active: true, notes: '' });
+    this.levelForm.reset({ class_general_id: this.selectedClassId, section: '', code: '', capacity: 0, location_id: '', is_active: true, notes: '' });
+    this.levelLocationLabel = '';
     this.levelSubmitted = false;
     this.levelError = '';
     this.levelFormExpanded = false;

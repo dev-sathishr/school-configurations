@@ -15,6 +15,9 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">{{ editMode ? 'Edit Section' : 'Add Section' }}</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <app-form-field [formGroup]="form" controlName="location_id" label="Location" fieldType="async-select"
+            asyncUrl="/locations/dropdown" [required]="true" [submitted]="submitted"
+            [initialLabel]="locationLabel" selectPlaceholder="Select location" />
           <app-form-field [formGroup]="form" controlName="class_general_id" label="Class" fieldType="async-select"
             asyncUrl="/classes/dropdown" [required]="true" [submitted]="submitted" [initialLabel]="classLabel" selectPlaceholder="Select class" />
           <app-form-field [formGroup]="form" controlName="name" label="Section Name" [required]="true" [submitted]="submitted"

@@ -27,6 +27,7 @@ export class ClassLevelFormComponent implements OnInit {
   loading = false;
   errorMessage = '';
   classLabel = '';
+  locationLabel = '';
   selectedClassId = '';
 
   // Levels table
@@ -35,6 +36,7 @@ export class ClassLevelFormComponent implements OnInit {
   levelsColumns: ColumnConfig[] = [
     { key: 'cl.name', label: 'Section', sortable: true, searchable: true },
     { key: 'cl.capacity', label: 'Capacity', sortable: true },
+    { key: 'loc.name', label: 'Location', sortable: true },
     { key: 'cl.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: {
       'Active': { label: 'Active', class: 'bg-green-500/10 text-green-700' },
       'Inactive': { label: 'Inactive', class: 'bg-red-500/10 text-red-700' },
@@ -42,11 +44,15 @@ export class ClassLevelFormComponent implements OnInit {
   ];
   levelsDisplayKeyMap: Record<string, string> = {
     'cl.name': 'name', 'cl.capacity': 'capacity',
+    'loc.name': 'location_name',
     'cl.is_active': 'is_active',
   };
   levelsRowTransform = (row: any, mapped: any) => {
     mapped['cl.is_active'] = row.is_active ? 'Active' : 'Inactive';
     mapped['cl.capacity'] = row.capacity || 0;
+    mapped['loc.name'] = row.location_name
+      ? (row.location_code ? `${row.location_name} (${row.location_code})` : row.location_name)
+      : '-';
     return mapped;
   };
 
@@ -58,6 +64,7 @@ export class ClassLevelFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.form = this.fb.group({
+      location_id: ['', Validators.required],
       class_general_id: ['', Validators.required],
       name: ['', [Validators.required, Validators.maxLength(100)]],
       capacity: [0],
@@ -89,6 +96,9 @@ export class ClassLevelFormComponent implements OnInit {
           const d = res.data;
           this.form.patchValue(d);
           this.classLabel = d.class_code ? `${d.class_name} (${d.class_code})` : (d.class_name || '');
+          this.locationLabel = d.location_name
+            ? (d.location_code ? `${d.location_name} (${d.location_code})` : d.location_name)
+            : '';
           this.selectedClassId = d.class_general_id;
           this.levelsApiUrl = `/class-levels?class_general_id=${d.class_general_id}`;
           this.loading = false;

@@ -591,6 +591,15 @@ async function migrate() {
     // Add notes column if missing
     await client.query('ALTER TABLE academic.class_levels ADD COLUMN IF NOT EXISTS notes TEXT').catch(() => {});
 
+    // Associate each class-level section with a physical location
+    await client.query(`
+      ALTER TABLE academic.class_levels
+        ADD COLUMN IF NOT EXISTS location_id UUID REFERENCES settings.locations(id);
+    `).catch(() => {});
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_class_level_location ON academic.class_levels (location_id) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_class_level_location already exists'));
+
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];
     for (const table of tables) {

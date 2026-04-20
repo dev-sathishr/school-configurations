@@ -2,9 +2,11 @@ const db = require('../../../config/database');
 const { paginate } = require('../../../shared/helpers/pagination.helper');
 
 const SELECT_FIELDS = `cl.*, cg.name AS class_name, cg.code AS class_code,
+  loc.name AS location_name, loc.code AS location_code,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
 
 const JOINS = `LEFT JOIN academic.class_generals cg ON cl.class_general_id = cg.id
+  LEFT JOIN settings.locations loc ON cl.location_id = loc.id
   LEFT JOIN settings.users cb ON cl.created_by = cb.id
   LEFT JOIN settings.users ub ON cl.updated_by = ub.id`;
 
@@ -19,7 +21,7 @@ async function findAll(query) {
     joins: JOINS,
     searchColumns: ['cl.code', 'cl.section', 'cg.name'],
     filterableColumns: ['cl.code', 'cl.section', 'cl.is_active', 'cl.class_general_id'],
-    sortableColumns: ['cl.code', 'cl.section', 'cl.capacity', 'cl.is_active', 'cl.created_at', 'cg.name'],
+    sortableColumns: ['cl.code', 'cl.section', 'cl.capacity', 'cl.is_active', 'cl.created_at', 'cg.name', 'loc.name'],
     defaultSortBy: 'cl.created_at',
     defaultSortOrder: 'DESC',
     extraWhere,
@@ -39,10 +41,11 @@ async function findById(id) {
 
 async function create(data, userId) {
   const result = await db.query(`
-    INSERT INTO academic.class_levels (class_general_id, code, section, capacity, is_active, notes, created_by, updated_by)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+    INSERT INTO academic.class_levels (class_general_id, code, section, capacity, location_id, is_active, notes, created_by, updated_by)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
   `, [
     data.class_general_id, data.code, data.section || null, data.capacity || 0,
+    data.location_id || null,
     data.is_active !== undefined ? data.is_active : true,
     data.notes || null, userId, userId,
   ]);
@@ -52,14 +55,15 @@ async function create(data, userId) {
 async function update(id, data, current, userId) {
   const result = await db.query(`
     UPDATE academic.class_levels SET
-      class_general_id = $1, code = $2, section = $3, capacity = $4, is_active = $5,
-      notes = $6, updated_by = $7, updated_at = NOW()
-    WHERE id = $8 RETURNING *
+      class_general_id = $1, code = $2, section = $3, capacity = $4, location_id = $5, is_active = $6,
+      notes = $7, updated_by = $8, updated_at = NOW()
+    WHERE id = $9 RETURNING *
   `, [
     data.class_general_id || current.class_general_id,
     data.code || current.code,
     data.section !== undefined ? (data.section || null) : current.section,
     data.capacity !== undefined ? data.capacity : current.capacity,
+    data.location_id !== undefined ? (data.location_id || null) : current.location_id,
     data.is_active !== undefined ? data.is_active : current.is_active,
     data.notes !== undefined ? data.notes : current.notes,
     userId, id,

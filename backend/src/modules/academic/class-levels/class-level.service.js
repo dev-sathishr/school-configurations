@@ -2,6 +2,7 @@ const levelRepo = require('./class-level.repository');
 const { validate } = require('../../../shared/helpers/validate.helper');
 
 const LEVEL_RULES = {
+  location_id: { required: true, label: 'Location' },
   class_general_id: { required: true, label: 'Class' },
   code: { required: true, min: 1, max: 100, label: 'Code' },
   notes: { max: 500, label: 'Notes' },
