@@ -1,0 +1,34 @@
+<div class="bg-background border-border rounded-lg border p-5">
+  <div class="mb-4 flex items-start justify-between gap-3">
+    <div>
+      <h3 class="text-foreground text-lg font-semibold">My Sessions</h3>
+      <p class="text-muted-foreground mt-1 text-xs">
+        Devices signed in to your account. If you see anything you don't recognise, sign out all other devices.
+      </p>
+    </div>
+    <app-button impact="bold" tone="danger" shape="rounded" size="small" (buttonClick)="askRevokeOthers()">
+      Sign out other devices
+    </app-button>
+  </div>
+
+  <app-table
+    [apiUrl]="apiUrl"
+    [columns]="columns"
+    [displayKeyMap]="displayKeyMap"
+    [rowTransform]="rowTransform"
+    [canEdit]="false"
+    [canDelete]="false"
+    [canView]="false"
+    [canExport]="false">
+  </app-table>
+</div>
+
+<app-confirm-dialog
+  [visible]="showConfirm"
+  title="Sign out other devices?"
+  message="Every active session for your account except this browser will be revoked. You'll stay signed in here."
+  confirmText="Sign out others"
+  [loading]="revoking"
+  (onConfirm)="confirmRevokeOthers()"
+  (onCancel)="cancelRevokeOthers()">
+</app-confirm-dialog>

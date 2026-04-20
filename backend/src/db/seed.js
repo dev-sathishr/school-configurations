@@ -165,6 +165,7 @@ async function seed() {
       { name: 'Menus', code: 'MENUS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/menu', display_order: 5 },
       { name: 'Groups', code: 'GROUPS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/settings/group', display_order: 6 },
       { name: 'Permissions', code: 'PERMISSIONS', icon: 'assets/icons/heroicons/outline/shield-check.svg', route_path: '/settings/permission', display_order: 7 },
+      { name: 'Sessions', code: 'SESSIONS', icon: 'assets/icons/heroicons/outline/shield-exclamation.svg', route_path: '/settings/session', display_order: 8 },
     ];
 
     const moduleIds = {};
@@ -192,6 +193,7 @@ async function seed() {
       { menu: 'SETTINGS', module: 'MENUS', display_order: 5 },
       { menu: 'SETTINGS', module: 'GROUPS', display_order: 6 },
       { menu: 'SETTINGS', module: 'PERMISSIONS', display_order: 7 },
+      { menu: 'SETTINGS', module: 'SESSIONS', display_order: 8 },
     ];
 
     let mmInserted = 0;

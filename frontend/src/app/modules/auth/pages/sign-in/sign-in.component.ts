@@ -59,17 +59,34 @@ export class SignInComponent implements OnInit {
     this.loading = true;
     const { username, password } = this.form.value;
 
-    this._authService.login(username, password)
-      .pipe(finalize(() => { this.loading = false; this._cdr.detectChanges(); }))
-      .subscribe({
-        next: () => {
-          this._router.navigate(['/']);
-        },
-        error: (err) => {
-          const message = err.error?.message || 'Login failed. Please try again.';
-          this.errorMessage = message;
-          this._toastService.error(message);
-        },
-      });
+    // Best-effort geolocation — don't block login if the user denies or the
+    // browser has no permission. The session record just won't have lat/lng,
+    // which the monitor UI handles.
+    this.resolveGeolocation().then((context) => {
+      this._authService.login(username, password, context)
+        .pipe(finalize(() => { this.loading = false; this._cdr.detectChanges(); }))
+        .subscribe({
+          next: () => {
+            this._router.navigate(['/']);
+          },
+          error: (err) => {
+            const message = err.error?.message || 'Login failed. Please try again.';
+            this.errorMessage = message;
+            this._toastService.error(message);
+          },
+        });
+    });
+  }
+
+  private resolveGeolocation(): Promise<{ latitude?: number; longitude?: number }> {
+    if (!navigator?.geolocation) return Promise.resolve({});
+    return new Promise((resolve) => {
+      // 5s timeout — a slow GPS shouldn't make the user wait indefinitely.
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => resolve({}),
+        { timeout: 5000, maximumAge: 60_000 },
+      );
+    });
   }
 }

@@ -39,8 +39,18 @@ export class AuthService {
 
   constructor(private http: HttpClient, private router: Router, private toast: ToastService) {}
 
-  login(username: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { username, password }).pipe(
+  /**
+   * Sign in. `context` optionally carries the browser's geolocation so the
+   * backend can stamp the session row with lat/lng. If geolocation was
+   * denied or unavailable, we just don't send it — login still works, the
+   * session record simply has no location.
+   */
+  login(
+    username: string,
+    password: string,
+    context: { latitude?: number; longitude?: number; location_label?: string } = {},
+  ): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { username, password, ...context }).pipe(
       tap((res) => {
         localStorage.setItem('access_token', res.access_token);
         localStorage.setItem('refresh_token', res.refresh_token);
@@ -82,8 +92,33 @@ export class AuthService {
     return localStorage.getItem('access_token');
   }
 
+  /**
+   * True only when we hold a token that hasn't expired yet. We decode the
+   * JWT client-side purely to check `exp` — signature verification stays
+   * server-side. Expired / malformed tokens are cleared as a side effect so
+   * the next caller doesn't trigger the bootstrap forkJoin against a dead
+   * token and produce the classic "401s on the sign-in page" console noise.
+   */
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) return false;
+    const payload = decodeJwtPayload(token);
+    const exp = payload?.['exp'];
+    if (typeof exp !== 'number' || exp * 1000 <= Date.now()) {
+      this.dropStoredSession();
+      return false;
+    }
+    return true;
+  }
+
+  /** Clear the local session without hitting the logout endpoint. Used when
+   *  the server-side session is already gone (e.g. bootstrap 401/404) and
+   *  we don't want to loop-attempt a logout on a dead token. */
+  dropStoredSession(): void {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    this._currentUser.set(null);
   }
 
   /** Synchronous snapshot. Reads the signal. */
@@ -94,5 +129,23 @@ export class AuthService {
   private getStoredUser(): User | null {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
+  }
+}
+
+/**
+ * Decode a JWT's payload without verifying the signature. JWTs use base64url
+ * (`-` / `_` and no padding) so plain `atob` can choke — normalize first.
+ * Returns `null` for anything malformed so callers can treat it as "no token".
+ */
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  try {
+    let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.length % 4;
+    if (pad) b64 += '='.repeat(4 - pad);
+    return JSON.parse(atob(b64));
+  } catch {
+    return null;
   }
 }

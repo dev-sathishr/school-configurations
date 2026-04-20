@@ -5,6 +5,7 @@ import { OverviewComponent } from './pages/overview/overview.component';
 import { AppearanceComponent } from './pages/appearance/appearance.component';
 import { TablesComponent } from './pages/tables/tables.component';
 import { FavoritesComponent } from './pages/favorites/favorites.component';
+import { MySessionsComponent } from './pages/sessions/my-sessions.component';
 
 const routes: Routes = [
   {
@@ -16,6 +17,7 @@ const routes: Routes = [
       { path: 'appearance', component: AppearanceComponent },
       { path: 'tables', component: TablesComponent },
       { path: 'favorites', component: FavoritesComponent },
+      { path: 'sessions', component: MySessionsComponent },
     ],
   },
 ];

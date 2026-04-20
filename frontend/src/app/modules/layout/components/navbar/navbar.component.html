@@ -108,7 +108,7 @@
 
       <!-- Action icons & Profile -->
       <div class="flex items-center gap-2">
-        @if (locationCtx.permitted().length > 0) {
+        @if (locationCtx.permitted().length > 0 && allModules().length > 0) {
           <app-select-dropdown
             triggerType="custom"
             [options]="locationOptions()"

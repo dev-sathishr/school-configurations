@@ -30,6 +30,15 @@
           </span>
         } @else if (col.type === 'date') {
           {{ user[col.key] ? (user[col.key] | date: 'medium') : '-' }}
+        } @else if (col.type === 'link') {
+          @if (user[col.linkUrlKey || '']) {
+            <a [href]="user[col.linkUrlKey || '']" target="_blank" rel="noopener noreferrer"
+              class="text-primary hover:underline" (click)="$event.stopPropagation()">
+              {{ user[col.key] ?? '-' }}
+            </a>
+          } @else {
+            {{ user[col.key] ?? '-' }}
+          }
         } @else {
           {{ user[col.key] ?? '-' }}
         }

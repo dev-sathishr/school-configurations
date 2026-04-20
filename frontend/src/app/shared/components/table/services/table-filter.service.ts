@@ -7,9 +7,12 @@ export interface ColumnConfig {
   sortable?: boolean;
   searchable?: boolean;
   visible?: boolean;
-  type?: 'text' | 'badge' | 'avatar' | 'date';
+  type?: 'text' | 'badge' | 'avatar' | 'date' | 'link';
   badgeMap?: Record<string, { label: string; class: string }>;
   avatarKey?: string;
+  /** For `type: 'link'` — name of the row field holding the target URL.
+   *  If the URL is empty/null the cell renders as plain text instead. */
+  linkUrlKey?: string;
 }
 
 @Injectable({

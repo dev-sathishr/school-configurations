@@ -20,6 +20,7 @@ const groupModuleRoutes = require('./modules/settings/group-modules/group-module
 const permissionRoutes = require('./modules/settings/permissions/permission.routes');
 const permissionRequestRoutes = require('./modules/settings/permission-requests/permission-request.routes');
 const preferencesRoutes = require('./modules/settings/user-preferences/preferences.routes');
+const sessionRoutes = require('./modules/settings/sessions/session.routes');
 
 // Academic
 const classRoutes = require('./modules/academic/classes/class.routes');
@@ -48,6 +49,7 @@ app.use('/api/v1/group-modules', groupModuleRoutes);
 app.use('/api/v1/permissions', permissionRoutes);
 app.use('/api/v1/permission-requests', permissionRequestRoutes);
 app.use('/api/v1/me/preferences', preferencesRoutes);
+app.use('/api/v1/sessions', sessionRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/files', fileRoutes);

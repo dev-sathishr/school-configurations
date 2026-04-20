@@ -1,11 +1,20 @@
 const userRepo = require('../settings/users/user.repository');
 const locationRepo = require('../settings/locations/location.repository');
+const sessionRepo = require('../settings/sessions/session.repository');
 const fileRepo = require('../files/file.repository');
 const password = require('../../shared/helpers/password.helper');
 const jwt = require('../../shared/helpers/jwt.helper');
 const db = require('../../config/database');
 
-async function login(username, pwd) {
+/**
+ * Sign in — verifies creds, creates a session row (for audit + revocation),
+ * and embeds the session id as a JWT claim so the authenticate middleware
+ * can bind every subsequent request to that session.
+ *
+ * `context` captures device + location info from the sign-in form:
+ *   { ip_address, user_agent, latitude, longitude, location_label }
+ */
+async function login(username, pwd, context = {}) {
   if (!username || !pwd) {
     return { error: 'badRequest', message: 'Username and password are required' };
   }
@@ -19,13 +28,28 @@ async function login(username, pwd) {
 
   await userRepo.updateLastLogin(user.id);
 
-  const tokenPayload = { id: user.id, username: user.username, group_code: user.group_code || '' };
+  const session = await sessionRepo.create({
+    user_id: user.id,
+    ip_address: context.ip_address || null,
+    user_agent: context.user_agent || null,
+    latitude: context.latitude ?? null,
+    longitude: context.longitude ?? null,
+    location_label: context.location_label || null,
+    login_method: 'password',
+  });
+
+  const tokenPayload = {
+    id: user.id,
+    username: user.username,
+    group_code: user.group_code || '',
+    session_id: session.id,
+  };
   const profileFile = await fileRepo.findOneByEntity('user', user.id, 'profile_image');
 
   return {
     data: {
       access_token: jwt.generateAccessToken(tokenPayload),
-      refresh_token: jwt.generateRefreshToken({ id: user.id }),
+      refresh_token: jwt.generateRefreshToken({ id: user.id, session_id: session.id }),
       user: {
         id: user.id,
         username: user.username,
@@ -51,14 +75,35 @@ async function refresh(refreshToken) {
     const fullUser = await userRepo.findProfileById(decoded.id);
     if (!fullUser || !fullUser.is_active) return { error: 'unauthorized', message: 'Invalid refresh token' };
 
+    // Session must still be active. A revoked or ended session can't mint new
+    // tokens via refresh — the user has to sign in again.
+    if (decoded.session_id) {
+      const session = await sessionRepo.findById(decoded.session_id);
+      if (!session || session.logout_at || session.revoked_at) {
+        return { error: 'unauthorized', message: 'Session is no longer valid' };
+      }
+    }
+
     return {
       data: {
-        access_token: jwt.generateAccessToken({ id: fullUser.id, username: fullUser.username, group_code: fullUser.group_code || '' }),
+        access_token: jwt.generateAccessToken({
+          id: fullUser.id,
+          username: fullUser.username,
+          group_code: fullUser.group_code || '',
+          session_id: decoded.session_id,
+        }),
       },
     };
   } catch (err) {
     return { error: 'unauthorized', message: 'Invalid or expired refresh token' };
   }
+}
+
+async function logout(sessionId) {
+  if (sessionId) {
+    await sessionRepo.endSession(sessionId);
+  }
+  return { data: {} };
 }
 
 async function me(userId) {
@@ -149,4 +194,4 @@ async function getMyLocations(userId) {
   return { data: { locations: all.map((l) => ({ ...l, is_default: false })), scoped: false } };
 }
 
-module.exports = { login, refresh, me, getMyPermissions, getMyLocations };
+module.exports = { login, refresh, logout, me, getMyPermissions, getMyLocations };

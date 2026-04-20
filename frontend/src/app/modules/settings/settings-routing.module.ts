@@ -16,6 +16,8 @@ import { GroupListComponent } from './pages/group/group-list/group-list.componen
 import { GroupFormComponent } from './pages/group/group-form/group-form.component';
 import { PermissionListComponent } from './pages/permission/permission-list/permission-list.component';
 import { PermissionFormComponent } from './pages/permission/permission-form/permission-form.component';
+import { SessionListComponent } from './pages/session/session-list/session-list.component';
+import { SessionDetailComponent } from './pages/session/session-detail/session-detail.component';
 import { ModulePermissionGuard } from '../../core/guards/module-permission.guard';
 
 const routes: Routes = [
@@ -59,6 +61,9 @@ const routes: Routes = [
       { path: 'permission/new', component: PermissionFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'PERMISSIONS', permission: 'CREATE' } },
       { path: 'permission/:id/view', component: PermissionFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'PERMISSIONS', permission: 'VIEW' } },
       { path: 'permission/:id/edit', component: PermissionFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'PERMISSIONS', permission: 'EDIT' } },
+
+      { path: 'session', component: SessionListComponent },
+      { path: 'session/:id/view', component: SessionDetailComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'SESSIONS', permission: 'VIEW' } },
     ],
   },
 ];

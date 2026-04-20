@@ -600,6 +600,43 @@ async function migrate() {
       CREATE INDEX IF NOT EXISTS idx_class_level_location ON academic.class_levels (location_id) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_class_level_location already exists'));
 
+    // Sessions — one row per login, records device + location + lifecycle.
+    // `revoked_at` is admin force-logout, `logout_at` is user-initiated or
+    // refresh-token based end. Both null == active.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.sessions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES settings.users(id),
+        login_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        logout_at TIMESTAMPTZ,
+        last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        revoked_at TIMESTAMPTZ,
+        revoked_by UUID REFERENCES settings.users(id),
+        ip_address INET,
+        user_agent TEXT,
+        latitude NUMERIC(9,6),
+        longitude NUMERIC(9,6),
+        location_label VARCHAR(200),
+        login_method VARCHAR(20)
+      );
+    `);
+    await client.query('CREATE INDEX IF NOT EXISTS idx_sessions_user ON settings.sessions (user_id, login_at DESC)').catch(() => {});
+    await client.query('CREATE INDEX IF NOT EXISTS idx_sessions_active ON settings.sessions (user_id) WHERE logout_at IS NULL AND revoked_at IS NULL').catch(() => {});
+
+    // Session activity — module/route visited within a session. Deduped at
+    // the app layer (SessionTrackingService throttles same-route pings) so
+    // the table stays small.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.session_activity (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        session_id UUID NOT NULL REFERENCES settings.sessions(id),
+        module_code VARCHAR(50),
+        route_path VARCHAR(200) NOT NULL,
+        accessed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await client.query('CREATE INDEX IF NOT EXISTS idx_session_activity_session ON settings.session_activity (session_id, accessed_at DESC)').catch(() => {});
+
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];
     for (const table of tables) {

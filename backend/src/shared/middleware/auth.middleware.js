@@ -2,19 +2,57 @@ const { verifyAccessToken } = require('../helpers/jwt.helper');
 const { unauthorized, forbidden } = require('../helpers/response.helper');
 const db = require('../../config/database');
 
-function authenticate(req, res, next) {
+// In-memory throttle for `last_activity_at` updates. Writing on every single
+// authenticated request would thrash the DB; bucketing to once per 30s per
+// session gives useful "last seen" accuracy without the overhead.
+const ACTIVITY_THROTTLE_MS = 30_000;
+const lastActivityWritten = new Map(); // sessionId -> epoch ms
+
+async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return unauthorized(res);
   }
 
+  let decoded;
   try {
     const token = authHeader.split(' ')[1];
-    req.user = verifyAccessToken(token);
-    next();
+    decoded = verifyAccessToken(token);
   } catch (err) {
     return unauthorized(res, 'Invalid or expired token');
   }
+
+  // Bind the request to a session row (for audit + force-logout). Older
+  // tokens without a `session_id` claim are allowed through — any token
+  // issued since the sessions feature landed carries one, and grandfathering
+  // keeps existing sessions working across the rollout.
+  if (decoded.session_id) {
+    try {
+      const result = await db.query(
+        `SELECT id, logout_at, revoked_at FROM settings.sessions WHERE id = $1`,
+        [decoded.session_id]
+      );
+      const session = result.rows[0];
+      if (!session) return unauthorized(res, 'Session not found');
+      if (session.logout_at) return unauthorized(res, 'Session has ended');
+      if (session.revoked_at) return unauthorized(res, 'Session revoked by administrator');
+
+      const now = Date.now();
+      const lastWritten = lastActivityWritten.get(decoded.session_id) || 0;
+      if (now - lastWritten > ACTIVITY_THROTTLE_MS) {
+        lastActivityWritten.set(decoded.session_id, now);
+        // Fire-and-forget — don't block the request on this update.
+        db.query(`UPDATE settings.sessions SET last_activity_at = NOW() WHERE id = $1`, [decoded.session_id])
+          .catch((err) => console.error('last_activity_at update failed:', err));
+      }
+    } catch (err) {
+      console.error('session check failed:', err);
+      return unauthorized(res, 'Session verification failed');
+    }
+  }
+
+  req.user = decoded;
+  next();
 }
 
 function authorize(...groupCodes) {

@@ -1,0 +1,125 @@
+<div class="mx-auto max-w-4xl">
+  <div class="mb-6">
+    <app-breadcrumb></app-breadcrumb>
+  </div>
+
+  @if (loading) {
+    <app-loader size="large" text="Loading session..." />
+  } @else if (session) {
+    <div class="bg-background border-muted/30 rounded-lg border p-5">
+      <div class="mb-4 flex items-start justify-between gap-3">
+        <div class="flex items-center gap-3">
+          @if (avatarUrl) {
+            <img [src]="avatarUrl" alt=""
+              class="h-12 w-12 shrink-0 rounded-full border border-muted/30 object-cover"
+              (error)="onAvatarError()" />
+          } @else {
+            <div class="bg-primary/10 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold">
+              {{ initial }}
+            </div>
+          }
+          <div>
+            <h3 class="text-foreground text-lg font-semibold">{{ session.full_name || session.username }}</h3>
+            <p class="text-muted-foreground text-sm">{{ session.email }}</p>
+          </div>
+        </div>
+        <span class="rounded-[30px] px-2.5 py-1 text-xs font-medium"
+          [class.bg-green-500]="session.status === 'active'"
+          [class.text-white]="session.status === 'active'"
+          [class.bg-muted]="session.status === 'ended'"
+          [class.text-muted-foreground]="session.status === 'ended'"
+          [class.bg-red-500]="session.status === 'revoked'">
+          {{ session.status | titlecase }}
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+        <div>
+          <p class="text-muted-foreground text-xs">Login at</p>
+          <p class="text-foreground">{{ session.login_at | date: 'medium' }}</p>
+        </div>
+        <div>
+          <p class="text-muted-foreground text-xs">Logout at</p>
+          <p class="text-foreground">{{ session.logout_at ? (session.logout_at | date: 'medium') : '—' }}</p>
+        </div>
+        <div>
+          <p class="text-muted-foreground text-xs">Last activity</p>
+          <p class="text-foreground">{{ session.last_activity_at | date: 'medium' }}</p>
+        </div>
+        <div>
+          <p class="text-muted-foreground text-xs">IP address</p>
+          <p class="text-foreground">{{ session.ip_address || '—' }}</p>
+        </div>
+        <div>
+          <p class="text-muted-foreground text-xs">Device</p>
+          <p class="text-foreground">{{ session.ua_summary || '—' }}</p>
+          @if (session.device_type && session.device_type !== 'desktop') {
+            <p class="text-muted-foreground text-xs capitalize">{{ session.device_type }}</p>
+          }
+        </div>
+        <div>
+          <p class="text-muted-foreground text-xs">Login method</p>
+          <p class="text-foreground">{{ session.login_method }}</p>
+        </div>
+        <div class="md:col-span-2">
+          <p class="text-muted-foreground text-xs">User agent (raw)</p>
+          <p class="text-muted-foreground break-all text-xs">{{ session.user_agent || '—' }}</p>
+        </div>
+        <div>
+          <p class="text-muted-foreground text-xs">Location</p>
+          @if (session.latitude != null && session.longitude != null) {
+            <a [href]="mapUrl" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">
+              {{ session.location_label || (session.latitude + ', ' + session.longitude) }} ↗
+            </a>
+          } @else {
+            <p class="text-foreground">—</p>
+          }
+        </div>
+        @if (session.revoked_at) {
+          <div class="md:col-span-2">
+            <p class="text-muted-foreground text-xs">Revoked</p>
+            <p class="text-red-600">{{ session.revoked_at | date: 'medium' }} by {{ session.revoked_by_name || 'admin' }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="mt-6 flex justify-end gap-3">
+        <app-button impact="light" tone="light" shape="rounded" size="medium" (buttonClick)="back()">Back</app-button>
+        @if (session.status === 'active' && ps.canDelete('SESSIONS')) {
+          <app-button impact="bold" tone="danger" shape="rounded" size="medium" (buttonClick)="askRevoke()">
+            Force logout
+          </app-button>
+        }
+      </div>
+    </div>
+
+    <div class="bg-background border-muted/30 mt-6 rounded-lg border p-5">
+      <h4 class="text-foreground mb-3 text-sm font-semibold">Activity ({{ session.activity.length }})</h4>
+      @if (session.activity.length === 0) {
+        <p class="text-muted-foreground text-sm">No recorded activity yet.</p>
+      } @else {
+        <ol class="border-muted/30 divide-y divide-muted/30 text-sm">
+          @for (a of session.activity; track a.id) {
+            <li class="flex items-center justify-between py-2">
+              <div class="flex flex-col">
+                <span class="text-foreground">{{ a.module_code || '—' }}</span>
+                <span class="text-muted-foreground text-xs">{{ a.route_path }}</span>
+              </div>
+              <span class="text-muted-foreground text-xs">{{ a.accessed_at | date: 'short' }}</span>
+            </li>
+          }
+        </ol>
+      }
+    </div>
+  }
+
+  <app-confirm-dialog
+    [visible]="showRevokeConfirm"
+    title="Force logout?"
+    message="The user will be signed out on their next request. This cannot be undone."
+    confirmText="Revoke"
+    [loading]="revoking"
+    (onConfirm)="confirmRevoke()"
+    (onCancel)="cancelRevoke()">
+  </app-confirm-dialog>
+</div>

@@ -1,0 +1,14 @@
+<div class="mb-6">
+  <app-breadcrumb></app-breadcrumb>
+</div>
+
+<app-table
+  [apiUrl]="apiUrl"
+  [columns]="columns"
+  [displayKeyMap]="displayKeyMap"
+  [rowTransform]="rowTransform"
+  [canEdit]="false"
+  [canDelete]="false"
+  [canView]="ps.canView('SESSIONS')"
+  (onView)="viewSelected($event)">
+</app-table>

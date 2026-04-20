@@ -80,6 +80,14 @@ export class SettingsHomeComponent implements OnInit {
       color: 'bg-red-500/10 text-red-600',
       moduleCode: 'PERMISSIONS',
     },
+    {
+      icon: 'assets/icons/heroicons/outline/shield-exclamation.svg',
+      label: 'Sessions',
+      description: 'Monitor active sessions, login history and activity',
+      route: '/settings/session',
+      color: 'bg-yellow-500/10 text-yellow-600',
+      moduleCode: 'SESSIONS',
+    },
   ];
 
   cards = signal<SettingsCard[]>([]);
