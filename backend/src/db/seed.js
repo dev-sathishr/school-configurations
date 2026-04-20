@@ -1,10 +1,65 @@
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 const password = require('../shared/helpers/password.helper');
 const { pool } = require('./index');
 
 const organizations = [
   { name: 'Shaanthi Matriculation School', reg_no: 'REG-2024-001', email: 'info@shaanthi.edu.in', primary_contact_no: '9876543210', website: 'https://www.shaanthi.edu.in' },
 ];
+
+const SEED_ASSETS_DIR = path.join(__dirname, 'seed-assets');
+const UPLOADS_DIR = path.join(__dirname, '../../uploads');
+
+const MIME_BY_EXT = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+};
+
+/**
+ * Seed a profile image for a user. Idempotent — skips if the user already
+ * has a `profile_image` row. Copies the source asset into `uploads/` with a
+ * fresh UUID filename and inserts a `settings.files` row matching what the
+ * file-upload API would produce, so the existing profile rendering code
+ * doesn't need to know this came from the seed.
+ */
+async function seedProfileImage(client, userId, assetFile) {
+  const sourcePath = path.join(SEED_ASSETS_DIR, assetFile);
+  if (!fs.existsSync(sourcePath)) {
+    console.log(`  Asset ${assetFile} not found, skipping profile image`);
+    return;
+  }
+
+  const existing = await client.query(
+    `SELECT id FROM settings.files
+     WHERE entity_type = 'user' AND entity_id = $1 AND file_type = 'profile_image' AND deleted_at IS NULL
+     LIMIT 1`,
+    [userId]
+  );
+  if (existing.rows.length > 0) {
+    console.log(`  Profile image already set, skipping`);
+    return;
+  }
+
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  const ext = path.extname(assetFile).toLowerCase();
+  const storedName = `${uuidv4()}${ext}`;
+  const destPath = path.join(UPLOADS_DIR, storedName);
+  fs.copyFileSync(sourcePath, destPath);
+
+  const stats = fs.statSync(destPath);
+  await client.query(
+    `INSERT INTO settings.files
+       (entity_type, entity_id, file_type, original_name, stored_name, mime_type, size, path, created_by)
+     VALUES ('user', $1, 'profile_image', $2, $3, $4, $5, $6, $1)`,
+    [userId, assetFile, storedName, MIME_BY_EXT[ext] || 'application/octet-stream', stats.size, `uploads/${storedName}`]
+  );
+  console.log(`  Profile image seeded (${assetFile})`);
+}
 
 async function seed() {
   const client = await pool.connect();
@@ -28,6 +83,7 @@ async function seed() {
       adminId = existing.rows[0].id;
       console.log('Super admin already exists, skipping user seed');
     }
+    await seedProfileImage(client, adminId, 'superadmin.jpg');
 
     // Seed organizations (skip existing by name)
     let inserted = 0;
@@ -180,19 +236,23 @@ async function seed() {
 
     // Seed admin user
     const existingAdmin = await client.query('SELECT id FROM settings.users WHERE username = $1', ['admin']);
+    let adminUserId;
     if (existingAdmin.rows.length === 0) {
       const adminPwd = await password.hash('admin@123');
-      await client.query(
+      const result = await client.query(
         `INSERT INTO settings.users (username, password, full_name, email, phone_code, phone, group_id, is_active, created_by, updated_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9) RETURNING id`,
         ['admin', adminPwd, 'Admin User', 'admin@shaanthied.com', '+91', '9876500002', groupIds['ADMIN'], adminId, adminId]
       );
+      adminUserId = result.rows[0].id;
       console.log('Admin user created (username: admin, password: admin@123)');
     } else {
       // Re-assign group_id in case groups were re-created with new IDs
       await client.query('UPDATE settings.users SET group_id = $1 WHERE username = $2', [groupIds['ADMIN'], 'admin']);
+      adminUserId = existingAdmin.rows[0].id;
       console.log('Admin user already exists, group_id updated');
     }
+    await seedProfileImage(client, adminUserId, 'admin.png');
 
     // Seed teacher user
     const existingTeacher = await client.query('SELECT id FROM settings.users WHERE username = $1', ['teacher']);
