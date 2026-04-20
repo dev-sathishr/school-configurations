@@ -119,22 +119,26 @@
             [headerText]="locationHeader()"
             searchPlaceholder="Find location...">
             <button trigger type="button"
-              class="border-border hover:bg-muted text-foreground flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors">
+              [attr.aria-label]="'Location: ' + locationHeader()"
+              class="border-border hover:bg-muted text-foreground flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-colors md:px-3">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor" class="h-4 w-4 text-muted-foreground">
+                stroke="currentColor" class="h-4 w-4 shrink-0 text-muted-foreground">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
               </svg>
-              <span class="max-w-[160px] truncate">{{ locationHeader() }}</span>
+              <!-- Text + chevron collapse on mobile so the trigger doesn't
+                   overlap the centered logo. The header copy is kept inside
+                   the dropdown header so users still see the count. -->
+              <span class="hidden max-w-[160px] truncate md:inline">{{ locationHeader() }}</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                stroke="currentColor" class="h-3.5 w-3.5 text-muted-foreground">
+                stroke="currentColor" class="hidden h-3.5 w-3.5 text-muted-foreground md:inline">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
             </button>
           </app-select-dropdown>
-          <div class="bg-border mx-1 h-6 w-px"></div>
+          <div class="bg-border mx-1 hidden h-6 w-px md:block"></div>
         }
         <app-notification-bell></app-notification-bell>
         <app-chat-panel></app-chat-panel>

@@ -183,10 +183,20 @@ export class SelectDropdownComponent implements OnInit, OnDestroy {
     const el = this.triggerEl?.nativeElement;
     if (!el) return;
     const rect = el.getBoundingClientRect();
+
+    // Clamp into viewport: if the panel would overflow off the right edge
+    // (common with icon-only triggers near the screen edge on mobile),
+    // shift it left so it stays visible. Mirror for the left edge too.
+    const margin = 8;
+    const viewportWidth = window.innerWidth;
+    const panelWidth = Math.min(Math.max(rect.width, 200), viewportWidth - margin * 2);
+    const maxLeft = viewportWidth - panelWidth - margin;
+    const clampedLeft = Math.max(margin, Math.min(rect.left, maxLeft));
+
     this.dropdownStyle = {
       top: `${rect.bottom + 4}px`,
-      left: `${rect.left}px`,
-      width: `${Math.max(rect.width, 200)}px`,
+      left: `${clampedLeft}px`,
+      width: `${panelWidth}px`,
     };
   }
 
