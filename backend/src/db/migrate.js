@@ -494,6 +494,24 @@ async function migrate() {
       `, [perm.name, perm.code, perm.description]).catch(() => {});
     }
 
+    // Grant IMPORT and EXPORT to SUPER_ADMIN on every existing module.
+    // Idempotent: skips any (group, module, permission) triple that already exists.
+    await client.query(`
+      INSERT INTO settings.group_permissions (group_id, module_id, permission_id, created_by)
+      SELECT g.id, m.id, p.id, g.created_by
+        FROM settings.groups g
+        CROSS JOIN settings.modules m
+        CROSS JOIN settings.permissions p
+       WHERE g.code = 'SUPER_ADMIN' AND g.deleted_at IS NULL
+         AND m.deleted_at IS NULL
+         AND p.code IN ('IMPORT', 'EXPORT') AND p.deleted_at IS NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM settings.group_permissions gp
+            WHERE gp.group_id = g.id AND gp.module_id = m.id
+              AND gp.permission_id = p.id AND gp.deleted_at IS NULL
+         );
+    `).catch(() => {});
+
     // Academic level enum
     await client.query(`
       CREATE TYPE academic.academic_level AS ENUM (

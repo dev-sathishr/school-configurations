@@ -245,7 +245,7 @@ async function seed() {
     console.log(`Group Modules seeded (${gmInserted} mappings)`);
 
     // Seed Group Permissions (group + module + permission type)
-    const allPermCodes = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
+    const allPermCodes = ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'IMPORT', 'EXPORT'];
     const dashboardModules = ['SCHOOL_OVERVIEW', 'ACADEMIC_SUMMARY', 'FEE_COLLECTION', 'MY_CLASSES', 'MY_GRADES', 'CHILD_PROGRESS'];
     const settingsModules = ['ORGANIZATIONS', 'LOCATIONS', 'USERS', 'MODULES', 'MENUS', 'GROUPS', 'PERMISSIONS'];
     const groupPermData = [

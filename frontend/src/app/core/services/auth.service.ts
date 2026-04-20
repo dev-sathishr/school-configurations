@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { ToastService } from '../../shared/services/toast/toast.service';
 
 interface LoginResponse {
   message: string;
@@ -30,7 +31,7 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
   private loggingOut = false;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router, private toast: ToastService) {}
 
   login(username: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { username, password }).pipe(
@@ -39,6 +40,7 @@ export class AuthService {
         localStorage.setItem('refresh_token', res.refresh_token);
         localStorage.setItem('user', JSON.stringify(res.user));
         this.currentUserSubject.next(res.user);
+        this.toast.success('Signed in', `Welcome back, ${res.user.full_name || res.user.username}`);
       })
     );
   }
@@ -47,8 +49,16 @@ export class AuthService {
     if (this.loggingOut) return;
     this.loggingOut = true;
     this.http.post(`${this.apiUrl}/auth/logout`, {}).subscribe({
-      complete: () => { this.clearSession(); this.loggingOut = false; },
-      error: () => { this.clearSession(); this.loggingOut = false; },
+      complete: () => {
+        this.clearSession();
+        this.loggingOut = false;
+        this.toast.info('Signed out', 'See you next time');
+      },
+      error: () => {
+        this.clearSession();
+        this.loggingOut = false;
+        this.toast.info('Signed out', 'See you next time');
+      },
     });
   }
 
