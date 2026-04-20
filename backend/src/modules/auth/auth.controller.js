@@ -56,8 +56,21 @@ async function myPermissions(req, resp) {
   }
 }
 
+async function myLocations(req, resp) {
+  try {
+    const result = await authService.getMyLocations(req.user.id);
+
+    if (result.error === 'notFound') return res.notFound(resp, result.message);
+
+    return res.success(resp, result.data);
+  } catch (err) {
+    console.error('My locations error:', err);
+    return res.error(resp);
+  }
+}
+
 async function logout(req, resp) {
   return res.success(resp, {}, 'Logout successful');
 }
 
-module.exports = { login, refresh, me, myPermissions, logout };
+module.exports = { login, refresh, me, myPermissions, myLocations, logout };

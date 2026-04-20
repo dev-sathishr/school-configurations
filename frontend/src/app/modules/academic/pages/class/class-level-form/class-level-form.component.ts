@@ -1,23 +1,26 @@
-import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
+import { LocationFieldComponent } from '../../../../../shared/components/location-field/location-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { PermissionService } from '../../../../../core/services/permission.service';
-import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
+import { LocationContextService } from '../../../../../core/services/location-context.service';
 
 @Component({
   selector: 'app-class-level-form',
   templateUrl: './class-level-form.component.html',
-  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, BreadcrumbComponent, TableComponent, HasPermissionDirective],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LocationFieldComponent, LoaderComponent, BreadcrumbComponent, TableComponent],
 })
 export class ClassLevelFormComponent implements OnInit {
   @ViewChild(TableComponent) levelsTable!: TableComponent;
+
+  readonly locationCtx = inject(LocationContextService);
 
   form!: FormGroup;
   editMode = false;
@@ -29,6 +32,10 @@ export class ClassLevelFormComponent implements OnInit {
   classLabel = '';
   locationLabel = '';
   selectedClassId = '';
+
+  // Edit-mode record location passed to <app-location-field> so it stays
+  // visible even if not currently in the header selection.
+  readonly recordLocation = signal<{ id: string; name: string; code: string } | null>(null);
 
   // Levels table
   levelsApiUrl = '';
@@ -86,6 +93,14 @@ export class ClassLevelFormComponent implements OnInit {
       this.loadClassLabel(classGeneralId);
     }
 
+    // Convenience: pre-fill the location when we can choose unambiguously
+    // (one selected, or the user's default is among the selection). Only on
+    // create — edit mode has its own load path below.
+    if (!this.cs.getRouteParam(this.route, 'id')) {
+      const preferred = this.locationCtx.preferredLocationId();
+      if (preferred) this.form.patchValue({ location_id: preferred });
+    }
+
     const id = this.cs.getRouteParam(this.route, 'id');
     if (id) {
       this.editMode = true;
@@ -99,6 +114,11 @@ export class ClassLevelFormComponent implements OnInit {
           this.locationLabel = d.location_name
             ? (d.location_code ? `${d.location_name} (${d.location_code})` : d.location_name)
             : '';
+          this.recordLocation.set(d.location_id ? {
+            id: d.location_id,
+            name: d.location_name || '',
+            code: d.location_code || '',
+          } : null);
           this.selectedClassId = d.class_general_id;
           this.levelsApiUrl = `/class-levels?class_general_id=${d.class_general_id}`;
           this.loading = false;
@@ -157,7 +177,12 @@ export class ClassLevelFormComponent implements OnInit {
         // Reset form for next entry, keep class selected & refresh table
         if (!this.editMode) {
           const classId = this.form.value.class_general_id;
-          this.form.reset({ class_general_id: classId, capacity: 0, is_active: true, notes: '' });
+          const reset: any = { class_general_id: classId, capacity: 0, is_active: true, notes: '' };
+          // Carry the preferred location forward — same pre-fill policy as
+          // initial load, applied on consecutive creates too.
+          const preferred = this.locationCtx.preferredLocationId();
+          if (preferred) reset.location_id = preferred;
+          this.form.reset(reset);
           this.submitted = false;
           // Force table refresh
           this.onClassChange(classId);

@@ -94,15 +94,11 @@ async function seed() {
     }
     console.log(`Menus seeded (${Object.keys(menuIds).length} total)`);
 
-    // Seed Modules (feature pages / sub-items within menus)
+    // Seed Modules (feature pages / sub-items within menus).
+    // Dashboard is intentionally a menu-only entry — a welcome landing page
+    // with no CRUD modules. Groups get dashboard access by being assigned the
+    // DASHBOARD menu in group_modules; no per-module permissions are needed.
     const modules = [
-      // Dashboard modules
-      { name: 'School Overview', code: 'SCHOOL_OVERVIEW', icon: 'assets/icons/heroicons/outline/chart-pie.svg', route_path: null, display_order: 1 },
-      { name: 'Academic Summary', code: 'ACADEMIC_SUMMARY', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: null, display_order: 2 },
-      { name: 'Fee Collection', code: 'FEE_COLLECTION', icon: 'assets/icons/heroicons/outline/gift.svg', route_path: null, display_order: 3 },
-      { name: 'My Classes', code: 'MY_CLASSES', icon: 'assets/icons/heroicons/outline/users.svg', route_path: null, display_order: 4 },
-      { name: 'My Grades', code: 'MY_GRADES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: null, display_order: 5 },
-      { name: 'Child Progress', code: 'CHILD_PROGRESS', icon: 'assets/icons/heroicons/outline/eye.svg', route_path: null, display_order: 6 },
       // Academic modules
       { name: 'Classes', code: 'CLASSES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: '/academic/class', display_order: 1 },
       // Settings modules
@@ -126,15 +122,10 @@ async function seed() {
     }
     console.log(`Modules seeded (${Object.keys(moduleIds).length} total)`);
 
-    // Seed Menu Modules (link modules under their parent menu)
+    // Seed Menu Modules (link modules under their parent menu).
+    // DASHBOARD has no entries here — it's a leaf menu pointing directly to
+    // its own route_path.
     const menuModuleMappings = [
-      // Dashboard modules
-      { menu: 'DASHBOARD', module: 'SCHOOL_OVERVIEW', display_order: 1 },
-      { menu: 'DASHBOARD', module: 'ACADEMIC_SUMMARY', display_order: 2 },
-      { menu: 'DASHBOARD', module: 'FEE_COLLECTION', display_order: 3 },
-      { menu: 'DASHBOARD', module: 'MY_CLASSES', display_order: 4 },
-      { menu: 'DASHBOARD', module: 'MY_GRADES', display_order: 5 },
-      { menu: 'DASHBOARD', module: 'CHILD_PROGRESS', display_order: 6 },
       // Academic modules
       { menu: 'ACADEMIC', module: 'CLASSES', display_order: 1 },
       // Settings modules
@@ -244,30 +235,20 @@ async function seed() {
     }
     console.log(`Group Modules seeded (${gmInserted} mappings)`);
 
-    // Seed Group Permissions (group + module + permission type)
+    // Seed Group Permissions (group + module + permission type).
+    // Dashboard is menu-only, so no per-module permissions belong here —
+    // dashboard access is governed purely by group_modules.
     const allPermCodes = ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'IMPORT', 'EXPORT'];
-    const dashboardModules = ['SCHOOL_OVERVIEW', 'ACADEMIC_SUMMARY', 'FEE_COLLECTION', 'MY_CLASSES', 'MY_GRADES', 'CHILD_PROGRESS'];
-    const settingsModules = ['ORGANIZATIONS', 'LOCATIONS', 'USERS', 'MODULES', 'MENUS', 'GROUPS', 'PERMISSIONS'];
     const groupPermData = [
       // Super Admin: all permissions on all modules
       ...Object.keys(moduleIds).flatMap(modCode =>
         allPermCodes.map(permCode => ({ group: 'SUPER_ADMIN', module: modCode, permission: permCode }))
       ),
       // Admin: no permissions (empty — assign via UI)
-      // Principal: dashboard overview + academic, view-only on some settings
-      { group: 'PRINCIPAL', module: 'SCHOOL_OVERVIEW', permission: 'VIEW' },
-      { group: 'PRINCIPAL', module: 'ACADEMIC_SUMMARY', permission: 'VIEW' },
+      // Principal: view-only on selected settings
       { group: 'PRINCIPAL', module: 'USERS', permission: 'VIEW' },
       { group: 'PRINCIPAL', module: 'ORGANIZATIONS', permission: 'VIEW' },
-      // Teacher: academic + my classes
-      { group: 'TEACHER', module: 'ACADEMIC_SUMMARY', permission: 'VIEW' },
-      { group: 'TEACHER', module: 'MY_CLASSES', permission: 'VIEW' },
-      // Accountant: fee collection
-      { group: 'ACCOUNTANT', module: 'FEE_COLLECTION', permission: 'VIEW' },
-      // Student: my grades
-      { group: 'STUDENT', module: 'MY_GRADES', permission: 'VIEW' },
-      // Parent: child progress
-      { group: 'PARENT', module: 'CHILD_PROGRESS', permission: 'VIEW' },
+      // Teacher, Accountant, Student, Parent: dashboard-only by default.
     ];
 
     let gpInserted = 0;

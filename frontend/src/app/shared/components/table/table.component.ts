@@ -1,4 +1,4 @@
-import { Component, effect, EventEmitter, Input, OnDestroy, OnInit, Output, signal } from '@angular/core';
+import { Component, effect, EventEmitter, Input, input, OnDestroy, OnInit, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { TableActionComponent } from './components/table-action/table-action.component';
@@ -34,6 +34,12 @@ export class TableComponent implements OnInit, OnDestroy {
   @Input() canView = true;
   @Input() canImport = false;
   @Input() canExport = true;
+
+  // Extra query params merged into every list/export request. Declared as a
+  // signal input so consumers can pass a reactive value (e.g. derived from
+  // the header location multiselect) and the table auto-refetches when it
+  // changes. Empty/undefined values are stripped before building the query.
+  readonly extraParams = input<Record<string, any>>({});
 
   @Output() onEdit = new EventEmitter<any>();
   @Output() onView = new EventEmitter<any>();
@@ -74,7 +80,10 @@ export class TableComponent implements OnInit, OnDestroy {
       const sortBy = this.filterService.sortByField();
       const sortOrder = this.filterService.sortOrderField();
       const columnFilters = this.filterService.columnFilters();
-      this.loadData({ page, size, search, sortBy, sortOrder, columnFilters });
+      // Track extraParams() so the effect re-runs when the parent (e.g. the
+      // header location multiselect) changes its value.
+      const extra = this.extraParams();
+      this.loadData({ page, size, search, sortBy, sortOrder, columnFilters, extra });
     });
   }
 
@@ -102,6 +111,11 @@ export class TableComponent implements OnInit, OnDestroy {
       for (const [col, val] of Object.entries(params.columnFilters)) {
         if (val) q[`filter[${col}]`] = val;
       }
+    }
+    const extra = params.extra || this.extraParams();
+    for (const [k, v] of Object.entries(extra)) {
+      if (v === undefined || v === null || v === '') continue;
+      q[k] = v;
     }
     this.cs.getService({ url: this.apiUrl, params: q }).subscribe({
       next: (res: any) => {
@@ -204,6 +218,10 @@ export class TableComponent implements OnInit, OnDestroy {
     if (sortOrder) q.sort_order = sortOrder;
     for (const [col, val] of Object.entries(columnFilters)) {
       if (val) q[`filter[${col}]`] = val;
+    }
+    for (const [k, v] of Object.entries(this.extraParams())) {
+      if (v === undefined || v === null || v === '') continue;
+      q[k] = v;
     }
 
     this.cs.getService({ url: this.apiUrl, params: q }).subscribe({

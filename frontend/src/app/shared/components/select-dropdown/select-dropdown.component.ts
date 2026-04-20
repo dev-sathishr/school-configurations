@@ -30,6 +30,10 @@ export class SelectDropdownComponent implements OnInit, OnDestroy {
   @Input() multiSelect = false;
   @Input() selectedValues: string[] = [];
   @Output() selectedValuesChange = new EventEmitter<string[]>();
+  // When true, renders a "Select all / Clear" toggle row at the top of the
+  // options list (multi-select only). Acts on whatever options the user can
+  // currently see — respects the search filter so large lists stay usable.
+  @Input() showSelectAll = false;
 
   // Async (API-based)
   @Input() asyncUrl = '';
@@ -197,6 +201,42 @@ export class SelectDropdownComponent implements OnInit, OnDestroy {
   isSelected(value: string): boolean {
     if (this.multiSelect) return this.selectedValues.includes(value);
     return this.value === value;
+  }
+
+  /** True if every currently-visible option is already selected. */
+  get allVisibleSelected(): boolean {
+    const visible = this.displayOptions;
+    if (visible.length === 0) return false;
+    return visible.every((o) => this.selectedValues.includes(o.value));
+  }
+
+  /** True if some but not all visible options are selected — drives the
+   *  indeterminate tick so the user knows clicking will select the rest. */
+  get someVisibleSelected(): boolean {
+    const visible = this.displayOptions;
+    if (visible.length === 0) return false;
+    const selected = visible.filter((o) => this.selectedValues.includes(o.value)).length;
+    return selected > 0 && selected < visible.length;
+  }
+
+  toggleSelectAll(): void {
+    const visibleValues = this.displayOptions.map((o) => o.value);
+    if (visibleValues.length === 0) return;
+
+    if (this.allVisibleSelected) {
+      // Clear only the visible ones — values outside the current search stay
+      // selected so filtering isn't a destructive operation.
+      const visibleSet = new Set(visibleValues);
+      const updated = this.selectedValues.filter((v) => !visibleSet.has(v));
+      this.selectedValues = updated;
+      this.selectedValuesChange.emit(updated);
+      return;
+    }
+
+    // Union without duplicates.
+    const merged = Array.from(new Set([...this.selectedValues, ...visibleValues]));
+    this.selectedValues = merged;
+    this.selectedValuesChange.emit(merged);
   }
 
   select(opt: DropdownOption): void {

@@ -119,6 +119,15 @@ async function checkUnique(field, value, excludeId = null, extraConditions = {})
   return result.rows.length > 0;
 }
 
+async function findAllActive() {
+  const result = await db.query(
+    `SELECT id, name, code FROM settings.locations
+     WHERE is_active = true AND deleted_at IS NULL
+     ORDER BY name`
+  );
+  return result.rows;
+}
+
 async function findDropdown({ page, size, search }) {
   const offset = (page - 1) * size;
   let where = 'WHERE l.is_active = true AND l.deleted_at IS NULL';
@@ -147,4 +156,4 @@ async function findDropdown({ page, size, search }) {
   };
 }
 
-module.exports = { findAll, findById, findByField, create, update, softDelete, softDeleteMultiple, checkUnique, findDropdown };
+module.exports = { findAll, findAllActive, findById, findByField, create, update, softDelete, softDeleteMultiple, checkUnique, findDropdown };

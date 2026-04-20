@@ -1,5 +1,6 @@
 const db = require('../../../config/database');
 const { paginate } = require('../../../shared/helpers/pagination.helper');
+const { applyLocationScope, scopedFindByIdClause } = require('../../../shared/helpers/location-scope.helper');
 
 const SELECT_FIELDS = `cl.*, cg.name AS class_name, cg.code AS class_code,
   loc.name AS location_name, loc.code AS location_code,
@@ -10,9 +11,27 @@ const JOINS = `LEFT JOIN academic.class_generals cg ON cl.class_general_id = cg.
   LEFT JOIN settings.users cb ON cl.created_by = cb.id
   LEFT JOIN settings.users ub ON cl.updated_by = ub.id`;
 
-async function findAll(query) {
-  const extraWhere = query.class_general_id ? 'cl.class_general_id = ?' : '';
-  const extraWhereParams = query.class_general_id ? [query.class_general_id] : [];
+async function findAll(query, scope) {
+  const clauses = [];
+  const clauseParams = [];
+
+  if (query.class_general_id) {
+    clauses.push('cl.class_general_id = ?');
+    clauseParams.push(query.class_general_id);
+  }
+
+  const loc = applyLocationScope({
+    column: 'cl.location_id',
+    scope,
+    requested: query.location_ids,
+  });
+  if (loc.empty) {
+    return { data: [], pagination: { page: 1, size: 10, total_count: 0, total_pages: 0 } };
+  }
+  if (loc.clause) {
+    clauses.push(loc.clause);
+    clauseParams.push(...loc.params);
+  }
 
   return paginate({
     table: 'academic.class_levels',
@@ -24,18 +43,19 @@ async function findAll(query) {
     sortableColumns: ['cl.code', 'cl.section', 'cl.capacity', 'cl.is_active', 'cl.created_at', 'cg.name', 'loc.name'],
     defaultSortBy: 'cl.created_at',
     defaultSortOrder: 'DESC',
-    extraWhere,
-    extraWhereParams,
+    extraWhere: clauses.join(' AND '),
+    extraWhereParams: clauseParams,
   }, query);
 }
 
-async function findById(id) {
+async function findById(id, scope) {
+  const scopeClause = scopedFindByIdClause(scope, 'cl.location_id', 2);
   const result = await db.query(`
     SELECT ${SELECT_FIELDS}
     FROM academic.class_levels cl
     ${JOINS}
-    WHERE cl.id = $1 AND cl.deleted_at IS NULL
-  `, [id]);
+    WHERE cl.id = $1 AND cl.deleted_at IS NULL ${scopeClause.clause}
+  `, [id, ...scopeClause.params]);
   return result.rows[0] || null;
 }
 
@@ -75,12 +95,20 @@ async function softDelete(id, userId) {
   await db.query('UPDATE academic.class_levels SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [userId, id]);
 }
 
-async function softDeleteMultiple(ids, userId) {
+async function softDeleteMultiple(ids, userId, scope) {
   const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
-  const result = await db.query(
-    `UPDATE academic.class_levels SET deleted_at = NOW(), deleted_by = $1 WHERE id IN (${placeholders}) AND deleted_at IS NULL RETURNING id`,
-    [userId, ...ids]
-  );
+  const params = [userId, ...ids];
+  let sql = `UPDATE academic.class_levels SET deleted_at = NOW(), deleted_by = $1
+             WHERE id IN (${placeholders}) AND deleted_at IS NULL`;
+
+  if (scope) {
+    const scopePlaceholders = scope.map((_, i) => `$${params.length + i + 1}`).join(', ');
+    sql += ` AND location_id IN (${scopePlaceholders})`;
+    params.push(...scope);
+  }
+
+  sql += ' RETURNING id';
+  const result = await db.query(sql, params);
   return result.rowCount;
 }
 

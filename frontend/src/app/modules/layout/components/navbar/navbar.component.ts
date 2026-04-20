@@ -6,6 +6,7 @@ import { MenuService } from '../../services/menu.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { PermissionService, PermittedMenu } from '../../../../core/services/permission.service';
 import { UserPreferencesService } from '../../../../core/services/user-preferences.service';
+import { LocationContextService } from '../../../../core/services/location-context.service';
 import { NavbarMobileComponent } from './navbar-mobile/navbar-mobilecomponent';
 import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
 import { SelectDropdownComponent } from '../../../../shared/components/select-dropdown/select-dropdown.component';
@@ -29,11 +30,27 @@ interface FavoriteItem {
 export class NavbarComponent implements OnInit, OnDestroy {
   private prefs = inject(UserPreferencesService);
   private router = inject(Router);
+  readonly locationCtx = inject(LocationContextService);
 
   favorites: FavoriteItem[] = [];
   allModules = signal<FavoriteItem[]>([]);
   favoriteOptions: DropdownOption[] = [];
   selectedFavoriteValues: string[] = [];
+
+  readonly locationOptions = computed<DropdownOption[]>(() =>
+    this.locationCtx.permitted().map((l) => ({
+      value: l.id,
+      label: l.code ? `${l.name} (${l.code})` : l.name,
+    }))
+  );
+  readonly locationHeader = computed(() => {
+    const total = this.locationCtx.permitted().length;
+    const selected = this.locationCtx.selectedIds().length;
+    if (total === 0) return 'No locations';
+    if (selected === 0) return 'No location selected';
+    if (selected === total) return `All locations (${total})`;
+    return `${selected} of ${total} locations`;
+  });
 
   // ─── Global search ─────────────────────────────────────
   searchQuery = signal('');
@@ -121,6 +138,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
       .map((v) => modules.find((m) => m.route === v))
       .filter((m): m is FavoriteItem => !!m);
     this.prefs.setFavoriteModules(this.favorites.map((f) => f.route));
+  }
+
+  onLocationsChange(values: string[]): void {
+    this.locationCtx.setSelection(values);
   }
 
   public toggleMobileMenu(): void {

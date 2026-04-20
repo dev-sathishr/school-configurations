@@ -5,12 +5,13 @@ function handleError(resp, result) {
   if (result.error === 'notFound') return res.notFound(resp, result.message);
   if (result.error === 'badRequest') return res.badRequest(resp, result.message);
   if (result.error === 'conflict') return res.conflict(resp, result.message);
+  if (result.error === 'forbidden') return res.forbidden(resp, result.message);
   return null;
 }
 
 async function getAll(req, resp) {
   try {
-    const result = await levelService.getAll(req.query);
+    const result = await levelService.getAll(req.query, req.user.id);
     return res.success(resp, result);
   } catch (err) {
     console.error('Get class levels error:', err);
@@ -20,7 +21,7 @@ async function getAll(req, resp) {
 
 async function getById(req, resp) {
   try {
-    const result = await levelService.getById(req.params.id);
+    const result = await levelService.getById(req.params.id, req.user.id);
     if (result.error) return handleError(resp, result);
     return res.success(resp, { data: result.data });
   } catch (err) {

@@ -1,21 +1,25 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
+import { LocationFieldComponent } from '../../../../../shared/components/location-field/location-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
 import { PermissionService } from '../../../../../core/services/permission.service';
+import { LocationContextService } from '../../../../../core/services/location-context.service';
 
 @Component({
   selector: 'app-class-form',
   templateUrl: './class-form.component.html',
-  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, BreadcrumbComponent, TableComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LocationFieldComponent, LoaderComponent, BreadcrumbComponent, TableComponent],
 })
 export class ClassFormComponent implements OnInit {
+  readonly locationCtx = inject(LocationContextService);
+
   // General form
   form!: FormGroup;
   editMode = false;
@@ -27,6 +31,11 @@ export class ClassFormComponent implements OnInit {
   errorMessage = '';
   activeTab: 'general' | 'levels' = 'general';
   classGeneralSaved = false; // tracks if general was saved (for create flow)
+
+  // Edit-mode location passed to <app-location-field> so the record's
+  // existing value stays in the dropdown even after the user narrows the
+  // header selection. Null outside edit mode.
+  readonly levelRecordLocation = signal<{ id: string; name: string; code: string } | null>(null);
 
   // Levels tab - class general select
   classLabel = '';
@@ -109,6 +118,11 @@ export class ClassFormComponent implements OnInit {
       is_active: [true],
       notes: ['', [Validators.maxLength(500)]],
     });
+
+    // Pre-fill the location when we can make an unambiguous choice (exactly
+    // one selected, or the user's default is among the selection).
+    const preferred = this.locationCtx.preferredLocationId();
+    if (preferred) this.levelForm.patchValue({ location_id: preferred });
 
     const id = this.cs.getRouteParam(this.route, 'id');
     if (id) {
@@ -250,8 +264,6 @@ export class ClassFormComponent implements OnInit {
     });
   }
 
-  levelLocationLabel = '';
-
   editLevel(row: any): void {
     this.levelEditMode = true;
     this.levelEditId = row.id;
@@ -264,9 +276,11 @@ export class ClassFormComponent implements OnInit {
       is_active: row.is_active,
       notes: row.notes || '',
     });
-    this.levelLocationLabel = row.location_name
-      ? (row.location_code ? `${row.location_name} (${row.location_code})` : row.location_name)
-      : '';
+    this.levelRecordLocation.set(row.location_id ? {
+      id: row.location_id,
+      name: row.location_name || '',
+      code: row.location_code || '',
+    } : null);
     this.levelSubmitted = false;
     this.levelError = '';
     this.levelFormExpanded = true;
@@ -285,8 +299,12 @@ export class ClassFormComponent implements OnInit {
   private resetLevelForm(): void {
     this.levelEditMode = false;
     this.levelEditId = '';
-    this.levelForm.reset({ class_general_id: this.selectedClassId, section: '', code: '', capacity: 0, location_id: '', is_active: true, notes: '' });
-    this.levelLocationLabel = '';
+    this.levelRecordLocation.set(null);
+    this.levelForm.reset({
+      class_general_id: this.selectedClassId, section: '', code: '', capacity: 0,
+      location_id: this.locationCtx.preferredLocationId() || '',
+      is_active: true, notes: '',
+    });
     this.levelSubmitted = false;
     this.levelError = '';
     this.levelFormExpanded = false;

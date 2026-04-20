@@ -108,9 +108,8 @@
           @if (levelFormExpanded) {
             <div class="border-muted/30 border-t p-5">
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <app-form-field [formGroup]="levelForm" controlName="location_id" label="Location" fieldType="async-select"
-                  asyncUrl="/locations/dropdown" [required]="true" [submitted]="levelSubmitted"
-                  [initialLabel]="levelLocationLabel" selectPlaceholder="Select location" />
+                <app-location-field [formGroup]="levelForm" [submitted]="levelSubmitted"
+                  [recordLocation]="levelRecordLocation()" />
                 <app-form-field [formGroup]="levelForm" controlName="class_general_id" label="Class" fieldType="async-select"
                   asyncUrl="/classes/dropdown" [required]="true" [submitted]="levelSubmitted" [initialLabel]="classLabel" selectPlaceholder="Select class" />
                 <app-form-field [formGroup]="levelForm" controlName="section" label="Section" fieldType="select"
@@ -151,6 +150,7 @@
           [columns]="levelsColumns"
           [displayKeyMap]="levelsDisplayKeyMap"
           [rowTransform]="levelsRowTransform"
+          [extraParams]="locationCtx.scopeExtraParams()"
           [canEdit]="ps.canEdit('CLASSES')"
           [canDelete]="ps.canDelete('CLASSES')"
           (onEdit)="editLevel($event)">

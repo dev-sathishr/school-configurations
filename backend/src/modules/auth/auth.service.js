@@ -1,4 +1,5 @@
 const userRepo = require('../settings/users/user.repository');
+const locationRepo = require('../settings/locations/location.repository');
 const fileRepo = require('../files/file.repository');
 const password = require('../../shared/helpers/password.helper');
 const jwt = require('../../shared/helpers/jwt.helper');
@@ -89,6 +90,12 @@ async function getMyPermissions(userId) {
   `, [user.group_id]);
 
   const menuMap = new Map();
+  // Track menus that the group_modules grant but have zero modules defined at
+  // all (menu-only entries like Dashboard — a welcome landing page, no CRUD).
+  // These must survive the permission filter below; filtering them out would
+  // leave the user with no way into a menu they were explicitly granted.
+  const menuOnly = new Set();
+
   for (const row of result.rows) {
     if (!menuMap.has(row.menu_id)) {
       menuMap.set(row.menu_id, {
@@ -96,8 +103,10 @@ async function getMyPermissions(userId) {
         icon: row.menu_icon, route_path: row.menu_route_path,
         display_order: row.menu_order, modules: [],
       });
+      menuOnly.add(row.menu_id);
     }
     if (row.module_id) {
+      menuOnly.delete(row.menu_id);
       const menu = menuMap.get(row.menu_id);
       let mod = menu.modules.find(m => m.id === row.module_id);
       if (!mod) {
@@ -114,13 +123,30 @@ async function getMyPermissions(userId) {
     }
   }
 
-  // Filter out modules with no permissions and menus with no accessible modules
+  // Drop modules the user has no permissions on, then drop menus that end up
+  // empty — except menu-only entries, which are access-by-presence.
   const menus = Array.from(menuMap.values()).map(menu => ({
     ...menu,
     modules: menu.modules.filter(mod => Object.keys(mod.permissions).length > 0),
-  })).filter(menu => menu.modules.length > 0);
+  })).filter(menu => menu.modules.length > 0 || menuOnly.has(menu.id));
 
   return { data: { menus } };
 }
 
-module.exports = { login, refresh, me, getMyPermissions };
+async function getMyLocations(userId) {
+  const user = await userRepo.findProfileById(userId);
+  if (!user) return { error: 'notFound', message: 'User not found' };
+
+  // User's explicitly permitted locations. If none assigned, fall back to
+  // every active location — users without an explicit scope (e.g. super admin)
+  // get the full set. Presence of any row switches the user into scoped mode.
+  const assigned = await userRepo.getUserLocations(userId);
+  if (assigned.length > 0) {
+    return { data: { locations: assigned, scoped: true } };
+  }
+
+  const all = await locationRepo.findAllActive();
+  return { data: { locations: all.map((l) => ({ ...l, is_default: false })), scoped: false } };
+}
+
+module.exports = { login, refresh, me, getMyPermissions, getMyLocations };
