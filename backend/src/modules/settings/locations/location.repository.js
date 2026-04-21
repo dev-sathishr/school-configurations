@@ -69,13 +69,15 @@ async function create(data, userId) {
   return result.rows[0];
 }
 
-async function update(id, data, current, userId) {
+async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
     UPDATE settings.locations SET
       organization_id=$1, name=$2, code=$3, type=$4, email=$5,
       primary_contact_code=$6, primary_contact_no=$7, alternate_contact_code=$8, alternate_contact_no=$9,
       is_active=$10, notes=$11, updated_by=$12, updated_at=NOW()
-    WHERE id=$13 RETURNING *
+    WHERE id=$13
+      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $14::timestamptz)
+    RETURNING *
   `, [
     data.organization_id || current.organization_id,
     data.name || current.name,
@@ -88,9 +90,9 @@ async function update(id, data, current, userId) {
     data.alternate_contact_no !== undefined ? data.alternate_contact_no : current.alternate_contact_no,
     data.is_active !== undefined ? data.is_active : current.is_active,
     data.notes !== undefined ? data.notes : current.notes,
-    userId, id,
+    userId, id, expectedUpdatedAt,
   ]);
-  return result.rows[0];
+  return result.rows[0] || null;
 }
 
 const repoHelper = require('../../../shared/helpers/repo.helper');

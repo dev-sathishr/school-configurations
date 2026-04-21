@@ -1,6 +1,7 @@
 const groupModuleRepo = require('./group-module.repository');
 const db = require('../../../config/database');
 const { bulkImport, pick } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query) {
   return groupModuleRepo.findAll(query);
@@ -27,6 +28,9 @@ async function update(id, body, userId) {
   const current = await groupModuleRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Group Module mapping not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   const groupId = body.group_id || current.group_id;
   const moduleId = body.menu_id || current.menu_id;
   if (groupId !== current.group_id || moduleId !== current.menu_id) {
@@ -34,7 +38,10 @@ async function update(id, body, userId) {
     if (duplicate && duplicate.id !== id) return { error: 'conflict', message: 'This group is already linked to this module' };
   }
 
-  const groupModule = await groupModuleRepo.update(id, body, current, userId);
+  const groupModule = await groupModuleRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(groupModule);
+  if (stale) return stale;
+
   return { data: groupModule };
 }
 

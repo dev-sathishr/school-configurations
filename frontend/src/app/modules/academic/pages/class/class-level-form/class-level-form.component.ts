@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../../../../shared/services/common/common.service';
@@ -9,6 +9,7 @@ import { LoaderComponent } from '../../../../../shared/components/loader/loader.
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { TableComponent } from '../../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
+import { EditLockService } from '../../../../../core/services/edit-lock.service';
 import { PermissionService } from '../../../../../core/services/permission.service';
 import { LocationContextService } from '../../../../../core/services/location-context.service';
 import { API } from '../../../../../core/api/endpoints';
@@ -20,7 +21,7 @@ import * as V from '../../../../../shared/validators/common';
   templateUrl: './class-level-form.component.html',
   imports: [ReactiveFormsModule, ButtonComponent, FormFieldComponent, LocationFieldComponent, LoaderComponent, BreadcrumbComponent, TableComponent],
 })
-export class ClassLevelFormComponent implements OnInit {
+export class ClassLevelFormComponent implements OnInit, OnDestroy {
   @ViewChild(TableComponent) levelsTable!: TableComponent;
 
   readonly locationCtx = inject(LocationContextService);
@@ -35,6 +36,9 @@ export class ClassLevelFormComponent implements OnInit {
   classLabel = '';
   locationLabel = '';
   selectedClassId = '';
+  recordUpdatedAt = '';
+  private lockAcquired = false;
+  private lockHeartbeat: ReturnType<typeof setInterval> | null = null;
 
   // Edit-mode record location passed to <app-location-field> so it stays
   // visible even if not currently in the header selection.
@@ -66,8 +70,13 @@ export class ClassLevelFormComponent implements OnInit {
   constructor(
     private cs: CommonService, private fb: FormBuilder,
     private route: ActivatedRoute, private cdr: ChangeDetectorRef,
+    private editLockService: EditLockService,
     public ps: PermissionService
   ) {}
+
+  ngOnDestroy(): void {
+    this.releaseEditLock();
+  }
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -105,28 +114,88 @@ export class ClassLevelFormComponent implements OnInit {
     if (id) {
       this.editMode = true;
       this.editId = id;
-      this.loading = true;
-      this.cs.getService({ url: API.classLevels.detail(id) }).subscribe({
-        next: (res: any) => {
-          const d = res.data;
-          this.form.patchValue(d);
-          this.classLabel = d.class_code ? `${d.class_name} (${d.class_code})` : (d.class_name || '');
-          this.locationLabel = d.location_name
-            ? (d.location_code ? `${d.location_name} (${d.location_code})` : d.location_name)
-            : '';
-          this.recordLocation.set(d.location_id ? {
-            id: d.location_id,
-            name: d.location_name || '',
-            code: d.location_code || '',
-          } : null);
-          this.selectedClassId = d.class_general_id;
-          this.levelsApiUrl = API.classLevels.byClass(d.class_general_id);
-          this.loading = false;
-          this.cdr.detectChanges();
-        },
-        error: () => { this.loading = false; this.cs.navigate({ url: '/academic/class' }); },
-      });
+      this.acquireEditLock(id, () => this.loadLevelRecord(id));
     }
+  }
+
+  private loadLevelRecord(id: string): void {
+    this.loading = true;
+    this.cs.getService({ url: API.classLevels.detail(id) }).subscribe({
+      next: (res: any) => {
+        const d = res.data;
+        this.form.patchValue(d);
+        this.classLabel = d.class_code ? `${d.class_name} (${d.class_code})` : (d.class_name || '');
+        this.locationLabel = d.location_name
+          ? (d.location_code ? `${d.location_name} (${d.location_code})` : d.location_name)
+          : '';
+        this.recordLocation.set(d.location_id ? {
+          id: d.location_id,
+          name: d.location_name || '',
+          code: d.location_code || '',
+        } : null);
+        this.selectedClassId = d.class_general_id;
+        this.recordUpdatedAt = d.updated_at || '';
+        this.levelsApiUrl = API.classLevels.byClass(d.class_general_id);
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.releaseEditLock();
+        this.loading = false;
+        this.cs.navigate({ url: '/academic/class' });
+      },
+    });
+  }
+
+  private acquireEditLock(recordId: string, onLocked: () => void): void {
+    this.loading = true;
+    this.editLockService.acquire('CLASSES', recordId).subscribe({
+      next: (res: any) => {
+        const lock = res?.data || {};
+        if (lock.acquired) {
+          this.lockAcquired = true;
+          this.startLockHeartbeat();
+        }
+        onLocked();
+      },
+      error: (err: any) => {
+        this.loading = false;
+        this.cs.showToastr({ type: 'error', message: err?.error?.message || 'This record is currently being edited by another user' });
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          this.cs.navigate({ url: '/academic/class' });
+        }
+      },
+    });
+  }
+
+  private startLockHeartbeat(): void {
+    if (this.lockHeartbeat) clearInterval(this.lockHeartbeat);
+    this.lockHeartbeat = setInterval(() => {
+      if (!this.lockAcquired || !this.editId) return;
+      this.editLockService.acquire('CLASSES', this.editId).subscribe({
+        next: () => {},
+        error: () => {},
+      });
+    }, 60_000);
+  }
+
+  private stopLockHeartbeat(): void {
+    if (!this.lockHeartbeat) return;
+    clearInterval(this.lockHeartbeat);
+    this.lockHeartbeat = null;
+  }
+
+  private releaseEditLock(): void {
+    this.stopLockHeartbeat();
+    if (!this.lockAcquired || !this.editId) return;
+    const recordId = this.editId;
+    this.lockAcquired = false;
+    this.editLockService.release('CLASSES', recordId).subscribe({
+      next: () => {},
+      error: () => {},
+    });
   }
 
   private loadClassLabel(classId: string): void {
@@ -160,7 +229,8 @@ export class ClassLevelFormComponent implements OnInit {
     if (this.form.invalid) return;
 
     this.saving = true;
-    const data = this.form.value;
+    const data: any = this.form.value;
+    if (this.editMode) data.updated_at = this.recordUpdatedAt;
 
     const req = this.editMode
       ? this.cs.putService({ url: API.classLevels.detail(this.editId), payload: data })
@@ -187,6 +257,7 @@ export class ClassLevelFormComponent implements OnInit {
           // Force table refresh
           this.onClassChange(classId);
         } else {
+          this.releaseEditLock();
           this.cs.navigate({ url: `/academic/class/${this.selectedClassId}/edit`, queryParams: { tab: 'levels' } });
         }
       },
@@ -202,6 +273,7 @@ export class ClassLevelFormComponent implements OnInit {
   }
 
   cancel(): void {
+    this.releaseEditLock();
     if (this.selectedClassId) {
       this.cs.navigate({ url: `/academic/class/${this.selectedClassId}/edit`, queryParams: { tab: 'levels' } });
     } else {

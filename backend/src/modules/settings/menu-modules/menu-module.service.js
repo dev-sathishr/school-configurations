@@ -1,6 +1,7 @@
 const menuModuleRepo = require('./menu-module.repository');
 const db = require('../../../config/database');
 const { bulkImport, pick } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query) {
   return menuModuleRepo.findAll(query);
@@ -27,6 +28,9 @@ async function update(id, body, userId) {
   const current = await menuModuleRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Menu Module mapping not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   const menuId = body.menu_id || current.menu_id;
   const moduleId = body.module_id || current.module_id;
   if (menuId !== current.menu_id || moduleId !== current.module_id) {
@@ -34,7 +38,10 @@ async function update(id, body, userId) {
     if (duplicate && duplicate.id !== id) return { error: 'conflict', message: 'This menu is already linked to this module' };
   }
 
-  const menuModule = await menuModuleRepo.update(id, body, current, userId);
+  const menuModule = await menuModuleRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(menuModule);
+  if (stale) return stale;
+
   return { data: menuModule };
 }
 

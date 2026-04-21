@@ -72,12 +72,14 @@ async function create(data, userId) {
   return result.rows[0];
 }
 
-async function update(id, data, current, userId) {
+async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
     UPDATE academic.class_levels SET
       class_general_id = $1, code = $2, section = $3, capacity = $4, location_id = $5, is_active = $6,
       notes = $7, updated_by = $8, updated_at = NOW()
-    WHERE id = $9 RETURNING *
+    WHERE id = $9
+      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $10::timestamptz)
+    RETURNING *
   `, [
     data.class_general_id || current.class_general_id,
     data.code || current.code,
@@ -86,9 +88,9 @@ async function update(id, data, current, userId) {
     data.location_id !== undefined ? (data.location_id || null) : current.location_id,
     data.is_active !== undefined ? data.is_active : current.is_active,
     data.notes !== undefined ? data.notes : current.notes,
-    userId, id,
+    userId, id, expectedUpdatedAt,
   ]);
-  return result.rows[0];
+  return result.rows[0] || null;
 }
 
 const repoHelper = require('../../../shared/helpers/repo.helper');

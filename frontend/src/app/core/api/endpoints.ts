@@ -77,6 +77,10 @@ export const API = {
     base: '/permission-requests',
     pending: '/permission-requests/pending',
   },
+  editLocks: {
+    acquire: '/edit-locks/acquire',
+    release: '/edit-locks/release',
+  },
   organizations: {
     base: '/organizations',
     detail: (id: string) => `/organizations/${id}`,

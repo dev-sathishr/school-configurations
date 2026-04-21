@@ -54,14 +54,16 @@ async function create(data, userId) {
   return result.rows[0];
 }
 
-async function update(id, data, current, userId) {
+async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
     UPDATE settings.organizations SET
       name=$1, reg_no=$2, email=$3, primary_contact_code=$4, primary_contact_no=$5,
       alternate_contact_code=$6, alternate_contact_no=$7, website=$8,
       social_facebook=$9, social_instagram=$10, social_twitter=$11, social_linkedin=$12, social_youtube=$13,
       is_active=$14, notes=$15, updated_by=$16, updated_at=NOW()
-    WHERE id=$17 RETURNING *
+    WHERE id=$17
+      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $18::timestamptz)
+    RETURNING *
   `, [
     data.name || current.name,
     data.reg_no !== undefined ? data.reg_no : current.reg_no,
@@ -78,9 +80,9 @@ async function update(id, data, current, userId) {
     data.social_youtube !== undefined ? data.social_youtube : current.social_youtube,
     data.is_active !== undefined ? data.is_active : current.is_active,
     data.notes !== undefined ? data.notes : current.notes,
-    userId, id,
+    userId, id, expectedUpdatedAt,
   ]);
-  return result.rows[0];
+  return result.rows[0] || null;
 }
 
 async function softDelete(id, userId) {

@@ -1,5 +1,6 @@
 const moduleRepo = require('./module.repository');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query, viewOwnUserId) {
   return moduleRepo.findAll(query, viewOwnUserId);
@@ -30,12 +31,18 @@ async function update(id, body, userId) {
   const current = await moduleRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Module not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   if (body.code && body.code.toLowerCase() !== current.code.toLowerCase()) {
     const duplicate = await moduleRepo.findByCodeActive(body.code);
     if (duplicate) return { error: 'conflict', message: 'Module code already exists' };
   }
 
-  const mod = await moduleRepo.update(id, body, current, userId);
+  const mod = await moduleRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(mod);
+  if (stale) return stale;
+
   return { data: mod };
 }
 
@@ -64,6 +71,7 @@ async function importRows(rows, userId) {
         icon: pick(raw, 'icon', 'Icon') || '',
         route_path: pick(raw, 'route_path', 'Route Path') || '',
         display_order: Number(pick(raw, 'display_order', 'Display Order')) || 0,
+        enforce_edit_lock: asBool(pick(raw, 'enforce_edit_lock', 'Enforce Edit Lock'), false),
         description: pick(raw, 'description', 'Description') || '',
         is_active: asBool(pick(raw, 'is_active', 'Is Active'), true),
       };

@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, EventEmitter, Output } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { API } from '../../../../../core/api/endpoints';
+import { EditLockService } from '../../../../../core/services/edit-lock.service';
 import { PermissionService } from '../../../../../core/services/permission.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
@@ -28,6 +29,9 @@ export class EmployeeGroupFormComponent {
   submitted = false;
   editId = '';
   employeeCategoryLabel = '';
+  recordUpdatedAt = '';
+  private lockAcquired = false;
+  private lockHeartbeat: ReturnType<typeof setInterval> | null = null;
 
   form: FormGroup;
 
@@ -35,6 +39,7 @@ export class EmployeeGroupFormComponent {
     private fb: FormBuilder,
     private cs: CommonService,
     private cdr: ChangeDetectorRef,
+    private editLockService: EditLockService,
     public ps: PermissionService
   ) {
     this.form = this.fb.group({
@@ -86,12 +91,14 @@ export class EmployeeGroupFormComponent {
   }
 
   closeModal(): void {
+    this.releaseEditLock();
     this.showModal = false;
     this.loading = false;
     this.saving = false;
     this.submitted = false;
     this.editId = '';
     this.employeeCategoryLabel = '';
+    this.recordUpdatedAt = '';
     this.form.enable();
   }
 
@@ -102,7 +109,10 @@ export class EmployeeGroupFormComponent {
     if (this.form.invalid) return;
 
     this.saving = true;
-    const payload = this.form.value;
+    const payload: any = this.form.value;
+    if (this.mode === 'edit') {
+      payload.updated_at = this.recordUpdatedAt;
+    }
     const request$ = this.mode === 'edit'
       ? this.cs.putService({ url: API.employeeGroups.detail(this.editId), payload })
       : this.cs.postService({ url: API.employeeGroups.base, payload });
@@ -136,6 +146,30 @@ export class EmployeeGroupFormComponent {
     this.submitted = false;
     this.form.enable();
 
+    if (mode === 'edit') {
+      this.editLockService.acquire(this.moduleCode, id).subscribe({
+        next: (res: any) => {
+          const lock = res?.data || {};
+          if (lock.acquired) {
+            this.lockAcquired = true;
+            this.startLockHeartbeat();
+          }
+          this.loadExistingRecord(id);
+        },
+        error: (err: any) => {
+          this.loading = false;
+          this.showModal = false;
+          this.cs.showToastr({ type: 'error', message: err?.error?.message || 'This record is currently being edited by another user' });
+          this.refreshView();
+        },
+      });
+      return;
+    }
+
+    this.loadExistingRecord(id);
+  }
+
+  private loadExistingRecord(id: string): void {
     this.cs.getService({ url: API.employeeGroups.detail(id) }).subscribe({
       next: (res: any) => {
         const data = res.data || res;
@@ -147,16 +181,47 @@ export class EmployeeGroupFormComponent {
           is_active: data.is_active !== undefined ? data.is_active : true,
         });
         this.employeeCategoryLabel = data.employee_category_name || '';
+        this.recordUpdatedAt = data.updated_at || '';
         if (this.mode === 'view') this.form.disable();
         this.loading = false;
         this.refreshView();
       },
       error: (err: any) => {
+        this.releaseEditLock();
         this.loading = false;
         this.showModal = false;
         this.cs.showToastr({ type: 'error', message: err?.error?.message || 'Failed to load record' });
         this.refreshView();
       },
+    });
+  }
+
+  private startLockHeartbeat(): void {
+    if (this.lockHeartbeat) clearInterval(this.lockHeartbeat);
+    this.lockHeartbeat = setInterval(() => {
+      if (!this.lockAcquired || !this.editId) return;
+      this.editLockService.acquire(this.moduleCode, this.editId).subscribe({
+        next: () => {},
+        error: () => {},
+      });
+    }, 60_000);
+  }
+
+  private stopLockHeartbeat(): void {
+    if (!this.lockHeartbeat) return;
+    clearInterval(this.lockHeartbeat);
+    this.lockHeartbeat = null;
+  }
+
+  private releaseEditLock(): void {
+    this.stopLockHeartbeat();
+    if (!this.lockAcquired || !this.editId) return;
+
+    const recordId = this.editId;
+    this.lockAcquired = false;
+    this.editLockService.release(this.moduleCode, recordId).subscribe({
+      next: () => {},
+      error: () => {},
     });
   }
 

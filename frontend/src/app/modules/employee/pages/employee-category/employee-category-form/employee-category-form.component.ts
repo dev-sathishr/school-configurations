@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, EventEmitter, Output } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { API } from '../../../../../core/api/endpoints';
+import { EditLockService } from '../../../../../core/services/edit-lock.service';
 import { PermissionService } from '../../../../../core/services/permission.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
@@ -27,6 +28,9 @@ export class EmployeeCategoryFormComponent {
   saving = false;
   submitted = false;
   editId = '';
+  recordUpdatedAt = '';
+  private lockAcquired = false;
+  private lockHeartbeat: ReturnType<typeof setInterval> | null = null;
 
   form: FormGroup;
 
@@ -34,6 +38,7 @@ export class EmployeeCategoryFormComponent {
     private fb: FormBuilder,
     private cs: CommonService,
     private cdr: ChangeDetectorRef,
+    private editLockService: EditLockService,
     public ps: PermissionService
   ) {
     this.form = this.fb.group({
@@ -82,11 +87,13 @@ export class EmployeeCategoryFormComponent {
   }
 
   closeModal(): void {
+    this.releaseEditLock();
     this.showModal = false;
     this.loading = false;
     this.saving = false;
     this.submitted = false;
     this.editId = '';
+    this.recordUpdatedAt = '';
     this.form.enable();
   }
 
@@ -97,7 +104,10 @@ export class EmployeeCategoryFormComponent {
     if (this.form.invalid) return;
 
     this.saving = true;
-    const payload = this.form.value;
+    const payload: any = this.form.value;
+    if (this.mode === 'edit') {
+      payload.updated_at = this.recordUpdatedAt;
+    }
     const request$ = this.mode === 'edit'
       ? this.cs.putService({ url: API.employeeCategories.detail(this.editId), payload })
       : this.cs.postService({ url: API.employeeCategories.base, payload });
@@ -131,6 +141,30 @@ export class EmployeeCategoryFormComponent {
     this.submitted = false;
     this.form.enable();
 
+    if (mode === 'edit') {
+      this.editLockService.acquire(this.moduleCode, id).subscribe({
+        next: (res: any) => {
+          const lock = res?.data || {};
+          if (lock.acquired) {
+            this.lockAcquired = true;
+            this.startLockHeartbeat();
+          }
+          this.loadExistingRecord(id);
+        },
+        error: (err: any) => {
+          this.loading = false;
+          this.showModal = false;
+          this.cs.showToastr({ type: 'error', message: err?.error?.message || 'This record is currently being edited by another user' });
+          this.refreshView();
+        },
+      });
+      return;
+    }
+
+    this.loadExistingRecord(id);
+  }
+
+  private loadExistingRecord(id: string): void {
     this.cs.getService({ url: API.employeeCategories.detail(id) }).subscribe({
       next: (res: any) => {
         const data = res.data || res;
@@ -140,16 +174,47 @@ export class EmployeeCategoryFormComponent {
           description: data.description || '',
           is_active: data.is_active !== undefined ? data.is_active : true,
         });
+        this.recordUpdatedAt = data.updated_at || '';
         if (this.mode === 'view') this.form.disable();
         this.loading = false;
         this.refreshView();
       },
       error: (err: any) => {
+        this.releaseEditLock();
         this.loading = false;
         this.showModal = false;
         this.cs.showToastr({ type: 'error', message: err?.error?.message || 'Failed to load record' });
         this.refreshView();
       },
+    });
+  }
+
+  private startLockHeartbeat(): void {
+    if (this.lockHeartbeat) clearInterval(this.lockHeartbeat);
+    this.lockHeartbeat = setInterval(() => {
+      if (!this.lockAcquired || !this.editId) return;
+      this.editLockService.acquire(this.moduleCode, this.editId).subscribe({
+        next: () => {},
+        error: () => {},
+      });
+    }, 60_000);
+  }
+
+  private stopLockHeartbeat(): void {
+    if (!this.lockHeartbeat) return;
+    clearInterval(this.lockHeartbeat);
+    this.lockHeartbeat = null;
+  }
+
+  private releaseEditLock(): void {
+    this.stopLockHeartbeat();
+    if (!this.lockAcquired || !this.editId) return;
+
+    const recordId = this.editId;
+    this.lockAcquired = false;
+    this.editLockService.release(this.moduleCode, recordId).subscribe({
+      next: () => {},
+      error: () => {},
     });
   }
 

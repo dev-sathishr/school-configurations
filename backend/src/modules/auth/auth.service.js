@@ -123,6 +123,7 @@ async function getMyPermissions(userId) {
       m.route_path AS menu_route_path, m.display_order AS menu_order,
       mm.module_id, mod.name AS module_name, mod.code AS module_code,
       mod.icon AS module_icon, mod.route_path AS module_route_path, mm.display_order AS module_order,
+      mod.enforce_edit_lock AS module_enforce_edit_lock,
       p.code AS permission_code
     FROM settings.group_modules gm
     JOIN settings.menus m ON gm.menu_id = m.id AND m.deleted_at IS NULL AND m.is_active = true
@@ -158,7 +159,7 @@ async function getMyPermissions(userId) {
         mod = {
           id: row.module_id, name: row.module_name, code: row.module_code,
           icon: row.module_icon, route_path: row.module_route_path,
-          display_order: row.module_order, permissions: {},
+          display_order: row.module_order, enforce_edit_lock: !!row.module_enforce_edit_lock, permissions: {},
         };
         menu.modules.push(mod);
       }

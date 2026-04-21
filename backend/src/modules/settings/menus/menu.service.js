@@ -1,6 +1,7 @@
 const menuRepo = require('./menu.repository');
 const db = require('../../../config/database');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query, viewOwnUserId) {
   return menuRepo.findAll(query, viewOwnUserId);
@@ -36,12 +37,18 @@ async function update(id, body, userId) {
   const current = await menuRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Menu not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   if (body.code && body.code.toLowerCase() !== current.code.toLowerCase()) {
     const duplicate = await menuRepo.findByCodeActive(body.code);
     if (duplicate) return { error: 'conflict', message: 'Menu code already exists' };
   }
 
-  const menu = await menuRepo.update(id, body, current, userId);
+  const menu = await menuRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(menu);
+  if (stale) return stale;
+
   return { data: menu };
 }
 

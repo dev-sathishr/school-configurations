@@ -23,6 +23,7 @@ export class ModuleFormComponent extends FormPageBase {
       icon: [''],
       route_path: [''],
       display_order: [0],
+      enforce_edit_lock: [false],
       is_active: [true],
       description: [''],
     });

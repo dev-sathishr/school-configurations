@@ -2,6 +2,7 @@ const userRepo = require('./user.repository');
 const fileRepo = require('../../files/file.repository');
 const password = require('../../../shared/helpers/password.helper');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query, viewOwnUserId) {
   return userRepo.findAll(query, viewOwnUserId);
@@ -45,6 +46,9 @@ async function update(id, body, userId) {
   if (rawResult.rows.length === 0) return { error: 'notFound', message: 'User not found' };
   const rawCurrent = rawResult.rows[0];
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   if (body.username && body.username !== rawCurrent.username) {
     const duplicate = await userRepo.findByUsernameActive(body.username);
     if (duplicate) return { error: 'conflict', message: 'Username already exists' };
@@ -61,7 +65,10 @@ async function update(id, body, userId) {
     phone: body.phone,
     group_id: body.group_id,
     is_active: body.is_active,
-  }, rawCurrent, userId);
+  }, rawCurrent, userId, version.data);
+
+  const stale = toConflictIfStale(user);
+  if (stale) return stale;
 
   if (body.location_ids !== undefined) {
     const locIds = body.location_ids || [];

@@ -7,6 +7,7 @@ const authRoutes = require('./modules/auth/auth.routes');
 const notificationRoutes = require('./modules/notifications/notification.routes');
 const chatRoutes = require('./modules/chat/chat.routes');
 const fileRoutes = require('./modules/files/file.routes');
+const editLockRoutes = require('./modules/edit-locks/edit-lock.routes');
 
 // Settings
 const userRoutes = require('./modules/settings/users/user.routes');
@@ -59,6 +60,7 @@ app.use('/api/v1/sessions', sessionRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/files', fileRoutes);
+app.use('/api/v1/edit-locks', editLockRoutes);
 app.use('/api/v1/classes', classRoutes);
 app.use('/api/v1/class-levels', classLevelRoutes);
 app.use('/api/v1/academic-years', academicYearRoutes);

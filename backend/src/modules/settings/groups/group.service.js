@@ -3,6 +3,7 @@ const db = require('../../../config/database');
 const notificationRepo = require('../../notifications/notification.repository');
 const requestRepo = require('../permission-requests/permission-request.repository');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query, viewOwnUserId) {
   return groupRepo.findAll(query, viewOwnUserId);
@@ -33,12 +34,17 @@ async function update(id, body, userId) {
   const current = await groupRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Group not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   if (body.code && body.code.toLowerCase() !== current.code.toLowerCase()) {
     const duplicate = await groupRepo.findByCodeActive(body.code);
     if (duplicate) return { error: 'conflict', message: 'Group code already exists' };
   }
 
-  const group = await groupRepo.update(id, body, current, userId);
+  const group = await groupRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(group);
+  if (stale) return stale;
 
   // Notify users with pending permission requests — only if group actually has module permissions in DB after update
   try {

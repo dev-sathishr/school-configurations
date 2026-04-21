@@ -3,6 +3,7 @@ const fileRepo = require('../../files/file.repository');
 const { validate } = require('../../../shared/helpers/validate.helper');
 const { saveAddresses, getAddresses } = require('../../../shared/helpers/address.helper');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 const ORG_RULES = {
   name: { required: true, min: 3, max: 100, label: 'Name' },
@@ -65,6 +66,9 @@ async function update(id, body, userId) {
   const current = await orgRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Organization not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   const merged = { ...current, ...body };
   const errors = validate(merged, ORG_RULES);
   if (errors.length) return { error: 'badRequest', message: errors.join(', ') };
@@ -83,7 +87,10 @@ async function update(id, body, userId) {
     if (exists) return { error: 'conflict', message: 'Registration number already exists' };
   }
 
-  const org = await orgRepo.update(id, body, current, userId);
+  const org = await orgRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(org);
+  if (stale) return stale;
+
   await saveAddresses('organization', id, body.addresses, userId);
 
   return { data: org };

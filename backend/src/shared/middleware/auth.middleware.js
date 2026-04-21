@@ -1,6 +1,7 @@
 const { verifyAccessToken } = require('../helpers/jwt.helper');
-const { unauthorized, forbidden } = require('../helpers/response.helper');
+const { unauthorized, forbidden, conflict } = require('../helpers/response.helper');
 const db = require('../../config/database');
+const editLockService = require('../../modules/edit-locks/edit-lock.service');
 
 // In-memory throttle for `last_activity_at` updates. Writing on every single
 // authenticated request would thrash the DB; bucketing to once per 30s per
@@ -79,6 +80,16 @@ function authorizeModule(moduleCode, permissionCode) {
       if (result.rows.length === 0) {
         return forbidden(res, 'You do not have permission to perform this action');
       }
+
+      // For record updates, enforce record lock when that module has
+      // `enforce_edit_lock = true`.
+      if (String(permissionCode || '').toUpperCase() === 'EDIT' && req.params?.id) {
+        const lockCheck = await editLockService.checkRecordLockConflict(req.user.id, moduleCode, req.params.id);
+        if (lockCheck.conflict) {
+          return conflict(res, lockCheck.message);
+        }
+      }
+
       next();
     } catch (err) {
       console.error('authorizeModule error:', err);

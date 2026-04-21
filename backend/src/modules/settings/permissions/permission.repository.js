@@ -67,12 +67,13 @@ async function create(data, userId) {
   return result.rows[0];
 }
 
-async function update(id, data, current, userId) {
+async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
     UPDATE settings.permissions SET
       name = $1, code = $2, description = $3, is_active = $4,
       updated_by = $5, updated_at = NOW()
     WHERE id = $6
+      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $7::timestamptz)
     RETURNING id, name, code, description, is_active, updated_at
   `, [
     data.name || current.name,
@@ -80,8 +81,9 @@ async function update(id, data, current, userId) {
     data.description !== undefined ? (data.description || null) : current.description,
     data.is_active !== undefined ? data.is_active : current.is_active,
     userId, id,
+    expectedUpdatedAt,
   ]);
-  return result.rows[0];
+  return result.rows[0] || null;
 }
 
 async function softDelete(id, userId) {

@@ -1,6 +1,7 @@
 const ayRepo = require('./academic-year.repository');
 const { getUserLocationScope, assertLocationAllowed } = require('../../../shared/helpers/location-scope.helper');
 const { validate } = require('../../../shared/helpers/validate.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 const AY_RULES = {
   location_id:   { required: true, label: 'Location' },
@@ -75,6 +76,9 @@ async function update(id, body, userId) {
   const current = await ayRepo.findById(id, scope);
   if (!current) return { error: 'notFound', message: 'Academic year not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   const merged = { ...current, ...body };
   const errors = validate(merged, AY_RULES);
   if (errors.length) return { error: 'badRequest', message: errors.join(', ') };
@@ -102,7 +106,10 @@ async function update(id, body, userId) {
     await ayRepo.clearOtherDefaults(targetLocation, id);
   }
 
-  const record = await ayRepo.update(id, body, current, userId);
+  const record = await ayRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(record);
+  if (stale) return stale;
+
   return { data: record };
 }
 

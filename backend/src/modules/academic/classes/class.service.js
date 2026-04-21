@@ -1,6 +1,7 @@
 const classRepo = require('./class.repository');
 const { validate } = require('../../../shared/helpers/validate.helper');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 const CLASS_RULES = {
   name: { required: true, min: 2, max: 200, label: 'Name' },
@@ -40,6 +41,9 @@ async function update(id, body, userId) {
   const current = await classRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Class not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   const merged = { ...current, ...body };
   const errors = validate(merged, CLASS_RULES);
   if (errors.length) return { error: 'badRequest', message: errors.join(', ') };
@@ -53,7 +57,10 @@ async function update(id, body, userId) {
     if (exists) return { error: 'conflict', message: 'Class code already exists' };
   }
 
-  const classGeneral = await classRepo.update(id, body, current, userId);
+  const classGeneral = await classRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(classGeneral);
+  if (stale) return stale;
+
   return { data: classGeneral };
 }
 

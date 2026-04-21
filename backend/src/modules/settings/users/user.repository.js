@@ -67,12 +67,13 @@ async function create(data, userId) {
   return result.rows[0];
 }
 
-async function update(id, data, current, userId) {
+async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
     UPDATE settings.users SET
       username = $1, password = $2, full_name = $3, email = $4, phone_code = $5, phone = $6,
       group_id = $7, is_active = $8, updated_by = $9, updated_at = NOW()
     WHERE id = $10
+      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $11::timestamptz)
     RETURNING id, username, full_name, email, phone_code, phone, group_id, is_active, updated_at
   `, [
     data.username || current.username,
@@ -83,9 +84,9 @@ async function update(id, data, current, userId) {
     data.phone !== undefined ? (data.phone || null) : current.phone,
     data.group_id !== undefined ? (data.group_id || null) : current.group_id,
     data.is_active !== undefined ? data.is_active : current.is_active,
-    userId, id,
+    userId, id, expectedUpdatedAt,
   ]);
-  return result.rows[0];
+  return result.rows[0] || null;
 }
 
 const repoHelper = require('../../../shared/helpers/repo.helper');

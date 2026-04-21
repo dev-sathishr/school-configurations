@@ -144,7 +144,7 @@ async function create(data, userId) {
   }
 }
 
-async function update(id, data, current, userId) {
+async function update(id, data, current, userId, expectedUpdatedAt) {
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
@@ -154,6 +154,7 @@ async function update(id, data, current, userId) {
         name = $1, code = $2, icon = $3, route_path = $4, display_order = $5,
         is_active = $6, description = $7, parent_id = $8, updated_by = $9, updated_at = NOW()
       WHERE id = $10
+        AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $11::timestamptz)
       RETURNING id, name, code, icon, route_path, display_order, is_active, description, parent_id, updated_at
     `, [
       data.name || current.name,
@@ -164,8 +165,13 @@ async function update(id, data, current, userId) {
       data.is_active !== undefined ? data.is_active : current.is_active,
       data.description !== undefined ? (data.description || null) : current.description,
       data.parent_id !== undefined ? (data.parent_id || null) : current.parent_id,
-      userId, id,
+      userId, id, expectedUpdatedAt,
     ]);
+
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return null;
+    }
 
     if (data.modules && Array.isArray(data.modules)) {
       await syncModules(client, id, data.modules, userId);

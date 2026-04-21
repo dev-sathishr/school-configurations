@@ -1,5 +1,6 @@
 const employeeCategoryRepo = require('./employee-category.repository');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query, viewOwnUserId) {
   return employeeCategoryRepo.findAll(query, viewOwnUserId);
@@ -30,12 +31,18 @@ async function update(id, body, userId) {
   const current = await employeeCategoryRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Employee category not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   if (body.code && body.code.toLowerCase() !== current.code.toLowerCase()) {
     const duplicate = await employeeCategoryRepo.findByCodeActive(body.code);
     if (duplicate) return { error: 'conflict', message: 'Employee category code already exists' };
   }
 
-  const employeeCategory = await employeeCategoryRepo.update(id, body, current, userId);
+  const employeeCategory = await employeeCategoryRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(employeeCategory);
+  if (stale) return stale;
+
   return { data: employeeCategory };
 }
 

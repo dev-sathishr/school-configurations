@@ -8,6 +8,17 @@ import { BaseListComponent } from '../../../../../shared/components/base-list/ba
 import { API } from '../../../../../core/api/endpoints';
 import { STATUS_BADGES, statusLabel } from '../../../../../core/constants/enums';
 
+const EDIT_LOCK_BADGES: Record<string, { label: string; class: string }> = {
+  Enabled: {
+    label: 'Enabled',
+    class: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:ring-blue-700/40',
+  },
+  Disabled: {
+    label: 'Disabled',
+    class: 'bg-muted text-muted-foreground ring-1 ring-border',
+  },
+};
+
 @Component({
   selector: 'app-module-list',
   templateUrl: './module-list.component.html',
@@ -23,15 +34,17 @@ export class ModuleListComponent extends BaseListComponent {
     { key: 'm.code', label: 'Code', sortable: true, searchable: true },
     { key: 'm.route_path', label: 'Route Path', sortable: true },
     { key: 'm.display_order', label: 'Order', sortable: true },
+    { key: 'm.enforce_edit_lock', label: 'Edit Lock', sortable: true, type: 'badge', badgeMap: EDIT_LOCK_BADGES },
     { key: 'm.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
   ];
 
   displayKeyMap: Record<string, string> = {
     'm.name': 'name', 'm.code': 'code', 'm.route_path': 'route_path',
-    'm.display_order': 'display_order', 'm.is_active': 'is_active',
+    'm.display_order': 'display_order', 'm.enforce_edit_lock': 'enforce_edit_lock', 'm.is_active': 'is_active',
   };
 
   rowTransform = (row: any, mapped: any) => {
+    mapped['m.enforce_edit_lock'] = row.enforce_edit_lock ? 'Enabled' : 'Disabled';
     mapped['m.is_active'] = statusLabel(row.is_active);
     mapped['m.route_path'] = row.route_path || '-';
     return mapped;

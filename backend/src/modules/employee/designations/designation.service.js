@@ -1,6 +1,7 @@
 const designationRepo = require('./designation.repository');
 const employeeGroupRepo = require('../employee-groups/employee-group.repository');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query, viewOwnUserId) {
   return designationRepo.findAll(query, viewOwnUserId);
@@ -38,6 +39,9 @@ async function update(id, body, userId) {
   const current = await designationRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Designation not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   const employeeGroupId = body.employee_group_id || current.employee_group_id;
   if (!employeeGroupId) {
     return { error: 'badRequest', message: 'Employee group is required' };
@@ -53,7 +57,10 @@ async function update(id, body, userId) {
     if (duplicate) return { error: 'conflict', message: 'Designation code already exists' };
   }
 
-  const designation = await designationRepo.update(id, body, current, userId);
+  const designation = await designationRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(designation);
+  if (stale) return stale;
+
   return { data: designation };
 }
 

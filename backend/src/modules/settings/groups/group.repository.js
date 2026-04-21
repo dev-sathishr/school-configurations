@@ -113,23 +113,29 @@ async function create(data, userId) {
   }
 }
 
-async function update(id, data, current, userId) {
+async function update(id, data, current, userId, expectedUpdatedAt) {
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
 
-    await client.query(`
+    const result = await client.query(`
       UPDATE settings.groups SET
         name = $1, code = $2, description = $3, is_active = $4,
         updated_by = $5, updated_at = NOW()
       WHERE id = $6
+        AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $7::timestamptz)
     `, [
       data.name || current.name,
       data.code || current.code,
       data.description !== undefined ? (data.description || null) : current.description,
       data.is_active !== undefined ? data.is_active : current.is_active,
-      userId, id,
+      userId, id, expectedUpdatedAt,
     ]);
+
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return null;
+    }
 
     if (data.menu_ids && Array.isArray(data.menu_ids)) {
       await syncMenuAccess(client, id, data.menu_ids, userId);

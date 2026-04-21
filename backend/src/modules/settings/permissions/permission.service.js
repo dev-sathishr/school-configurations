@@ -1,5 +1,6 @@
 const permissionRepo = require('./permission.repository');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query, viewOwnUserId) {
   return permissionRepo.findAll(query, viewOwnUserId);
@@ -30,12 +31,18 @@ async function update(id, body, userId) {
   const current = await permissionRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Permission not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   if (body.code && body.code.toLowerCase() !== current.code.toLowerCase()) {
     const duplicate = await permissionRepo.findByCodeActive(body.code);
     if (duplicate) return { error: 'conflict', message: 'Permission code already exists' };
   }
 
-  const permission = await permissionRepo.update(id, body, current, userId);
+  const permission = await permissionRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(permission);
+  if (stale) return stale;
+
   return { data: permission };
 }
 

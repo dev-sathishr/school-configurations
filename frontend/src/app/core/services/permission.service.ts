@@ -11,6 +11,7 @@ export interface ModulePermissions {
   icon: string;
   route_path: string;
   display_order: number;
+  enforce_edit_lock?: boolean;
   permissions: Record<string, boolean>;
 }
 
@@ -101,6 +102,14 @@ export class PermissionService {
 
   canExport(moduleCode: string): boolean {
     return this.hasModulePermission(moduleCode, 'export');
+  }
+
+  isEditLockEnabled(moduleCode: string): boolean {
+    for (const menu of this._menus()) {
+      const mod = menu.modules.find((m) => m.code === moduleCode);
+      if (mod) return !!mod.enforce_edit_lock;
+    }
+    return false;
   }
 
   getModulePermissions(moduleCode: string): Record<string, boolean> | null {

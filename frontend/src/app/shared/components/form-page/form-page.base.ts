@@ -1,50 +1,20 @@
-import { ChangeDetectorRef, Directive, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Directive, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from '../../services/common/common.service';
 import { ConfirmService } from '../../services/confirm/confirm.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { CanComponentDeactivate } from '../../../core/guards/unsaved-changes.guard';
+import { EditLockService } from '../../../core/services/edit-lock.service';
 
-/**
- * Base class for CRUD form pages. Centralizes the edit/view mode detection,
- * the initial record load, the create-vs-update branching, and the common
- * loading/saving/error state every form has been copy-pasting.
- *
- * A minimal subclass only declares the routes + builds its form group:
- *
- *   @Component({ ... })
- *   export class PermissionFormComponent extends FormPageBase {
- *     listRoute = '/settings/permission';
- *     resourcePath = API.permissions.base;
- *
- *     protected buildForm(): FormGroup {
- *       return this.fb.group({
- *         name: ['', V.SHORT_NAME],
- *         code: ['', V.CODE],
- *         description: ['', V.NOTES],
- *         is_active: [true],
- *       });
- *     }
- *   }
- *
- * Override the hooks as needed:
- *   - `unwrapResponse(res)`  — if the detail endpoint nests under `{ user }`,
- *                              `{ group }`, etc. instead of `{ data }`.
- *   - `onRecordLoaded(data)` — to populate related state (labels, lookups,
- *                              selected lists) beyond `patchValue`.
- *   - `toPayload()`          — to transform the form value before send.
- *   - `afterSave(res)`       — to chain post-save work (e.g. upload pending
- *                              files) before navigating away.
- */
 @Directive()
-export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
+export abstract class FormPageBase implements OnInit, OnDestroy, CanComponentDeactivate {
   protected readonly fb = inject(FormBuilder);
   protected readonly cs = inject(CommonService);
   protected readonly route = inject(ActivatedRoute);
   protected readonly cdr = inject(ChangeDetectorRef);
   protected readonly confirmService = inject(ConfirmService);
-  /** Public so templates can gate buttons via `ps.canEdit(...)` etc. */
+  protected readonly editLockService = inject(EditLockService);
   readonly ps = inject(PermissionService);
 
   form!: FormGroup;
@@ -56,15 +26,15 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
   saving = false;
   loading = false;
   errorMessage = '';
+  protected recordUpdatedAt = '';
 
-  /** Frontend list route — used by `cancel()` and default post-save nav. */
+  private lockAcquired = false;
+  private lockModuleCode = '';
+  private lockRecordId = '';
+  private lockHeartbeat: ReturnType<typeof setInterval> | null = null;
+
   abstract listRoute: string;
-
-  /** API path — `API.users.base`, `API.locations.base`, etc. Must come from
-   *  `core/api/endpoints.ts`, not a raw literal. No trailing slash. */
   abstract resourcePath: string;
-
-  /** Subclass returns the reactive form. Called once in `ngOnInit`. */
   protected abstract buildForm(): FormGroup;
 
   ngOnInit(): void {
@@ -72,50 +42,33 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
     this.detectModeAndLoad();
   }
 
+  ngOnDestroy(): void {
+    this.releaseEditLock();
+  }
+
   get f() { return this.form.controls; }
 
-  // ── Hooks (override as needed) ─────────────────────────────────────────
-
-  /** Pull the record out of the API response. Most endpoints use `res.data`;
-   *  override for legacy shapes like `{ user }` / `{ group }`. */
   protected unwrapResponse(res: any): any {
     return res?.data ?? res;
   }
 
-  /** Default just patches the form. Override to seed labels, selected lists,
-   *  sticky edit-mode values, etc. */
   protected onRecordLoaded(data: any): void {
     this.form.patchValue(data);
   }
 
-  /** Return the payload to send on save. Default is the raw form value —
-   *  override to transform (phone merging, password stripping, etc). */
   protected toPayload(): any {
     return this.form.value;
   }
 
-  /** Post-save hook. Default navigates back to the list; override to chain
-   *  follow-up calls (file uploads) or route elsewhere. */
   protected afterSave(_res: any): void {
     this.saving = false;
     this.cs.navigate({ url: this.listRoute });
   }
 
-  /** Pre-submit guard for state that lives outside the reactive form —
-   *  e.g. required addresses array, selected locations, etc. Return `false`
-   *  to abort the submit (subclass sets its own error state for display). */
   protected beforeSubmit(): boolean {
     return true;
   }
 
-  // ── Flow ───────────────────────────────────────────────────────────────
-
-  /**
-   * Detects edit/view mode from the route and fetches the record. Called by
-   * the default `ngOnInit`; subclasses that need to pre-load related data
-   * (dropdowns, matrices) override `ngOnInit` and call this explicitly after
-   * the pre-load resolves.
-   */
   protected detectModeAndLoad(): void {
     const id = this.cs.getRouteParam(this.route, 'id');
     if (!id) return;
@@ -127,18 +80,111 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
     this.editId = id;
     this.loading = true;
 
+    if (this.shouldAcquireEditLock()) {
+      this.acquireEditLock(id);
+      return;
+    }
+
+    this.loadRecord(id);
+  }
+
+  private shouldAcquireEditLock(): boolean {
+    if (!this.editMode || !this.editId) return false;
+    return !!this.currentModuleCode();
+  }
+
+  private currentModuleCode(): string {
+    const raw = this.route.snapshot.data?.['moduleCode'];
+    return String(raw || '').trim().toUpperCase();
+  }
+
+  private loadRecord(id: string): void {
     this.cs.getService({ url: `${this.resourcePath}/${id}` }).subscribe({
       next: (res: any) => {
-        this.onRecordLoaded(this.unwrapResponse(res));
+        const data = this.unwrapResponse(res);
+        this.recordUpdatedAt = data?.updated_at || '';
+        this.onRecordLoaded(data);
         this.loading = false;
         this.cdr.detectChanges();
       },
       error: () => {
+        this.releaseEditLock();
         this.loading = false;
         this.cdr.detectChanges();
         this.cs.navigate({ url: this.listRoute });
       },
     });
+  }
+
+  private acquireEditLock(recordId: string): void {
+    const moduleCode = this.currentModuleCode();
+    if (!moduleCode) {
+      this.loadRecord(recordId);
+      return;
+    }
+
+    this.editLockService.acquire(moduleCode, recordId).subscribe({
+      next: (res: any) => {
+        const lock = res?.data || {};
+        if (lock.acquired) {
+          this.lockAcquired = true;
+          this.lockModuleCode = moduleCode;
+          this.lockRecordId = recordId;
+          this.startLockHeartbeat();
+        }
+        this.loadRecord(recordId);
+      },
+      error: (err: any) => {
+        this.loading = false;
+        this.cdr.detectChanges();
+        this.cs.showToastr({
+          type: 'error',
+          message: err?.error?.message || 'This record is currently being edited by another user',
+        });
+        this.navigateAfterLockFailure();
+      },
+    });
+  }
+
+  private startLockHeartbeat(): void {
+    if (this.lockHeartbeat) clearInterval(this.lockHeartbeat);
+    this.lockHeartbeat = setInterval(() => {
+      if (!this.lockAcquired || !this.lockModuleCode || !this.lockRecordId) return;
+      this.editLockService.acquire(this.lockModuleCode, this.lockRecordId).subscribe({
+        next: () => {},
+        error: () => {},
+      });
+    }, 60_000);
+  }
+
+  private stopLockHeartbeat(): void {
+    if (!this.lockHeartbeat) return;
+    clearInterval(this.lockHeartbeat);
+    this.lockHeartbeat = null;
+  }
+
+  private releaseEditLock(): void {
+    this.stopLockHeartbeat();
+    if (!this.lockAcquired || !this.lockModuleCode || !this.lockRecordId) return;
+
+    const moduleCode = this.lockModuleCode;
+    const recordId = this.lockRecordId;
+    this.lockAcquired = false;
+    this.lockModuleCode = '';
+    this.lockRecordId = '';
+
+    this.editLockService.release(moduleCode, recordId).subscribe({
+      next: () => {},
+      error: () => {},
+    });
+  }
+
+  private navigateAfterLockFailure(): void {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    this.cs.navigate({ url: this.listRoute });
   }
 
   onSubmit(): void {
@@ -149,17 +195,23 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
 
     this.saving = true;
     const payload = this.toPayload();
+    if (this.editMode) {
+      payload.updated_at = this.recordUpdatedAt;
+    }
+
     const req = this.editMode
       ? this.cs.putService({ url: `${this.resourcePath}/${this.editId}`, payload })
       : this.cs.postService({ url: this.resourcePath, payload });
 
     req.subscribe({
       next: (res: any) => {
-        // Save succeeded → the form is no longer dirty. Marking pristine
-        // here (rather than only in afterSave) means every subclass benefits
-        // even when they override afterSave with custom navigation or
-        // chained uploads — otherwise the CanDeactivate guard would prompt
-        // "leave this page?" on the post-save redirect.
+        const updated = this.unwrapResponse(res);
+        if (updated?.updated_at) {
+          this.recordUpdatedAt = updated.updated_at;
+        }
+        if (this.editMode) {
+          this.releaseEditLock();
+        }
         this.form.markAsPristine();
         this.afterSave(res);
       },
@@ -167,14 +219,6 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
     });
   }
 
-  /**
-   * Default save-error handler. Rules:
-   *   - 409 Conflict / 403 Forbidden → toast only (transient, server rejection,
-   *     nothing the inline banner adds that the toast doesn't).
-   *   - Everything else → inline banner + toast, so non-conflict server issues
-   *     stay visible while the user decides what to do.
-   * Subclasses can override for fully custom handling.
-   */
   protected handleSaveError(err: any): void {
     this.saving = false;
     const message = err?.error?.message || 'Something went wrong';
@@ -193,6 +237,7 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
   }
 
   cancel(): void {
+    this.releaseEditLock();
     this.cs.navigate({ url: this.listRoute });
   }
 
@@ -200,16 +245,6 @@ export abstract class FormPageBase implements OnInit, CanComponentDeactivate {
     this.cs.navigate({ url: `${this.listRoute}/${this.editId}/edit` });
   }
 
-  /**
-   * Route guard hook — asked by `UnsavedChangesGuard` when the user tries to
-   * leave this page. Lets the form through silently when there's nothing
-   * dirty (fresh view, already saved, or mid-submit); otherwise opens the
-   * shared confirm dialog and returns a Promise the guard resolves on.
-   *
-   * Browser-level navigation (tab close, hard refresh) still falls back to
-   * the native confirm via the `window.onbeforeunload` handler set up
-   * separately — custom dialogs can't block that path.
-   */
   canDeactivate(): boolean | Promise<boolean> {
     if (!this.form || this.form.pristine || this.saving) return true;
     return this.confirmService.ask({

@@ -4,7 +4,7 @@ const repoHelper = require('../../../shared/helpers/repo.helper');
 
 const TABLE = 'settings.menu_modules';
 
-const SELECT_FIELDS = `mm.id, mm.menu_id, mm.module_id, mm.display_order,
+const SELECT_FIELDS = `mm.id, mm.menu_id, mm.module_id, mm.display_order, mm.updated_at,
   men.name AS menu_name, men.code AS menu_code,
   mod.name AS module_name, mod.code AS module_code,
   mm.created_by, mm.created_at,
@@ -50,24 +50,26 @@ async function create(data, userId) {
   const result = await db.query(`
     INSERT INTO settings.menu_modules (menu_id, module_id, display_order, created_by)
     VALUES ($1, $2, $3, $4)
-    RETURNING id, menu_id, module_id, display_order, created_at
+    RETURNING id, menu_id, module_id, display_order, created_at, updated_at
   `, [data.menu_id, data.module_id, data.display_order || 0, userId]);
   return result.rows[0];
 }
 
-async function update(id, data, current, userId) {
+async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
     UPDATE settings.menu_modules SET
-      menu_id = $1, module_id = $2, display_order = $3
+      menu_id = $1, module_id = $2, display_order = $3, updated_at = NOW()
     WHERE id = $4
-    RETURNING id, menu_id, module_id, display_order
+      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $5::timestamptz)
+    RETURNING id, menu_id, module_id, display_order, updated_at
   `, [
     data.menu_id || current.menu_id,
     data.module_id || current.module_id,
     data.display_order !== undefined ? data.display_order : current.display_order,
     id,
+    expectedUpdatedAt,
   ]);
-  return result.rows[0];
+  return result.rows[0] || null;
 }
 
 async function softDelete(id, userId) {

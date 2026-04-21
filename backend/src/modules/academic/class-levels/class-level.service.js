@@ -1,6 +1,7 @@
 const levelRepo = require('./class-level.repository');
 const { getUserLocationScope, assertLocationAllowed } = require('../../../shared/helpers/location-scope.helper');
 const { validate } = require('../../../shared/helpers/validate.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 const LEVEL_RULES = {
   location_id: { required: true, label: 'Location' },
@@ -41,6 +42,9 @@ async function update(id, body, userId) {
   const current = await levelRepo.findById(id, scope);
   if (!current) return { error: 'notFound', message: 'Class level not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   const merged = { ...current, ...body };
   const errors = validate(merged, LEVEL_RULES);
   if (errors.length) return { error: 'badRequest', message: errors.join(', ') };
@@ -55,7 +59,10 @@ async function update(id, body, userId) {
     if (exists) return { error: 'conflict', message: 'Code already exists for this class' };
   }
 
-  const level = await levelRepo.update(id, body, current, userId);
+  const level = await levelRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(level);
+  if (stale) return stale;
+
   return { data: level };
 }
 

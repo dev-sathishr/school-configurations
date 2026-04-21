@@ -303,9 +303,7 @@ export class TableComponent implements OnInit, OnDestroy {
   }
 
   private setLoading(next: boolean): void {
-    queueMicrotask(() => {
-      if (this.destroyed) return;
-      this.loading = next;
-    });
+    if (this.destroyed) return;
+    this.loading = next;
   }
 }

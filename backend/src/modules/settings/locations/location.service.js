@@ -3,6 +3,7 @@ const db = require('../../../config/database');
 const { validate } = require('../../../shared/helpers/validate.helper');
 const { saveAddresses, getAddresses } = require('../../../shared/helpers/address.helper');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 const LOC_RULES = {
   organization_id: { required: true, label: 'Organization' },
@@ -77,6 +78,9 @@ async function update(id, body, userId) {
   const current = await locationRepo.findByField('id', id);
   if (!current) return { error: 'notFound', message: 'Location not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   const merged = { ...current, ...body };
   const errors = validate(merged, LOC_RULES);
   if (errors.length) return { error: 'badRequest', message: errors.join(', ') };
@@ -92,7 +96,10 @@ async function update(id, body, userId) {
     if (exists) return { error: 'conflict', message: 'Email already exists' };
   }
 
-  const location = await locationRepo.update(id, body, current, userId);
+  const location = await locationRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(location);
+  if (stale) return stale;
+
   await saveAddresses('location', id, body.addresses, userId);
 
   return { data: location };

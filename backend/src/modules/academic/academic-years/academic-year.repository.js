@@ -108,13 +108,15 @@ async function create(data, userId) {
   return result.rows[0];
 }
 
-async function update(id, data, current, userId) {
+async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
     UPDATE ${TABLE} SET
       location_id = $1, academic_year = $2, start_date = $3, end_date = $4,
       is_default = $5, is_active = $6, notes = $7,
       updated_by = $8, updated_at = NOW()
-    WHERE id = $9 RETURNING *
+    WHERE id = $9
+      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $10::timestamptz)
+    RETURNING *
   `, [
     data.location_id || current.location_id,
     data.academic_year || current.academic_year,
@@ -123,9 +125,9 @@ async function update(id, data, current, userId) {
     data.is_default !== undefined ? data.is_default : current.is_default,
     data.is_active !== undefined ? data.is_active : current.is_active,
     data.notes !== undefined ? data.notes : current.notes,
-    userId, id,
+    userId, id, expectedUpdatedAt,
   ]);
-  return result.rows[0];
+  return result.rows[0] || null;
 }
 
 /**

@@ -200,6 +200,7 @@ async function migrate() {
         icon VARCHAR(300),
         route_path VARCHAR(300),
         display_order INT DEFAULT 0,
+        enforce_edit_lock BOOLEAN DEFAULT false,
         is_active BOOLEAN DEFAULT true,
         description TEXT,
         created_by UUID REFERENCES settings.users(id),
@@ -214,6 +215,17 @@ async function migrate() {
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_module_code_unique ON settings.modules (LOWER(code)) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_module_code_unique already exists'));
+
+    // Existing databases created before `enforce_edit_lock` was introduced.
+    await client.query(`
+      ALTER TABLE settings.modules
+      ADD COLUMN IF NOT EXISTS enforce_edit_lock BOOLEAN DEFAULT false;
+    `).catch(() => {});
+    await client.query(`
+      UPDATE settings.modules
+         SET enforce_edit_lock = COALESCE(enforce_edit_lock, false)
+       WHERE enforce_edit_lock IS NULL;
+    `).catch(() => {});
 
     // Menus table
     await client.query(`
@@ -249,6 +261,7 @@ async function migrate() {
         display_order INT DEFAULT 0,
         created_by UUID REFERENCES settings.users(id),
         created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
         deleted_by UUID REFERENCES settings.users(id),
         deleted_at TIMESTAMPTZ
       );
@@ -292,6 +305,7 @@ async function migrate() {
         menu_id UUID NOT NULL REFERENCES settings.menus(id),
         created_by UUID REFERENCES settings.users(id),
         created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
         deleted_by UUID REFERENCES settings.users(id),
         deleted_at TIMESTAMPTZ
       );
@@ -300,6 +314,11 @@ async function migrate() {
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_group_module_unique ON settings.group_modules (group_id, menu_id) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_group_module_unique already exists'));
+
+    await client.query('ALTER TABLE settings.menu_modules ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()').catch(() => {});
+    await client.query('ALTER TABLE settings.group_modules ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()').catch(() => {});
+    await client.query("UPDATE settings.menu_modules SET updated_at = COALESCE(updated_at, created_at, NOW()) WHERE updated_at IS NULL").catch(() => {});
+    await client.query("UPDATE settings.group_modules SET updated_at = COALESCE(updated_at, created_at, NOW()) WHERE updated_at IS NULL").catch(() => {});
 
     // Permissions master table (permission types like View, Create, Edit, Delete)
     await client.query(`
@@ -430,6 +449,31 @@ async function migrate() {
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_group_permission_unique ON settings.group_permissions (group_id, module_id, permission_id) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_group_permission_unique already exists'));
+
+    // Record-level edit locks. Applies only when the target module has
+    // `settings.modules.enforce_edit_lock = true`.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.record_edit_locks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        module_code VARCHAR(100) NOT NULL,
+        record_id UUID NOT NULL,
+        locked_by UUID NOT NULL REFERENCES settings.users(id),
+        locked_at TIMESTAMPTZ DEFAULT NOW(),
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_record_edit_lock_unique
+        ON settings.record_edit_locks (LOWER(module_code), record_id);
+    `).catch(() => console.log('Index idx_record_edit_lock_unique already exists'));
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_record_edit_lock_expires
+        ON settings.record_edit_locks (expires_at);
+    `).catch(() => console.log('Index idx_record_edit_lock_expires already exists'));
 
     // Permission requests table
     await client.query(`
@@ -584,6 +628,23 @@ async function migrate() {
          )
       `, [perm.name, perm.code, perm.description]).catch(() => {});
     }
+
+    // If previous builds introduced LOCK_EDIT as a group permission, retire it.
+    await client.query(`
+      UPDATE settings.group_permissions gp
+         SET deleted_at = COALESCE(gp.deleted_at, NOW())
+       WHERE gp.deleted_at IS NULL
+         AND gp.permission_id IN (
+           SELECT p.id FROM settings.permissions p
+            WHERE UPPER(p.code) = 'LOCK_EDIT'
+         );
+    `).catch(() => {});
+    await client.query(`
+      UPDATE settings.permissions
+         SET deleted_at = COALESCE(deleted_at, NOW())
+       WHERE deleted_at IS NULL
+         AND UPPER(code) = 'LOCK_EDIT';
+    `).catch(() => {});
 
     // Grant IMPORT and EXPORT to SUPER_ADMIN on every existing module.
     // Idempotent: skips any (group, module, permission) triple that already exists.

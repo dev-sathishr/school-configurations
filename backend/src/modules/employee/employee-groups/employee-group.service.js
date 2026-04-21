@@ -1,6 +1,7 @@
 const employeeGroupRepo = require('./employee-group.repository');
 const employeeCategoryRepo = require('../employee-categories/employee-category.repository');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
+const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
 async function getAll(query, viewOwnUserId) {
   return employeeGroupRepo.findAll(query, viewOwnUserId);
@@ -38,6 +39,9 @@ async function update(id, body, userId) {
   const current = await employeeGroupRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Employee group not found' };
 
+  const version = getExpectedUpdatedAt(body);
+  if (version.error) return version;
+
   const employeeCategoryId = body.employee_category_id || current.employee_category_id;
   if (!employeeCategoryId) {
     return { error: 'badRequest', message: 'Employee category is required' };
@@ -53,7 +57,10 @@ async function update(id, body, userId) {
     if (duplicate) return { error: 'conflict', message: 'Employee group code already exists' };
   }
 
-  const employeeGroup = await employeeGroupRepo.update(id, body, current, userId);
+  const employeeGroup = await employeeGroupRepo.update(id, body, current, userId, version.data);
+  const stale = toConflictIfStale(employeeGroup);
+  if (stale) return stale;
+
   return { data: employeeGroup };
 }
 
