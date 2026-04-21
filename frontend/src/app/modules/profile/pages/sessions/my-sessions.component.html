@@ -22,13 +22,3 @@
     [canExport]="false">
   </app-table>
 </div>
-
-<app-confirm-dialog
-  [visible]="showConfirm"
-  title="Sign out other devices?"
-  message="Every active session for your account except this browser will be revoked. You'll stay signed in here."
-  confirmText="Sign out others"
-  [loading]="revoking"
-  (onConfirm)="confirmRevokeOthers()"
-  (onCancel)="cancelRevokeOthers()">
-</app-confirm-dialog>

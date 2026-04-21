@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, Injector, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -6,6 +6,10 @@ import { Observable, tap } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { ToastService } from '../../shared/services/toast/toast.service';
 import { API } from '../api/endpoints';
+import { PermissionService } from './permission.service';
+import { UserPreferencesService } from './user-preferences.service';
+import { LocationContextService } from './location-context.service';
+import { SessionTimeoutService } from './session-timeout.service';
 
 interface LoginResponse {
   message: string;
@@ -37,8 +41,12 @@ export class AuthService {
   public readonly currentUser$ = toObservable(this._currentUser);
 
   private loggingOut = false;
+  private permissionService?: PermissionService;
+  private prefsService?: UserPreferencesService;
+  private locationContext?: LocationContextService;
+  private sessionTimeout?: SessionTimeoutService;
 
-  constructor(private http: HttpClient, private router: Router, private toast: ToastService) {}
+  constructor(private http: HttpClient, private router: Router, private toast: ToastService, private injector: Injector) {}
 
   /**
    * Sign in. `context` optionally carries the browser's geolocation so the
@@ -80,12 +88,7 @@ export class AuthService {
   }
 
   private clearSession(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    this._currentUser.set(null);
-    // Navigate first — AuthGuard will block re-entry and PermissionService
-    // resets its loaded flag on next login via the guard
+    this.clearClientState();
     this.router.navigate(['/auth/sign-in']);
   }
 
@@ -139,10 +142,7 @@ export class AuthService {
    *  the server-side session is already gone (e.g. bootstrap 401/404) and
    *  we don't want to loop-attempt a logout on a dead token. */
   dropStoredSession(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    this._currentUser.set(null);
+    this.clearClientState();
   }
 
   /** Synchronous snapshot. Reads the signal. */
@@ -153,6 +153,40 @@ export class AuthService {
   private getStoredUser(): User | null {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
+  }
+
+  private getPermissionService(): PermissionService {
+    if (!this.permissionService) this.permissionService = this.injector.get(PermissionService);
+    return this.permissionService;
+  }
+
+  private getPrefsService(): UserPreferencesService {
+    if (!this.prefsService) this.prefsService = this.injector.get(UserPreferencesService);
+    return this.prefsService;
+  }
+
+  private getLocationContext(): LocationContextService {
+    if (!this.locationContext) this.locationContext = this.injector.get(LocationContextService);
+    return this.locationContext;
+  }
+
+  private getSessionTimeout(): SessionTimeoutService {
+    if (!this.sessionTimeout) this.sessionTimeout = this.injector.get(SessionTimeoutService);
+    return this.sessionTimeout;
+  }
+
+  private clearClientState(): void {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    this._currentUser.set(null);
+
+    // Reset app-scoped user state immediately so switching users in the same
+    // browser never shows stale menus, location scope, or favorites.
+    this.getPermissionService().clear();
+    this.getPrefsService().clear();
+    this.getLocationContext().clear();
+    this.getSessionTimeout().stop();
   }
 }
 

@@ -58,7 +58,7 @@
           <tbody>
             @if (loading) {
               <tr>
-                <td [attr.colspan]="visibleColumnCount">
+                <td colspan="100">
                   <app-loader text="Loading data..." />
                 </td>
               </tr>
@@ -73,7 +73,7 @@
                   [columns]="effectiveColumns"></tr>
               } @empty {
                 <tr>
-                  <td [attr.colspan]="visibleColumnCount" class="p-0">
+                  <td colspan="100" class="p-0">
                     <app-empty-state
                       [title]="hasActiveFilters ? 'No matching records' : 'No records yet'"
                       [description]="hasActiveFilters

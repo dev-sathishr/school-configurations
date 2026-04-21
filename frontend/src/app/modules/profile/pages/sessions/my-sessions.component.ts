@@ -2,20 +2,22 @@ import { Component, inject, ViewChild } from '@angular/core';
 import { TableComponent } from '../../../../shared/components/table/table.component';
 import { ColumnConfig } from '../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
-import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { CommonService } from '../../../../shared/services/common/common.service';
 import { API } from '../../../../core/api/endpoints';
 import { SESSION_STATUS_BADGES } from '../../../../core/constants/enums';
+import { ConfirmService } from '../../../../shared/services/confirm/confirm.service';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-my-sessions',
   templateUrl: './my-sessions.component.html',
-  imports: [TableComponent, ButtonComponent, ConfirmDialogComponent],
+  imports: [TableComponent, ButtonComponent],
 })
 export class MySessionsComponent {
   @ViewChild(TableComponent) table!: TableComponent;
 
   private readonly cs = inject(CommonService);
+  private readonly confirm = inject(ConfirmService);
 
   apiUrl = API.sessions.mine;
 
@@ -48,35 +50,34 @@ export class MySessionsComponent {
     return mapped;
   };
 
-  showConfirm = false;
   revoking = false;
 
-  askRevokeOthers(): void {
-    this.showConfirm = true;
-  }
-
-  confirmRevokeOthers(): void {
-    this.revoking = true;
-    this.cs.postService({ url: API.sessions.revokeOthers, payload: {} }).subscribe({
-      next: (res: any) => {
-        this.revoking = false;
-        this.showConfirm = false;
-        const count = res?.data?.revoked_count ?? 0;
-        this.cs.showToastr({
-          type: 'success',
-          message: count > 0 ? `Signed out ${count} other device(s)` : 'No other active sessions',
-        });
-        this.table?.reloadCurrentPage();
-      },
-      error: (err: any) => {
-        this.revoking = false;
-        this.showConfirm = false;
-        this.cs.showToastr({ type: 'error', message: err?.error?.message || 'Failed to sign out other devices' });
-      },
+  async askRevokeOthers(): Promise<void> {
+    if (this.revoking) return;
+    const ok = await this.confirm.ask({
+      title: 'Sign out other devices?',
+      message: 'Every active session for your account except this browser will be revoked. You will stay signed in here.',
+      confirmText: 'Sign out others',
+      cancelText: 'Cancel',
+      tone: 'danger',
     });
-  }
+    if (!ok || this.revoking) return;
 
-  cancelRevokeOthers(): void {
-    this.showConfirm = false;
+    this.revoking = true;
+    this.cs.postService({ url: API.sessions.revokeOthers, payload: {} })
+      .pipe(finalize(() => { this.revoking = false; }))
+      .subscribe({
+        next: (res: any) => {
+          const count = res?.data?.revoked_count ?? 0;
+          this.cs.showToastr({
+            type: 'success',
+            message: count > 0 ? `Signed out ${count} other device(s)` : 'No other active sessions',
+          });
+          setTimeout(() => this.table?.reloadCurrentPage(), 0);
+        },
+        error: (err: any) => {
+          this.cs.showToastr({ type: 'error', message: err?.error?.message || 'Failed to sign out other devices' });
+        },
+      });
   }
 }

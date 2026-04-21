@@ -149,10 +149,6 @@ export class TableComponent implements OnInit, OnDestroy {
     });
   }
 
-  get visibleColumnCount(): number {
-    return this.effectiveColumns.filter((c) => this.filterService.isColumnVisible(c.key)).length + 1;
-  }
-
   get orderedColumns(): ColumnConfig[] {
     return this.filterService.getOrderedColumns(this.effectiveColumns);
   }

@@ -86,18 +86,45 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   private buildModuleList(menus: PermittedMenu[]): void {
-    const modules: FavoriteItem[] = [];
+    const candidates: FavoriteItem[] = [];
 
     for (const menu of menus) {
       if (menu.modules.length === 0 && menu.route_path) {
-        modules.push({ route: menu.route_path, label: menu.name, icon: menu.icon });
+        candidates.push({ route: menu.route_path, label: menu.name, icon: menu.icon });
       }
 
       for (const mod of menu.modules) {
         if (mod.route_path) {
-          modules.push({ route: mod.route_path, label: mod.name, icon: mod.icon || menu.icon });
+          candidates.push({ route: mod.route_path, label: mod.name, icon: mod.icon || menu.icon });
         }
       }
+    }
+
+    const grouped = new Map<string, FavoriteItem[]>();
+    for (const item of candidates) {
+      const route = String(item.route || '').trim();
+      if (!route) continue;
+      const list = grouped.get(route) || [];
+      list.push(item);
+      grouped.set(route, list);
+    }
+
+    const modules: FavoriteItem[] = [];
+    for (const [route, list] of grouped.entries()) {
+      const first = list[0];
+      if (list.length === 1) {
+        modules.push(first);
+        continue;
+      }
+
+      // When multiple modules resolve to the same route (e.g. Employee
+      // Category/Group/Designation -> /employee/employee-master), show one
+      // unified favorite item for that route.
+      modules.push({
+        route,
+        label: this.prettyLabelFromRoute(route),
+        icon: list.find((i) => !!i.icon)?.icon || first.icon,
+      });
     }
 
     this.allModules.set(modules);
@@ -109,6 +136,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }));
 
     this.rebuildFavorites(this.prefs.favorites().modules);
+  }
+
+  private prettyLabelFromRoute(route: string): string {
+    const cleaned = String(route || '').replace(/\/+$/, '');
+    const parts = cleaned.split('/').filter(Boolean);
+    const slug = (parts[parts.length - 1] || cleaned || 'module').trim();
+    return slug
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
   }
 
   private rebuildFavorites(routes: string[]): void {
