@@ -21,6 +21,7 @@ import { SessionDetailComponent } from './pages/session/session-detail/session-d
 import { AcademicYearListComponent } from './pages/academic-year/academic-year-list/academic-year-list.component';
 import { AcademicYearFormComponent } from './pages/academic-year/academic-year-form/academic-year-form.component';
 import { ModulePermissionGuard } from '../../core/guards/module-permission.guard';
+import { ModuleAccessGuard } from '../../core/guards/module-access.guard';
 import { UnsavedChangesGuard } from '../../core/guards/unsaved-changes.guard';
 
 const routes: Routes = [
@@ -30,45 +31,45 @@ const routes: Routes = [
     children: [
       { path: '', component: SettingsHomeComponent },
 
-      { path: 'user', component: UserListComponent },
+      { path: 'user', component: UserListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'USERS' } },
       { path: 'user/new', component: UserFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'USERS', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
       { path: 'user/:id/view', component: UserFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'USERS', permission: 'VIEW' } },
       { path: 'user/:id/edit', component: UserFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'USERS', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },
 
-      { path: 'organization', component: OrganizationListComponent },
+      { path: 'organization', component: OrganizationListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'ORGANIZATIONS' } },
       { path: 'organization/new', component: OrganizationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ORGANIZATIONS', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
       { path: 'organization/:id/view', component: OrganizationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ORGANIZATIONS', permission: 'VIEW' } },
       { path: 'organization/:id/edit', component: OrganizationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ORGANIZATIONS', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },
 
-      { path: 'location', component: LocationListComponent },
+      { path: 'location', component: LocationListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'LOCATIONS' } },
       { path: 'location/new', component: LocationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'LOCATIONS', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
       { path: 'location/:id/view', component: LocationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'LOCATIONS', permission: 'VIEW' } },
       { path: 'location/:id/edit', component: LocationFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'LOCATIONS', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },
 
-      { path: 'module', component: ModuleListComponent },
+      { path: 'module', component: ModuleListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'MODULES' } },
       { path: 'module/new', component: ModuleFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MODULES', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
       { path: 'module/:id/view', component: ModuleFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MODULES', permission: 'VIEW' } },
       { path: 'module/:id/edit', component: ModuleFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MODULES', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },
 
-      { path: 'menu', component: MenuListComponent },
+      { path: 'menu', component: MenuListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'MENUS' } },
       { path: 'menu/new', component: MenuFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MENUS', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
       { path: 'menu/:id/view', component: MenuFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MENUS', permission: 'VIEW' } },
       { path: 'menu/:id/edit', component: MenuFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'MENUS', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },
 
-      { path: 'group', component: GroupListComponent },
+      { path: 'group', component: GroupListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'GROUPS' } },
       { path: 'group/new', component: GroupFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'GROUPS', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
       { path: 'group/:id/view', component: GroupFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'GROUPS', permission: 'VIEW' } },
       { path: 'group/:id/edit', component: GroupFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'GROUPS', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },
 
-      { path: 'permission', component: PermissionListComponent },
+      { path: 'permission', component: PermissionListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'PERMISSIONS' } },
       { path: 'permission/new', component: PermissionFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'PERMISSIONS', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
       { path: 'permission/:id/view', component: PermissionFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'PERMISSIONS', permission: 'VIEW' } },
       { path: 'permission/:id/edit', component: PermissionFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'PERMISSIONS', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },
 
-      { path: 'session', component: SessionListComponent },
+      { path: 'session', component: SessionListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'SESSIONS' } },
       { path: 'session/:id/view', component: SessionDetailComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'SESSIONS', permission: 'VIEW' } },
 
-      { path: 'academic-year', component: AcademicYearListComponent },
+      { path: 'academic-year', component: AcademicYearListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'ACADEMIC_YEARS' } },
       { path: 'academic-year/new', component: AcademicYearFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ACADEMIC_YEARS', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
       { path: 'academic-year/:id/view', component: AcademicYearFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ACADEMIC_YEARS', permission: 'VIEW' } },
       { path: 'academic-year/:id/edit', component: AcademicYearFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'ACADEMIC_YEARS', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },

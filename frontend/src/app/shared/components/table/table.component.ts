@@ -18,6 +18,7 @@ import { EmptyStateComponent } from '../empty-state/empty-state.component';
   standalone: true,
   selector: 'app-table',
   templateUrl: './table.component.html',
+  providers: [TableFilterService],
   imports: [
     FormsModule, AngularSvgIconModule,
     TableActionComponent, TableFooterComponent, TableHeaderComponent, TableRowComponent,
@@ -53,10 +54,11 @@ export class TableComponent implements OnInit, OnDestroy {
   deleting = false;
   showImportDialog = false;
 
-  // Gate the effect so it doesn't fire during construction with the stale
-  // filterService defaults — we want the first fetch to use the size that
-  // `ngOnInit → filterService.init(apiUrl)` resolves from user preferences.
-  private initialized = signal(false);
+  // Gate the effect so it doesn't fire during construction with stale
+  // filterService defaults. This is public because the template also uses it
+  // to avoid rendering column-dependent bindings before table setup completes.
+  readonly initialized = signal(false);
+  private destroyed = false;
 
   totalCount = () => this.pagination().total_count;
 
@@ -80,7 +82,10 @@ export class TableComponent implements OnInit, OnDestroy {
     return [...this.columns, ...missing];
   }
 
-  constructor(private cs: CommonService, public filterService: TableFilterService) {
+  constructor(
+    private cs: CommonService,
+    public filterService: TableFilterService
+  ) {
     effect(() => {
       if (!this.initialized()) return;
       const search = this.filterService.searchField();
@@ -105,13 +110,15 @@ export class TableComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.initialized.set(false);
-    this.filterService.reset();
+    this.destroyed = true;
+    // TableFilterService is component-scoped (provider on this component),
+    // so teardown is automatic. Avoid mutating template-bound state here;
+    // navigation can destroy a view during the same tick and trigger NG0100.
   }
 
   loadData(params: any = {}) {
     if (!this.apiUrl) return;
-    this.loading = true;
+    this.setLoading(true);
     const q: any = { page: params.page || 1, size: params.size || 10 };
     if (params.search) q.search = params.search;
     if (params.sortBy) q.sort_by = params.sortBy;
@@ -136,9 +143,9 @@ export class TableComponent implements OnInit, OnDestroy {
           return this.rowTransform ? this.rowTransform(row, mapped) : mapped;
         }));
         this.pagination.set(res.pagination);
-        this.loading = false;
+        this.setLoading(false);
       },
-      error: () => { this.loading = false; },
+      error: () => { this.setLoading(false); },
     });
   }
 
@@ -215,7 +222,7 @@ export class TableComponent implements OnInit, OnDestroy {
    */
   exportAll(format: ExportFormat) {
     if (!this.apiUrl || this.loading) return;
-    this.loading = true;
+    this.setLoading(true);
 
     const q: any = { page: 1, size: 10000 };
     const search = this.filterService.searchField();
@@ -246,10 +253,10 @@ export class TableComponent implements OnInit, OnDestroy {
         const visibleCols = orderedCols.filter((c) => this.filterService.isColumnVisible(c.key));
         const filename = this.apiUrl.split('/').filter(Boolean).pop() || 'export';
         exportRows(rows, visibleCols, filename, format);
-        this.loading = false;
+        this.setLoading(false);
       },
       error: () => {
-        this.loading = false;
+        this.setLoading(false);
         this.cs.showToastr({ type: 'error', message: 'Export failed' });
       },
     });
@@ -293,5 +300,12 @@ export class TableComponent implements OnInit, OnDestroy {
 
   clearSelection() {
     this.data().forEach((row) => (row.selected = false));
+  }
+
+  private setLoading(next: boolean): void {
+    queueMicrotask(() => {
+      if (this.destroyed) return;
+      this.loading = next;
+    });
   }
 }

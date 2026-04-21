@@ -91,7 +91,27 @@ export const API = {
     deleteMultiple: '/locations/delete-multiple',
     import: '/locations/import',
   },
-
+  employeeCategories: {
+    base: '/employee-categories',
+    detail: (id: string) => `/employee-categories/${id}`,
+    dropdown: '/employee-categories/dropdown',
+    deleteMultiple: '/employee-categories/delete-multiple',
+    import: '/employee-categories/import',
+  },
+  employeeGroups: {
+    base: '/employee-groups',
+    detail: (id: string) => `/employee-groups/${id}`,
+    dropdown: '/employee-groups/dropdown',
+    deleteMultiple: '/employee-groups/delete-multiple',
+    import: '/employee-groups/import',
+  },
+  designations: {
+    base: '/designations',
+    detail: (id: string) => `/designations/${id}`,
+    dropdown: '/designations/dropdown',
+    deleteMultiple: '/designations/delete-multiple',
+    import: '/designations/import',
+  },
   // ── Academic ──────────────────────────────────────────────────────
   classes: {
     base: '/classes',
@@ -159,3 +179,4 @@ export const API = {
     lookup: (pincode: string) => `/pincode/${pincode}`,
   },
 } as const;
+

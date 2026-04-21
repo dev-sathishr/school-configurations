@@ -13,6 +13,8 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
 
   private routeMap: Record<string, string> = {
     '/dashboard': 'Dashboard',
+    '/employee': 'Employee',
+    '/employee/employee-master': 'Employee Master',
     '/settings': 'Settings',
     '/settings/user': 'User',
     '/settings/organization': 'Organization',

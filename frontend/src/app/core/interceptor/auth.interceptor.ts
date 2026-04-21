@@ -2,7 +2,6 @@ import { Injectable, Injector } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { PermissionService } from '../services/permission.service';
 import { ToastService } from '../../shared/services/toast/toast.service';
@@ -10,8 +9,9 @@ import { ToastService } from '../../shared/services/toast/toast.service';
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private permissionService?: PermissionService;
+  private handlingForbidden = false;
 
-  constructor(private authService: AuthService, private injector: Injector, private router: Router, private toastService: ToastService) {}
+  constructor(private authService: AuthService, private injector: Injector, private toastService: ToastService) {}
 
   private getPermissionService(): PermissionService {
     if (!this.permissionService) {
@@ -40,18 +40,23 @@ export class AuthInterceptor implements HttpInterceptor {
 
         if (error.status === 403) {
           const message = error.error?.message || 'You do not have permission to perform this action';
-          this.toastService.error(message);
-
-          // Re-fetch permissions and redirect
-          const ps = this.getPermissionService();
-          ps.load().subscribe(() => {
-            const menus = ps.menus;
-            if (menus.length > 0 && menus[0].route_path) {
-              this.router.navigate([menus[0].route_path]);
-            } else {
-              this.router.navigate(['/no-access']);
-            }
-          });
+          if (!this.handlingForbidden) {
+            this.handlingForbidden = true;
+            this.toastService.error(message);
+            // Refresh permission cache in background, then go back to the
+            // previous route instead of forcing first-menu/dashboard redirect.
+            const ps = this.getPermissionService();
+            ps.load().subscribe({
+              next: () => {
+                window.history.back();
+                this.handlingForbidden = false;
+              },
+              error: () => {
+                window.history.back();
+                this.handlingForbidden = false;
+              },
+            });
+          }
         }
 
         return throwError(() => error);

@@ -1,87 +1,93 @@
 <div class="border-muted/20 bg-background flex min-w-full flex-col rounded-xl border p-2">
-  <app-table-action
-    [totalCount]="pagination().total_count"
-    [filteredCount]="pagination().total_count"
-    [columns]="effectiveColumns"
-    [selectedCount]="selectedCount"
-    [isSingleSelected]="isSingleSelected"
-    [canEdit]="canEdit"
-    [canDelete]="canDelete"
-    [canView]="canView"
-    [canImport]="canImport"
-    [canExport]="canExport"
-    (onEditSelected)="editSelected()"
-    (onDeleteSelected)="deleteSelected()"
-    (onViewSelected)="viewSelected()"
-    (onExport)="exportAll($event)"
-    (onImportClick)="startImport()"
-    (onInvertSelection)="invertSelection()">
-  </app-table-action>
-
-  @if (!hasVisibleColumns) {
-    <div class="flex flex-col items-center justify-center px-5 py-16 text-center">
-      <svg-icon src="./assets/icons/heroicons/outline/view-grid.svg" [svgClass]="'h-10 w-10 text-muted-foreground/30'"></svg-icon>
-      <p class="text-muted-foreground mt-3 text-sm font-medium">All columns are hidden</p>
-      <p class="text-muted-foreground/60 mt-1 text-xs">Use the Columns button to show columns</p>
+  @if (!initialized()) {
+    <div class="px-5 py-10">
+      <app-loader text="Preparing table..." />
     </div>
   } @else {
-    <div
-      class="scrollbar-thumb-rounded scrollbar-track-rounded scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-x-auto px-5">
-      <table
-        class="text-muted-foreground table w-full table-auto border-collapse border-0 text-left align-middle leading-5">
-        <thead class="border-muted/20 text-muted-foreground border text-xs">
-          <tr app-table-header [columns]="effectiveColumns" [showActions]="false" (onCheck)="toggleAll($event)"></tr>
-          @if (effectiveColumns.length > 0 && filterService.showFilters()) {
-            <tr>
-              <th class="px-1 py-1.5"></th>
-              @for (col of orderedColumns; track col.key) {
-                @if (filterService.isColumnVisible(col.key)) {
-                  <th class="px-1 py-1.5">
-                    @if (col.searchable) {
-                      <input
-                        type="text"
-                        (input)="filterService.setColumnFilter(col.key, $any($event.target).value)"
-                        placeholder="Filter..."
-                        class="text-muted-foreground bg-muted/10 w-full rounded px-2 py-1.5 text-xs font-normal outline-none focus:ring-1 focus:ring-primary/30" />
-                    }
-                  </th>
-                }
-              }
-            </tr>
-          }
-        </thead>
-        <tbody>
-          @if (loading) {
-            <tr>
-              <td [attr.colspan]="visibleColumnCount">
-                <app-loader text="Loading data..." />
-              </td>
-            </tr>
-          } @else {
-            @for (row of data(); track row.id) {
-              <tr
-                class="hover:bg-card/50 cursor-pointer"
-                [class.bg-primary/5]="row.selected"
-                (click)="toggleRow(row)"
-                app-table-row
-                [user]="row"
-                [columns]="effectiveColumns"></tr>
-            } @empty {
+    <app-table-action
+      [totalCount]="pagination().total_count"
+      [filteredCount]="pagination().total_count"
+      [columns]="effectiveColumns"
+      [selectedCount]="selectedCount"
+      [isSingleSelected]="isSingleSelected"
+      [canEdit]="canEdit"
+      [canDelete]="canDelete"
+      [canView]="canView"
+      [canImport]="canImport"
+      [canExport]="canExport"
+      (onEditSelected)="editSelected()"
+      (onDeleteSelected)="deleteSelected()"
+      (onViewSelected)="viewSelected()"
+      (onExport)="exportAll($event)"
+      (onImportClick)="startImport()"
+      (onInvertSelection)="invertSelection()">
+    </app-table-action>
+
+    @if (!hasVisibleColumns) {
+      <div class="flex flex-col items-center justify-center px-5 py-16 text-center">
+        <svg-icon src="./assets/icons/heroicons/outline/view-grid.svg" [svgClass]="'h-10 w-10 text-muted-foreground/30'"></svg-icon>
+        <p class="text-muted-foreground mt-3 text-sm font-medium">All columns are hidden</p>
+        <p class="text-muted-foreground/60 mt-1 text-xs">Use the Columns button to show columns</p>
+      </div>
+    } @else {
+      <div
+        class="scrollbar-thumb-rounded scrollbar-track-rounded scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-x-auto px-5">
+        <table
+          class="text-muted-foreground table w-full table-auto border-collapse border-0 text-left align-middle leading-5">
+          <thead class="border-muted/20 text-muted-foreground border text-xs">
+            <tr app-table-header [columns]="effectiveColumns" [showActions]="false" (onCheck)="toggleAll($event)"></tr>
+            @if (effectiveColumns.length > 0 && filterService.showFilters()) {
               <tr>
-                <td [attr.colspan]="visibleColumnCount" class="p-0">
-                  <app-empty-state
-                    [title]="hasActiveFilters ? 'No matching records' : 'No records yet'"
-                    [description]="hasActiveFilters
-                      ? 'Try clearing filters or adjusting your search.'
-                      : 'Nothing here yet — new records will show up in this list.'">
-                  </app-empty-state>
-                </td>
+                <th class="px-1 py-1.5"></th>
+                @for (col of orderedColumns; track col.key) {
+                  @if (filterService.isColumnVisible(col.key)) {
+                    <th class="px-1 py-1.5">
+                      @if (col.searchable) {
+                        <input
+                          type="text"
+                          (input)="filterService.setColumnFilter(col.key, $any($event.target).value)"
+                          placeholder="Filter..."
+                          class="text-muted-foreground bg-muted/10 w-full rounded px-2 py-1.5 text-xs font-normal outline-none focus:ring-1 focus:ring-primary/30" />
+                      }
+                    </th>
+                  }
+                }
               </tr>
             }
-          }
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            @if (loading) {
+              <tr>
+                <td [attr.colspan]="visibleColumnCount">
+                  <app-loader text="Loading data..." />
+                </td>
+              </tr>
+            } @else {
+              @for (row of data(); track row.id) {
+                <tr
+                  class="hover:bg-card/50 cursor-pointer"
+                  [class.bg-primary/5]="row.selected"
+                  (click)="toggleRow(row)"
+                  app-table-row
+                  [user]="row"
+                  [columns]="effectiveColumns"></tr>
+              } @empty {
+                <tr>
+                  <td [attr.colspan]="visibleColumnCount" class="p-0">
+                    <app-empty-state
+                      [title]="hasActiveFilters ? 'No matching records' : 'No records yet'"
+                      [description]="hasActiveFilters
+                        ? 'Try clearing filters or adjusting your search.'
+                        : 'Nothing here yet — new records will show up in this list.'">
+                    </app-empty-state>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   }
   <app-confirm-dialog
     [visible]="showDeleteConfirm"

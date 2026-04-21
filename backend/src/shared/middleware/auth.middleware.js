@@ -66,9 +66,6 @@ function authorize(...groupCodes) {
 
 function authorizeModule(moduleCode, permissionCode) {
   return async (req, res, next) => {
-    // Super admin bypasses all checks
-    if (req.user.group_code === 'SUPER_ADMIN') return next();
-
     try {
       const result = await db.query(`
         SELECT 1 FROM settings.users u
@@ -92,12 +89,6 @@ function authorizeModule(moduleCode, permissionCode) {
 
 function checkModuleView(moduleCode) {
   return async (req, res, next) => {
-    // Super admin always sees all
-    if (req.user.group_code === 'SUPER_ADMIN') {
-      req.viewOwn = false;
-      return next();
-    }
-
     try {
       const result = await db.query(`
         SELECT p.code FROM settings.users u
@@ -123,8 +114,6 @@ function checkModuleView(moduleCode) {
 
 function checkRecordOwnership(table, moduleCode) {
   return async (req, res, next) => {
-    if (req.user.group_code === 'SUPER_ADMIN') return next();
-
     const recordId = req.params.id;
     if (!recordId) return next();
 

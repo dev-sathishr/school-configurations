@@ -57,6 +57,10 @@ export class GroupFormComponent extends FormPageBase {
   // fetch the record.
   override ngOnInit(): void {
     this.form = this.buildForm();
+    const recordId = this.cs.getRouteParam(this.route, 'id');
+    // For edit/view, start in loading mode so we don't flip false -> true
+    // during the first check cycle (avoids NG0100 in dev mode).
+    this.loading = !!recordId;
     this.matrixLoading = true;
     forkJoin({
       menus: this.cs.getService({ url: API.menus.withModules }),
@@ -86,9 +90,18 @@ export class GroupFormComponent extends FormPageBase {
         }));
 
         this.matrixLoading = false;
-        this.detectModeAndLoad();
+        if (recordId) {
+          // Defer to the next microtask to keep current-cycle bindings stable.
+          queueMicrotask(() => this.detectModeAndLoad());
+        } else {
+          this.cdr.detectChanges();
+        }
       },
-      error: () => { this.matrixLoading = false; this.cdr.detectChanges(); },
+      error: () => {
+        this.matrixLoading = false;
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
     });
   }
 

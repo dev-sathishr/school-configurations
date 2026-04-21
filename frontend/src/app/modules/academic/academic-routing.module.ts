@@ -4,6 +4,7 @@ import { AcademicComponent } from './academic.component';
 import { AcademicHomeComponent } from './pages/home/academic-home.component';
 import { ClassListComponent } from './pages/class/class-list/class-list.component';
 import { ClassFormComponent } from './pages/class/class-form/class-form.component';
+import { ModuleAccessGuard } from '../../core/guards/module-access.guard';
 import { ModulePermissionGuard } from '../../core/guards/module-permission.guard';
 import { UnsavedChangesGuard } from '../../core/guards/unsaved-changes.guard';
 
@@ -13,7 +14,7 @@ const routes: Routes = [
     component: AcademicComponent,
     children: [
       { path: '', component: AcademicHomeComponent },
-      { path: 'class', component: ClassListComponent },
+      { path: 'class', component: ClassListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'CLASSES' } },
       { path: 'class/new', component: ClassFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'CLASSES', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
       { path: 'class/:id/view', component: ClassFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'CLASSES', permission: 'VIEW' } },
       { path: 'class/:id/edit', component: ClassFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'CLASSES', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },

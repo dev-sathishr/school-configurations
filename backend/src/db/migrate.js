@@ -322,6 +322,97 @@ async function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_permission_code_unique ON settings.permissions (LOWER(code)) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_permission_code_unique already exists'));
 
+    // Employee master tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.employee_categories (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_employee_category_code_unique
+        ON settings.employee_categories (LOWER(code))
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_employee_category_code_unique already exists'));
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.employee_groups (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        employee_category_id UUID REFERENCES settings.employee_categories(id),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_employee_group_code_unique
+        ON settings.employee_groups (LOWER(code))
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_employee_group_code_unique already exists'));
+
+    await client.query(`
+      ALTER TABLE settings.employee_groups
+      ADD COLUMN IF NOT EXISTS employee_category_id UUID REFERENCES settings.employee_categories(id);
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_employee_groups_category
+        ON settings.employee_groups (employee_category_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_employee_groups_category already exists'));
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.designations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        employee_group_id UUID REFERENCES settings.employee_groups(id),
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_designation_code_unique
+        ON settings.designations (LOWER(code))
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_designation_code_unique already exists'));
+
+    await client.query(`
+      ALTER TABLE settings.designations
+      ADD COLUMN IF NOT EXISTS employee_group_id UUID REFERENCES settings.employee_groups(id);
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_designations_group
+        ON settings.designations (employee_group_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_designations_group already exists'));
+
     // Group permissions table (group + module + permission type mapping)
     await client.query(`
       CREATE TABLE IF NOT EXISTS settings.group_permissions (

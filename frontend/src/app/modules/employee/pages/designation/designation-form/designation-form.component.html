@@ -1,0 +1,61 @@
+<app-modal [visible]="showModal" [title]="title" size="medium" (onClose)="closeModal()">
+  @if (loading) {
+    <app-loader size="small" text="Loading..." />
+  } @else {
+    <form [formGroup]="form" class="grid grid-cols-1 gap-4">
+      <app-form-field
+        [formGroup]="form"
+        controlName="employee_group_id"
+        label="Employee Group"
+        fieldType="async-select"
+        [required]="true"
+        [submitted]="submitted"
+        asyncUrl="/employee-groups/dropdown"
+        selectPlaceholder="Select Employee Group"
+        [initialLabel]="employeeGroupLabel" />
+
+      <app-form-field
+        [formGroup]="form"
+        controlName="name"
+        label="Name"
+        [required]="true"
+        [submitted]="submitted"
+        placeholder="e.g. CLASS TEACHER"
+        [uppercase]="true" />
+
+      <app-form-field
+        [formGroup]="form"
+        controlName="code"
+        label="Code"
+        [required]="true"
+        [submitted]="submitted"
+        placeholder="e.g. CLASS_TEACHER"
+        [uppercase]="true" />
+
+      <app-form-field
+        [formGroup]="form"
+        controlName="description"
+        label="Description"
+        fieldType="textarea"
+        placeholder="Brief description"
+        [rows]="3" />
+
+      <app-form-field
+        [formGroup]="form"
+        controlName="is_active"
+        label="Active"
+        fieldType="checkbox" />
+    </form>
+  }
+
+  <div modal-footer class="flex justify-end gap-3">
+    <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="closeModal()">
+      {{ viewMode ? 'Close' : 'Cancel' }}
+    </app-button>
+    @if (!viewMode) {
+      <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" [loading]="saving" (buttonClick)="submit()">
+        {{ mode === 'edit' ? 'Update' : 'Create' }}
+      </app-button>
+    }
+  </div>
+</app-modal>

@@ -136,7 +136,8 @@ async function seed() {
     const menus = [
       { name: 'Dashboard', code: 'DASHBOARD', icon: 'assets/icons/heroicons/outline/chart-pie.svg', route_path: '/dashboard', display_order: 1 },
       { name: 'Academic', code: 'ACADEMIC', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/academic', display_order: 2 },
-      { name: 'Settings', code: 'SETTINGS', icon: 'assets/icons/heroicons/outline/cog.svg', route_path: '/settings', display_order: 3 },
+      { name: 'Employee', code: 'EMPLOYEE', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/employee', display_order: 3 },
+      { name: 'Settings', code: 'SETTINGS', icon: 'assets/icons/heroicons/outline/cog.svg', route_path: '/settings', display_order: 4 },
     ];
 
     const menuIds = {};
@@ -157,6 +158,10 @@ async function seed() {
     const modules = [
       // Academic modules
       { name: 'Classes', code: 'CLASSES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: '/academic/class', display_order: 1 },
+      // Employee modules
+      { name: 'Employee Categories', code: 'EMPLOYEE_CATEGORIES', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/employee/employee-master', display_order: 1 },
+      { name: 'Employee Groups', code: 'EMPLOYEE_GROUPS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/employee/employee-master', display_order: 2 },
+      { name: 'Designations', code: 'DESIGNATIONS', icon: 'assets/icons/heroicons/outline/cube.svg', route_path: '/employee/employee-master', display_order: 3 },
       // Academic Years is a calendar master used as *config* by admins; it
       // lives under SETTINGS, not ACADEMIC, so route_path + menu_module
       // point there. display_order picks up where the settings modules end.
@@ -189,6 +194,10 @@ async function seed() {
     const menuModuleMappings = [
       // Academic modules
       { menu: 'ACADEMIC', module: 'CLASSES', display_order: 1 },
+      // Employee modules
+      { menu: 'EMPLOYEE', module: 'EMPLOYEE_CATEGORIES', display_order: 1 },
+      { menu: 'EMPLOYEE', module: 'EMPLOYEE_GROUPS', display_order: 2 },
+      { menu: 'EMPLOYEE', module: 'DESIGNATIONS', display_order: 3 },
       // Settings modules
       { menu: 'SETTINGS', module: 'ORGANIZATIONS', display_order: 1 },
       { menu: 'SETTINGS', module: 'LOCATIONS', display_order: 2 },
@@ -278,7 +287,7 @@ async function seed() {
 
     // Seed Group Modules (which menus each group can access)
     const groupModuleMappings = [
-      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'ACADEMIC', 'SETTINGS'] },
+      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'ACADEMIC', 'EMPLOYEE', 'SETTINGS'] },
       { group: 'PRINCIPAL', menus: ['DASHBOARD'] },
       { group: 'TEACHER', menus: ['DASHBOARD'] },
       { group: 'ACCOUNTANT', menus: ['DASHBOARD'] },
