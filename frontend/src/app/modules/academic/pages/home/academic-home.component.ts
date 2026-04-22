@@ -12,7 +12,7 @@ interface AcademicCard {
   description: string;
   route: string;
   color: string;
-  moduleCode: string;
+  moduleCodes: string[];
 }
 
 @Component({
@@ -61,7 +61,7 @@ export class AcademicHomeComponent implements OnInit {
       description: 'Manage classes, sections and academic levels',
       route: '/academic/class',
       color: 'bg-blue-500/10 text-blue-600',
-      moduleCode: 'CLASSES',
+      moduleCodes: ['CLASSES', 'CLASS_LEVELS'],
     },
   ];
 
@@ -71,7 +71,7 @@ export class AcademicHomeComponent implements OnInit {
     effect(() => {
       const pinned = this.prefs.favorites().pinnedMenus;
       const usage = untracked(() => this.prefs.usage().modules);
-      const visible = this.allCards.filter((c) => this.permissionService.hasAnyPermission(c.moduleCode));
+      const visible = this.allCards.filter((c) => c.moduleCodes.some((code) => this.permissionService.hasAnyPermission(code)));
       this.cards.set(sortByPinnedAndUsage(visible, (c) => c.route, pinned, usage));
     });
   }

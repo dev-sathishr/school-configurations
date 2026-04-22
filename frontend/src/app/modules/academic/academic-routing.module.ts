@@ -2,11 +2,8 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AcademicComponent } from './academic.component';
 import { AcademicHomeComponent } from './pages/home/academic-home.component';
-import { ClassListComponent } from './pages/class/class-list/class-list.component';
-import { ClassFormComponent } from './pages/class/class-form/class-form.component';
+import { ClassMasterComponent } from './pages/class/class-master/class-master.component';
 import { ModuleAccessGuard } from '../../core/guards/module-access.guard';
-import { ModulePermissionGuard } from '../../core/guards/module-permission.guard';
-import { UnsavedChangesGuard } from '../../core/guards/unsaved-changes.guard';
 
 const routes: Routes = [
   {
@@ -14,10 +11,15 @@ const routes: Routes = [
     component: AcademicComponent,
     children: [
       { path: '', component: AcademicHomeComponent },
-      { path: 'class', component: ClassListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'CLASSES' } },
-      { path: 'class/new', component: ClassFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'CLASSES', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },
-      { path: 'class/:id/view', component: ClassFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'CLASSES', permission: 'VIEW' } },
-      { path: 'class/:id/edit', component: ClassFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'CLASSES', permission: 'EDIT' }, canDeactivate: [UnsavedChangesGuard] },
+      {
+        path: 'class',
+        component: ClassMasterComponent,
+        canActivate: [ModuleAccessGuard],
+        data: { moduleCodes: ['CLASSES', 'CLASS_LEVELS'] },
+      },
+      { path: 'class/new', redirectTo: 'class', pathMatch: 'full' },
+      { path: 'class/:id/view', redirectTo: 'class', pathMatch: 'full' },
+      { path: 'class/:id/edit', redirectTo: 'class', pathMatch: 'full' },
     ],
   },
 ];

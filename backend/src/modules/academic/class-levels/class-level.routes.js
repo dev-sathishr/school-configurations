@@ -5,11 +5,11 @@ const { authenticate, authorizeModule, checkModuleView } = require('../../../sha
 
 router.use(authenticate);
 
-router.get('/', checkModuleView('CLASSES'), getAll);
+router.get('/', checkModuleView('CLASS_LEVELS'), getAll);
 router.get('/:id', getById);
-router.post('/', authorizeModule('CLASSES', 'CREATE'), create);
-router.post('/delete-multiple', authorizeModule('CLASSES', 'DELETE'), removeMultiple);
-router.put('/:id', authorizeModule('CLASSES', 'EDIT'), update);
-router.delete('/:id', authorizeModule('CLASSES', 'DELETE'), remove);
+router.post('/', authorizeModule('CLASS_LEVELS', 'CREATE'), create);
+router.post('/delete-multiple', authorizeModule('CLASS_LEVELS', 'DELETE'), removeMultiple);
+router.put('/:id', authorizeModule('CLASS_LEVELS', 'EDIT'), update);
+router.delete('/:id', authorizeModule('CLASS_LEVELS', 'DELETE'), remove);
 
 module.exports = router;

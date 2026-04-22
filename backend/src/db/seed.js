@@ -157,7 +157,8 @@ async function seed() {
     // DASHBOARD menu in group_modules; no per-module permissions are needed.
     const modules = [
       // Academic modules
-      { name: 'Classes', code: 'CLASSES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: '/academic/class', display_order: 1, enforce_edit_lock: false },
+      { name: 'Class General', code: 'CLASSES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: '/academic/class', display_order: 1, enforce_edit_lock: false },
+      { name: 'Class Level', code: 'CLASS_LEVELS', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: '/academic/class', display_order: 2, enforce_edit_lock: false },
       // Employee modules
       { name: 'Employee Categories', code: 'EMPLOYEE_CATEGORIES', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/employee/employee-master', display_order: 1, enforce_edit_lock: false },
       { name: 'Employee Groups', code: 'EMPLOYEE_GROUPS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/employee/employee-master', display_order: 2, enforce_edit_lock: false },
@@ -194,6 +195,7 @@ async function seed() {
     const menuModuleMappings = [
       // Academic modules
       { menu: 'ACADEMIC', module: 'CLASSES', display_order: 1 },
+      { menu: 'ACADEMIC', module: 'CLASS_LEVELS', display_order: 2 },
       // Employee modules
       { menu: 'EMPLOYEE', module: 'EMPLOYEE_CATEGORIES', display_order: 1 },
       { menu: 'EMPLOYEE', module: 'EMPLOYEE_GROUPS', display_order: 2 },
