@@ -88,6 +88,10 @@ export class ClassGeneralFormComponent {
     this.openExisting(id, 'edit');
   }
 
+  switchToEdit(): void {
+    this.openEdit(this.editId);
+  }
+
   openView(id: string): void {
     if (!this.ps.canView(this.moduleCode)) return;
     this.openExisting(id, 'view');
@@ -120,12 +124,9 @@ export class ClassGeneralFormComponent {
       : this.cs.postService({ url: API.classes.base, payload });
 
     request$.subscribe({
-      next: () => {
+      next: (res: any) => {
         this.saving = false;
-        this.cs.showToastr({
-          type: 'success',
-          message: this.mode === 'edit' ? 'Class general updated' : 'Class general created',
-        });
+        this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
         this.closeModal();
         this.onSaved.emit();
         this.refreshView();

@@ -119,11 +119,11 @@ async function getMyPermissions(userId) {
 
   // All users: menus/modules based on group_modules and group_permissions
   const result = await db.query(`
-    SELECT m.id AS menu_id, m.name AS menu_name, m.code AS menu_code, m.icon AS menu_icon,
-      m.route_path AS menu_route_path, m.display_order AS menu_order,
-      mm.module_id, mod.name AS module_name, mod.code AS module_code,
+    SELECT m.id AS menu_id, m.name AS menu_name, m.display_name AS menu_code, m.description AS menu_description,
+      m.icon AS menu_icon, m.route_path AS menu_route_path, m.display_order AS menu_order,
+      mm.module_id, mod.name AS module_name, mod.display_name AS module_code,
       mod.icon AS module_icon, mod.route_path AS module_route_path, mm.display_order AS module_order,
-      mod.enforce_edit_lock AS module_enforce_edit_lock,
+      mod.enforce_edit_lock AS module_enforce_edit_lock, mod.description AS module_description,
       p.code AS permission_code
     FROM settings.group_modules gm
     JOIN settings.menus m ON gm.menu_id = m.id AND m.deleted_at IS NULL AND m.is_active = true
@@ -146,6 +146,7 @@ async function getMyPermissions(userId) {
     if (!menuMap.has(row.menu_id)) {
       menuMap.set(row.menu_id, {
         id: row.menu_id, name: row.menu_name, code: row.menu_code,
+        description: row.menu_description || null,
         icon: row.menu_icon, route_path: row.menu_route_path,
         display_order: row.menu_order, modules: [],
       });
@@ -159,7 +160,8 @@ async function getMyPermissions(userId) {
         mod = {
           id: row.module_id, name: row.module_name, code: row.module_code,
           icon: row.module_icon, route_path: row.module_route_path,
-          display_order: row.module_order, enforce_edit_lock: !!row.module_enforce_edit_lock, permissions: {},
+          display_order: row.module_order, enforce_edit_lock: !!row.module_enforce_edit_lock,
+          description: row.module_description || null, permissions: {},
         };
         menu.modules.push(mod);
       }

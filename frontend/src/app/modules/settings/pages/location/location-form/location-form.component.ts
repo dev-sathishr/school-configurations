@@ -73,19 +73,10 @@ export class LocationFormComponent extends FormPageBase {
     return data;
   }
 
-  protected override afterSave(_res: any): void {
+  protected override afterSave(res: any): void {
     this.saving = false;
-    this.cs.showToastr({
-      type: 'success',
-      message: this.editMode ? 'Location updated' : 'Location created',
-      description: this.editMode ? 'Changes saved successfully' : 'New location has been added',
-    });
+    this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
     this.cs.navigate({ url: this.listRoute });
-  }
-
-  protected override handleSaveError(err: any): void {
-    super.handleSaveError(err);
-    this.cs.showToastr({ type: 'error', message: 'Failed to save', description: this.errorMessage });
   }
 
   onAddressesChange(addresses: Address[]): void {

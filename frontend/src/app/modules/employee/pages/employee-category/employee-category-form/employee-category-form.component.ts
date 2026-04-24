@@ -81,6 +81,10 @@ export class EmployeeCategoryFormComponent {
     this.openExisting(id, 'edit');
   }
 
+  switchToEdit(): void {
+    this.openEdit(this.editId);
+  }
+
   openView(id: string): void {
     if (!this.ps.canView(this.moduleCode)) return;
     this.openExisting(id, 'view');
@@ -113,12 +117,9 @@ export class EmployeeCategoryFormComponent {
       : this.cs.postService({ url: API.employeeCategories.base, payload });
 
     request$.subscribe({
-      next: () => {
+      next: (res: any) => {
         this.saving = false;
-        this.cs.showToastr({
-          type: 'success',
-          message: this.mode === 'edit' ? 'Employee category updated' : 'Employee category created',
-        });
+        this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
         this.closeModal();
         this.onSaved.emit();
         this.refreshView();

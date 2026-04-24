@@ -29,11 +29,19 @@ export class FavoritesComponent {
     const idx = new Map<string, RouteInfo>();
     for (const menu of this.permissions.menus) {
       if (menu.route_path) {
-        idx.set(menu.route_path, { route: menu.route_path, label: menu.name, icon: menu.icon });
+        idx.set(menu.route_path, {
+          route: menu.route_path,
+          label: menu.display_name || menu.code || menu.name,
+          icon: menu.icon,
+        });
       }
       for (const mod of menu.modules) {
         if (mod.route_path) {
-          idx.set(mod.route_path, { route: mod.route_path, label: mod.name, icon: mod.icon || menu.icon });
+          idx.set(mod.route_path, {
+            route: mod.route_path,
+            label: mod.display_name || mod.code || mod.name,
+            icon: mod.icon || menu.icon,
+          });
         }
       }
     }

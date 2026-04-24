@@ -31,7 +31,7 @@ export class ModuleListComponent extends BaseListComponent {
 
   columns: ColumnConfig[] = [
     { key: 'm.name', label: 'Name', sortable: true, searchable: true },
-    { key: 'm.code', label: 'Code', sortable: true, searchable: true },
+    { key: 'm.display_name', label: 'Display Name', sortable: true, searchable: true },
     { key: 'm.route_path', label: 'Route Path', sortable: true },
     { key: 'm.display_order', label: 'Order', sortable: true },
     { key: 'm.enforce_edit_lock', label: 'Edit Lock', sortable: true, type: 'badge', badgeMap: EDIT_LOCK_BADGES },
@@ -39,7 +39,7 @@ export class ModuleListComponent extends BaseListComponent {
   ];
 
   displayKeyMap: Record<string, string> = {
-    'm.name': 'name', 'm.code': 'code', 'm.route_path': 'route_path',
+    'm.name': 'name', 'm.display_name': 'display_name', 'm.route_path': 'route_path',
     'm.display_order': 'display_order', 'm.enforce_edit_lock': 'enforce_edit_lock', 'm.is_active': 'is_active',
   };
 

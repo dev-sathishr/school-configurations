@@ -17,11 +17,11 @@ async function getDropdown(query) {
 }
 
 async function create(body, userId) {
-  const { name, code } = body;
-  if (!name || !code) return { error: 'badRequest', message: 'Name and code are required' };
+  const { name, display_name } = body;
+  if (!name || !display_name) return { error: 'badRequest', message: 'Name and display name are required' };
 
-  const existing = await moduleRepo.findByCodeActive(code);
-  if (existing) return { error: 'conflict', message: 'Module code already exists' };
+  const existing = await moduleRepo.findByDisplayNameActive(display_name);
+  if (existing) return { error: 'conflict', message: 'Module display name already exists' };
 
   const mod = await moduleRepo.create(body, userId);
   return { data: mod };
@@ -34,9 +34,9 @@ async function update(id, body, userId) {
   const version = getExpectedUpdatedAt(body);
   if (version.error) return version;
 
-  if (body.code && body.code.toLowerCase() !== current.code.toLowerCase()) {
-    const duplicate = await moduleRepo.findByCodeActive(body.code);
-    if (duplicate) return { error: 'conflict', message: 'Module code already exists' };
+  if (body.display_name && body.display_name.toLowerCase() !== current.display_name.toLowerCase()) {
+    const duplicate = await moduleRepo.findByDisplayNameActive(body.display_name);
+    if (duplicate) return { error: 'conflict', message: 'Module display name already exists' };
   }
 
   const mod = await moduleRepo.update(id, body, current, userId, version.data);
@@ -67,7 +67,7 @@ async function importRows(rows, userId) {
     transformRow: async (raw) => {
       const row = {
         name: pick(raw, 'name', 'Name'),
-        code: pick(raw, 'code', 'Code'),
+        display_name: pick(raw, 'display_name', 'Display Name'),
         icon: pick(raw, 'icon', 'Icon') || '',
         route_path: pick(raw, 'route_path', 'Route Path') || '',
         display_order: Number(pick(raw, 'display_order', 'Display Order')) || 0,
@@ -75,7 +75,7 @@ async function importRows(rows, userId) {
         description: pick(raw, 'description', 'Description') || '',
         is_active: asBool(pick(raw, 'is_active', 'Is Active'), true),
       };
-      if (!row.name || !row.code) return { error: 'name and code are required' };
+      if (!row.name || !row.display_name) return { error: 'name and display name are required' };
       return { row };
     },
   });

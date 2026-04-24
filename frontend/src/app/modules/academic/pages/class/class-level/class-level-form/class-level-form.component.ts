@@ -107,6 +107,10 @@ export class ClassLevelFormComponent {
     this.openExisting(id, 'edit');
   }
 
+  switchToEdit(): void {
+    this.openEdit(this.editId);
+  }
+
   openView(id: string): void {
     if (!this.ps.canView(this.moduleCode)) return;
     this.openExisting(id, 'view');
@@ -142,12 +146,9 @@ export class ClassLevelFormComponent {
       : this.cs.postService({ url: API.classLevels.base, payload });
 
     request$.subscribe({
-      next: () => {
+      next: (res: any) => {
         this.saving = false;
-        this.cs.showToastr({
-          type: 'success',
-          message: this.mode === 'edit' ? 'Class level updated' : 'Class level created',
-        });
+        this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
         this.closeModal();
         this.onSaved.emit();
         this.refreshView();

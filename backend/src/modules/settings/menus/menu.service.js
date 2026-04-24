@@ -23,11 +23,11 @@ async function getMenusWithModules() {
 }
 
 async function create(body, userId) {
-  const { name, code } = body;
-  if (!name || !code) return { error: 'badRequest', message: 'Name and code are required' };
+  const { name, display_name } = body;
+  if (!name || !display_name) return { error: 'badRequest', message: 'Name and display name are required' };
 
-  const existing = await menuRepo.findByCodeActive(code);
-  if (existing) return { error: 'conflict', message: 'Menu code already exists' };
+  const existing = await menuRepo.findByDisplayNameActive(display_name);
+  if (existing) return { error: 'conflict', message: 'Menu display name already exists' };
 
   const menu = await menuRepo.create(body, userId);
   return { data: menu };
@@ -40,9 +40,9 @@ async function update(id, body, userId) {
   const version = getExpectedUpdatedAt(body);
   if (version.error) return version;
 
-  if (body.code && body.code.toLowerCase() !== current.code.toLowerCase()) {
-    const duplicate = await menuRepo.findByCodeActive(body.code);
-    if (duplicate) return { error: 'conflict', message: 'Menu code already exists' };
+  if (body.display_name && body.display_name.toLowerCase() !== current.display_name.toLowerCase()) {
+    const duplicate = await menuRepo.findByDisplayNameActive(body.display_name);
+    if (duplicate) return { error: 'conflict', message: 'Menu display name already exists' };
   }
 
   const menu = await menuRepo.update(id, body, current, userId, version.data);
@@ -72,15 +72,15 @@ async function importRows(rows, userId) {
     rows, create, userId,
     preResolve: async (parsedRows) => {
       if (parsedRows.some((r) => !r.parent_id && (r.parent_code || r['Parent Code']))) {
-        const result = await db.query('SELECT id, code FROM settings.menus WHERE deleted_at IS NULL');
-        return { menuByCode: new Map(result.rows.map((m) => [String(m.code).toUpperCase(), m.id])) };
+        const result = await db.query('SELECT id, display_name FROM settings.menus WHERE deleted_at IS NULL');
+        return { menuByCode: new Map(result.rows.map((m) => [String(m.display_name).toUpperCase(), m.id])) };
       }
       return {};
     },
     transformRow: async (raw, ctx) => {
       const row = {
         name: pick(raw, 'name', 'Name'),
-        code: pick(raw, 'code', 'Code'),
+        display_name: pick(raw, 'display_name', 'Display Name'),
         icon: pick(raw, 'icon', 'Icon') || '',
         route_path: pick(raw, 'route_path', 'Route Path') || '',
         display_order: Number(pick(raw, 'display_order', 'Display Order')) || 0,
@@ -93,7 +93,7 @@ async function importRows(rows, userId) {
         row.parent_id = ctx.menuByCode.get(String(parentCode).toUpperCase()) || null;
         if (!row.parent_id) return { error: `Unknown parent_code: ${parentCode}` };
       }
-      if (!row.name || !row.code) return { error: 'name and code are required' };
+      if (!row.name || !row.display_name) return { error: 'name and display name are required' };
       return { row };
     },
   });

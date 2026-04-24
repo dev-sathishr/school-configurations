@@ -93,6 +93,7 @@ export class UserFormComponent extends FormPageBase {
   }
 
   protected override afterSave(res: any): void {
+    this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
     const createdId = res?.data?.id;
     const pendingUpload = !this.editMode && createdId ? this.profileUpload?.uploadPendingFile(createdId) : null;
     if (pendingUpload) {

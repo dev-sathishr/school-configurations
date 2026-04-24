@@ -141,6 +141,11 @@ export class GroupFormComponent extends FormPageBase {
     return data;
   }
 
+  protected override afterSave(res: any): void {
+    this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
+    super.afterSave(res);
+  }
+
   toggleMenu(menu: MenuTree): void {
     menu.selected = !menu.selected;
     if (!menu.selected) {

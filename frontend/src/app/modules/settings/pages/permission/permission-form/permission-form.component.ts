@@ -24,4 +24,9 @@ export class PermissionFormComponent extends FormPageBase {
       is_active: [true],
     });
   }
+
+  protected override afterSave(res: any): void {
+    this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
+    super.afterSave(res);
+  }
 }

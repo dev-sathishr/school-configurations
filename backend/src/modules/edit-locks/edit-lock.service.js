@@ -1,4 +1,5 @@
 const db = require('../../config/database');
+const { scoreModuleDescriptorMatch } = require('../../shared/helpers/module-code.helper');
 
 const LOCK_TTL_SECONDS = normalizeTtlSeconds(process.env.EDIT_LOCK_TTL_SECONDS);
 
@@ -18,28 +19,42 @@ function lockConflictMessage(lock) {
 }
 
 async function findModuleByCode(moduleCode) {
+  const matches = await resolveModuleMatches(moduleCode);
+  return matches[0] || null;
+}
+
+async function resolveModuleMatches(moduleCode) {
   const result = await db.query(`
-    SELECT id, code, enforce_edit_lock
+    SELECT id, name, display_name, route_path, display_order, enforce_edit_lock
       FROM settings.modules
-     WHERE UPPER(code) = UPPER($1)
-       AND deleted_at IS NULL
-     LIMIT 1
-  `, [moduleCode]);
-  return result.rows[0] || null;
+     WHERE deleted_at IS NULL
+  `);
+
+  return result.rows
+    .map((row) => ({ ...row, score: scoreModuleDescriptorMatch(row, moduleCode) }))
+    .filter((m) => m.score > 0)
+    .sort((a, b) => (b.score - a.score) || (Number(a.display_order ?? 0) - Number(b.display_order ?? 0)));
+}
+
+async function resolveModuleIds(moduleCode) {
+  const matches = await resolveModuleMatches(moduleCode);
+  return matches.map((m) => m.id);
 }
 
 async function userHasEditPermission(userId, moduleCode) {
+  const moduleIds = await resolveModuleIds(moduleCode);
+  if (moduleIds.length === 0) return false;
+
   const result = await db.query(`
     SELECT 1
       FROM settings.users u
       JOIN settings.group_permissions gp ON gp.group_id = u.group_id AND gp.deleted_at IS NULL
-      JOIN settings.modules mod ON gp.module_id = mod.id AND mod.deleted_at IS NULL
       JOIN settings.permissions p ON gp.permission_id = p.id AND p.deleted_at IS NULL
      WHERE u.id = $1
-       AND UPPER(mod.code) = UPPER($2)
+       AND gp.module_id = ANY($2::uuid[])
        AND UPPER(p.code) = 'EDIT'
      LIMIT 1
-  `, [userId, moduleCode]);
+  `, [userId, moduleIds]);
 
   return result.rows.length > 0;
 }

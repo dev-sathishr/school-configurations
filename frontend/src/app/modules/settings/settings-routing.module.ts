@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { SettingsComponent } from './settings.component';
-import { SettingsHomeComponent } from './pages/home/settings-home.component';
+import { MenuHomeComponent } from '../../shared/components/menu-home/menu-home.component';
 import { UserListComponent } from './pages/user/user-list/user-list.component';
 import { UserFormComponent } from './pages/user/user-form/user-form.component';
 import { OrganizationListComponent } from './pages/organization/organization-list/organization-list.component';
@@ -29,7 +29,7 @@ const routes: Routes = [
     path: '',
     component: SettingsComponent,
     children: [
-      { path: '', component: SettingsHomeComponent },
+      { path: '', component: MenuHomeComponent },
 
       { path: 'user', component: UserListComponent, canActivate: [ModuleAccessGuard], data: { moduleCode: 'USERS' } },
       { path: 'user/new', component: UserFormComponent, canActivate: [ModulePermissionGuard], data: { moduleCode: 'USERS', permission: 'CREATE' }, canDeactivate: [UnsavedChangesGuard] },

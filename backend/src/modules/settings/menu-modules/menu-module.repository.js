@@ -5,8 +5,8 @@ const repoHelper = require('../../../shared/helpers/repo.helper');
 const TABLE = 'settings.menu_modules';
 
 const SELECT_FIELDS = `mm.id, mm.menu_id, mm.module_id, mm.display_order, mm.updated_at,
-  men.name AS menu_name, men.code AS menu_code,
-  mod.name AS module_name, mod.code AS module_code,
+  men.name AS menu_name, men.display_name AS menu_code,
+  mod.name AS module_name, mod.display_name AS module_code,
   mm.created_by, mm.created_at,
   cb.full_name AS created_by_name`;
 

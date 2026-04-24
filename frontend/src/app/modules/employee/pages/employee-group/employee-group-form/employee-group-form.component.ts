@@ -85,6 +85,10 @@ export class EmployeeGroupFormComponent {
     this.openExisting(id, 'edit');
   }
 
+  switchToEdit(): void {
+    this.openEdit(this.editId);
+  }
+
   openView(id: string): void {
     if (!this.ps.canView(this.moduleCode)) return;
     this.openExisting(id, 'view');
@@ -118,12 +122,9 @@ export class EmployeeGroupFormComponent {
       : this.cs.postService({ url: API.employeeGroups.base, payload });
 
     request$.subscribe({
-      next: () => {
+      next: (res: any) => {
         this.saving = false;
-        this.cs.showToastr({
-          type: 'success',
-          message: this.mode === 'edit' ? 'Employee group updated' : 'Employee group created',
-        });
+        this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
         this.closeModal();
         this.onSaved.emit();
         this.refreshView();

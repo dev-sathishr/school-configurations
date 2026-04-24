@@ -2,12 +2,32 @@ const { verifyAccessToken } = require('../helpers/jwt.helper');
 const { unauthorized, forbidden, conflict } = require('../helpers/response.helper');
 const db = require('../../config/database');
 const editLockService = require('../../modules/edit-locks/edit-lock.service');
+const { scoreModuleDescriptorMatch } = require('../helpers/module-code.helper');
 
 // In-memory throttle for `last_activity_at` updates. Writing on every single
 // authenticated request would thrash the DB; bucketing to once per 30s per
 // session gives useful "last seen" accuracy without the overhead.
 const ACTIVITY_THROTTLE_MS = 30_000;
 const lastActivityWritten = new Map(); // sessionId -> epoch ms
+
+async function resolveModuleIds(moduleCode) {
+  const modules = await db.query(`
+    SELECT id, name, display_name, route_path, display_order
+      FROM settings.modules
+     WHERE deleted_at IS NULL
+  `);
+
+  const scored = modules.rows
+    .map((row) => ({
+      id: row.id,
+      score: scoreModuleDescriptorMatch(row, moduleCode),
+      display_order: Number(row.display_order ?? 0),
+    }))
+    .filter((m) => m.score > 0)
+    .sort((a, b) => (b.score - a.score) || (a.display_order - b.display_order));
+
+  return scored.length > 0 ? [scored[0].id] : [];
+}
 
 async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -68,14 +88,20 @@ function authorize(...groupCodes) {
 function authorizeModule(moduleCode, permissionCode) {
   return async (req, res, next) => {
     try {
+      const moduleIds = await resolveModuleIds(moduleCode);
+      if (moduleIds.length === 0) {
+        return forbidden(res, 'You do not have permission to perform this action');
+      }
+
       const result = await db.query(`
         SELECT 1 FROM settings.users u
         JOIN settings.group_permissions gp ON gp.group_id = u.group_id AND gp.deleted_at IS NULL
-        JOIN settings.modules mod ON gp.module_id = mod.id AND mod.deleted_at IS NULL
         JOIN settings.permissions p ON gp.permission_id = p.id AND p.deleted_at IS NULL
-        WHERE u.id = $1 AND UPPER(mod.code) = UPPER($2) AND UPPER(p.code) = UPPER($3)
+        WHERE u.id = $1
+          AND gp.module_id = ANY($2::uuid[])
+          AND UPPER(p.code) = UPPER($3)
         LIMIT 1
-      `, [req.user.id, moduleCode, permissionCode]);
+      `, [req.user.id, moduleIds, permissionCode]);
 
       if (result.rows.length === 0) {
         return forbidden(res, 'You do not have permission to perform this action');
@@ -101,13 +127,18 @@ function authorizeModule(moduleCode, permissionCode) {
 function checkModuleView(moduleCode) {
   return async (req, res, next) => {
     try {
+      const moduleIds = await resolveModuleIds(moduleCode);
+      if (moduleIds.length === 0) {
+        return forbidden(res, 'You do not have access to this module');
+      }
+
       const result = await db.query(`
         SELECT p.code FROM settings.users u
         JOIN settings.group_permissions gp ON gp.group_id = u.group_id AND gp.deleted_at IS NULL
-        JOIN settings.modules mod ON gp.module_id = mod.id AND mod.deleted_at IS NULL
         JOIN settings.permissions p ON gp.permission_id = p.id AND p.deleted_at IS NULL
-        WHERE u.id = $1 AND UPPER(mod.code) = UPPER($2)
-      `, [req.user.id, moduleCode]);
+        WHERE u.id = $1
+          AND gp.module_id = ANY($2::uuid[])
+      `, [req.user.id, moduleIds]);
 
       if (result.rows.length === 0) {
         return forbidden(res, 'You do not have access to this module');
@@ -129,14 +160,19 @@ function checkRecordOwnership(table, moduleCode) {
     if (!recordId) return next();
 
     try {
+      const moduleIds = await resolveModuleIds(moduleCode);
+      if (moduleIds.length === 0) {
+        return forbidden(res, 'You do not have access to this module');
+      }
+
       // Check if user has VIEW permission on this module
       const permResult = await db.query(`
         SELECT p.code FROM settings.users u
         JOIN settings.group_permissions gp ON gp.group_id = u.group_id AND gp.deleted_at IS NULL
-        JOIN settings.modules mod ON gp.module_id = mod.id AND mod.deleted_at IS NULL
         JOIN settings.permissions p ON gp.permission_id = p.id AND p.deleted_at IS NULL
-        WHERE u.id = $1 AND UPPER(mod.code) = UPPER($2)
-      `, [req.user.id, moduleCode]);
+        WHERE u.id = $1
+          AND gp.module_id = ANY($2::uuid[])
+      `, [req.user.id, moduleIds]);
 
       const permCodes = permResult.rows.map(r => r.code.toUpperCase());
 

@@ -20,7 +20,7 @@ export class MenuListComponent extends BaseListComponent {
 
   columns: ColumnConfig[] = [
     { key: 'm.name', label: 'Name', sortable: true, searchable: true },
-    { key: 'm.code', label: 'Code', sortable: true, searchable: true },
+    { key: 'm.display_name', label: 'Display Name', sortable: true, searchable: true },
     { key: 'm.route_path', label: 'Route Path', sortable: true },
     { key: 'parent_name', label: 'Parent Menu' },
     { key: 'm.display_order', label: 'Order', sortable: true },
@@ -29,7 +29,7 @@ export class MenuListComponent extends BaseListComponent {
   ];
 
   displayKeyMap: Record<string, string> = {
-    'm.name': 'name', 'm.code': 'code', 'm.route_path': 'route_path',
+    'm.name': 'name', 'm.display_name': 'display_name', 'm.route_path': 'route_path',
     'parent_name': 'parent_name', 'm.display_order': 'display_order',
     'm.is_active': 'is_active',
     'module_count': 'module_count',

@@ -19,7 +19,7 @@ export class ModuleFormComponent extends FormPageBase {
   protected buildForm(): FormGroup {
     return this.fb.group({
       name: ['', Validators.required],
-      code: ['', Validators.required],
+      display_name: ['', Validators.required],
       icon: [''],
       route_path: [''],
       display_order: [0],
@@ -27,5 +27,10 @@ export class ModuleFormComponent extends FormPageBase {
       is_active: [true],
       description: [''],
     });
+  }
+
+  protected override afterSave(res: any): void {
+    this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
+    super.afterSave(res);
   }
 }

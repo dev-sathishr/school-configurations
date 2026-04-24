@@ -31,4 +31,9 @@ export class GroupModuleFormComponent extends FormPageBase {
     this.groupLabel = data.group_name || '';
     this.menuLabel = data.menu_name || '';
   }
+
+  protected override afterSave(res: any): void {
+    this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
+    super.afterSave(res);
+  }
 }

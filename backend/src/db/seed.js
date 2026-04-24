@@ -134,20 +134,20 @@ async function seed() {
 
     // Seed Menus (top-level sidebar navigation groups)
     const menus = [
-      { name: 'Dashboard', code: 'DASHBOARD', icon: 'assets/icons/heroicons/outline/chart-pie.svg', route_path: '/dashboard', display_order: 1 },
-      { name: 'Academic', code: 'ACADEMIC', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/academic', display_order: 2 },
-      { name: 'Employee', code: 'EMPLOYEE', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/employee', display_order: 3 },
-      { name: 'Settings', code: 'SETTINGS', icon: 'assets/icons/heroicons/outline/cog.svg', route_path: '/settings', display_order: 4 },
+      { key: 'DASHBOARD', name: 'Dashboard', display_name: 'Dashboard', description: 'Quick overview of school activity and key stats',       icon: 'assets/icons/heroicons/outline/chart-pie.svg', route_path: '/dashboard', display_order: 1 },
+      { key: 'ACADEMIC',  name: 'Academic',  display_name: 'Academic',  description: 'Manage your school academic configuration',             icon: 'assets/icons/heroicons/outline/bookmark.svg',  route_path: '/academic',   display_order: 2 },
+      { key: 'EMPLOYEE',  name: 'Employee',  display_name: 'Employee',  description: 'Manage employee setup and master data',                 icon: 'assets/icons/heroicons/outline/users.svg',     route_path: '/employee',   display_order: 3 },
+      { key: 'SETTINGS',  name: 'Settings',  display_name: 'Settings',  description: 'Manage your school system configuration',               icon: 'assets/icons/heroicons/outline/cog.svg',       route_path: '/settings',   display_order: 4 },
     ];
 
     const menuIds = {};
     for (const menu of menus) {
       const result = await client.query(
-        `INSERT INTO settings.menus (name, code, icon, route_path, display_order, is_active, created_by, updated_by)
-         VALUES ($1, $2, $3, $4, $5, true, $6, $7) RETURNING id`,
-        [menu.name, menu.code, menu.icon, menu.route_path, menu.display_order, adminId, adminId]
+        `INSERT INTO settings.menus (name, display_name, description, icon, route_path, display_order, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8) RETURNING id`,
+        [menu.name, menu.display_name, menu.description || null, menu.icon, menu.route_path, menu.display_order, adminId, adminId]
       );
-      menuIds[menu.code] = result.rows[0].id;
+      menuIds[menu.key] = result.rows[0].id;
     }
     console.log(`Menus seeded (${Object.keys(menuIds).length} total)`);
 
@@ -157,35 +157,35 @@ async function seed() {
     // DASHBOARD menu in group_modules; no per-module permissions are needed.
     const modules = [
       // Academic modules
-      { name: 'Class General', code: 'CLASSES', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: '/academic/class', display_order: 1, enforce_edit_lock: false },
-      { name: 'Class Level', code: 'CLASS_LEVELS', icon: 'assets/icons/heroicons/outline/table-cells.svg', route_path: '/academic/class', display_order: 2, enforce_edit_lock: false },
+      { key: 'CLASSES',             name: 'Classes',         display_name: 'Classes',         icon: 'assets/icons/heroicons/outline/table-cells.svg',       route_path: '/academic/class',            display_order: 1, enforce_edit_lock: false, description: 'Manage classes, sections and academic levels' },
+      { key: 'CLASS_LEVELS',        name: 'Class Level',     display_name: 'Class Level',     icon: 'assets/icons/heroicons/outline/table-cells.svg',       route_path: '/academic/class',            display_order: 2, enforce_edit_lock: false, description: 'Define class sections and capacity per location' },
       // Employee modules
-      { name: 'Employee Categories', code: 'EMPLOYEE_CATEGORIES', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/employee/employee-master', display_order: 1, enforce_edit_lock: false },
-      { name: 'Employee Groups', code: 'EMPLOYEE_GROUPS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/employee/employee-master', display_order: 2, enforce_edit_lock: false },
-      { name: 'Designations', code: 'DESIGNATIONS', icon: 'assets/icons/heroicons/outline/cube.svg', route_path: '/employee/employee-master', display_order: 3, enforce_edit_lock: false },
+      { key: 'EMPLOYEE_CATEGORIES', name: 'Employee Master', display_name: 'Employee Categories', icon: 'assets/icons/heroicons/outline/users.svg',             route_path: '/employee/employee-master',  display_order: 1, enforce_edit_lock: false, description: 'Manage employee categories, groups and designations' },
+      { key: 'EMPLOYEE_GROUPS',     name: 'Employee Groups', display_name: 'Employee Groups', icon: 'assets/icons/heroicons/outline/users.svg',             route_path: '/employee/employee-master',  display_order: 2, enforce_edit_lock: false, description: 'Organise employees into functional groups' },
+      { key: 'DESIGNATIONS',        name: 'Designations',    display_name: 'Designations',    icon: 'assets/icons/heroicons/outline/cube.svg',              route_path: '/employee/employee-master',  display_order: 3, enforce_edit_lock: false, description: 'Define job roles and designations for staff' },
       // Academic Years is a calendar master used as *config* by admins; it
       // lives under SETTINGS, not ACADEMIC, so route_path + menu_module
       // point there. display_order picks up where the settings modules end.
-      { name: 'Academic Years', code: 'ACADEMIC_YEARS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/academic-year', display_order: 9, enforce_edit_lock: false },
+      { key: 'ACADEMIC_YEARS',      name: 'Academic Years',  display_name: 'Academic Years',  icon: 'assets/icons/heroicons/outline/bookmark.svg',          route_path: '/settings/academic-year',    display_order: 9, enforce_edit_lock: false, description: 'Set up school calendars per location — one default per year' },
       // Settings modules
-      { name: 'Organizations', code: 'ORGANIZATIONS', icon: 'assets/icons/heroicons/outline/cube.svg', route_path: '/settings/organization', display_order: 1, enforce_edit_lock: false },
-      { name: 'Locations', code: 'LOCATIONS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/location', display_order: 2, enforce_edit_lock: false },
-      { name: 'Users', code: 'USERS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/settings/user', display_order: 3, enforce_edit_lock: false },
-      { name: 'Modules', code: 'MODULES', icon: 'assets/icons/heroicons/outline/cube.svg', route_path: '/settings/module', display_order: 4, enforce_edit_lock: false },
-      { name: 'Menus', code: 'MENUS', icon: 'assets/icons/heroicons/outline/bookmark.svg', route_path: '/settings/menu', display_order: 5, enforce_edit_lock: false },
-      { name: 'Groups', code: 'GROUPS', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/settings/group', display_order: 6, enforce_edit_lock: false },
-      { name: 'Permissions', code: 'PERMISSIONS', icon: 'assets/icons/heroicons/outline/shield-check.svg', route_path: '/settings/permission', display_order: 7, enforce_edit_lock: false },
-      { name: 'Sessions', code: 'SESSIONS', icon: 'assets/icons/heroicons/outline/shield-exclamation.svg', route_path: '/settings/session', display_order: 8, enforce_edit_lock: false },
+      { key: 'ORGANIZATIONS',       name: 'Organizations',   display_name: 'Organizations',   icon: 'assets/icons/heroicons/outline/cube.svg',              route_path: '/settings/organization',     display_order: 1, enforce_edit_lock: false, description: 'Manage organizations and their details' },
+      { key: 'LOCATIONS',           name: 'Locations',       display_name: 'Locations',       icon: 'assets/icons/heroicons/outline/bookmark.svg',          route_path: '/settings/location',         display_order: 2, enforce_edit_lock: false, description: 'Manage branches, campuses and locations' },
+      { key: 'USERS',               name: 'Users',           display_name: 'Users',           icon: 'assets/icons/heroicons/outline/users.svg',             route_path: '/settings/user',             display_order: 3, enforce_edit_lock: false, description: 'Manage system users, roles and permissions' },
+      { key: 'MODULES',             name: 'Modules',         display_name: 'Modules',         icon: 'assets/icons/heroicons/outline/cube.svg',              route_path: '/settings/module',           display_order: 4, enforce_edit_lock: false, description: 'Manage application modules and feature pages' },
+      { key: 'MENUS',               name: 'Menus',           display_name: 'Menus',           icon: 'assets/icons/heroicons/outline/bookmark.svg',          route_path: '/settings/menu',             display_order: 5, enforce_edit_lock: false, description: 'Manage navigation menus and assign modules' },
+      { key: 'GROUPS',              name: 'Groups',          display_name: 'Groups',          icon: 'assets/icons/heroicons/outline/users.svg',             route_path: '/settings/group',            display_order: 6, enforce_edit_lock: false, description: 'Manage user groups, menu access and permissions' },
+      { key: 'PERMISSIONS',         name: 'Permissions',     display_name: 'Permissions',     icon: 'assets/icons/heroicons/outline/shield-check.svg',      route_path: '/settings/permission',       display_order: 7, enforce_edit_lock: false, description: 'Manage permission types like View, Create, Edit and Delete' },
+      { key: 'SESSIONS',            name: 'Sessions',        display_name: 'Sessions',        icon: 'assets/icons/heroicons/outline/shield-exclamation.svg', route_path: '/settings/session',         display_order: 8, enforce_edit_lock: false, description: 'Monitor active sessions, login history and activity' },
     ];
 
     const moduleIds = {};
     for (const mod of modules) {
       const result = await client.query(
-        `INSERT INTO settings.modules (name, code, icon, route_path, display_order, enforce_edit_lock, is_active, created_by, updated_by)
-         VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8) RETURNING id`,
-        [mod.name, mod.code, mod.icon, mod.route_path, mod.display_order, !!mod.enforce_edit_lock, adminId, adminId]
+        `INSERT INTO settings.modules (name, display_name, icon, route_path, display_order, enforce_edit_lock, description, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9) RETURNING id`,
+        [mod.name, mod.display_name, mod.icon, mod.route_path, mod.display_order, !!mod.enforce_edit_lock, mod.description || null, adminId, adminId]
       );
-      moduleIds[mod.code] = result.rows[0].id;
+      moduleIds[mod.key] = result.rows[0].id;
     }
     console.log(`Modules seeded (${Object.keys(moduleIds).length} total)`);
 

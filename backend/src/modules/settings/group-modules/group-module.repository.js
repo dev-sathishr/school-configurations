@@ -6,7 +6,7 @@ const TABLE = 'settings.group_modules';
 
 const SELECT_FIELDS = `gm.id, gm.group_id, gm.menu_id, gm.updated_at,
   g.name AS group_name, g.code AS group_code,
-  men.name AS menu_name, men.code AS menu_code,
+  men.name AS menu_name, men.display_name AS menu_code,
   gm.created_by, gm.created_at,
   cb.full_name AS created_by_name`;
 

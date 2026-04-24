@@ -90,12 +90,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     for (const menu of menus) {
       if (menu.modules.length === 0 && menu.route_path) {
-        candidates.push({ route: menu.route_path, label: menu.name, icon: menu.icon });
+        candidates.push({ route: menu.route_path, label: menu.display_name || menu.code || menu.name, icon: menu.icon });
       }
 
       for (const mod of menu.modules) {
         if (mod.route_path) {
-          candidates.push({ route: mod.route_path, label: mod.name, icon: mod.icon || menu.icon });
+          candidates.push({ route: mod.route_path, label: mod.display_name || mod.code || mod.name, icon: mod.icon || menu.icon });
         }
       }
     }
@@ -122,7 +122,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       // unified favorite item for that route.
       modules.push({
         route,
-        label: this.prettyLabelFromRoute(route),
+        label: first.label || this.prettyLabelFromRoute(route),
         icon: list.find((i) => !!i.icon)?.icon || first.icon,
       });
     }

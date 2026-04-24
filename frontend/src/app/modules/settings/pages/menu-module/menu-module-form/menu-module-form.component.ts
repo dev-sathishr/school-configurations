@@ -32,4 +32,9 @@ export class MenuModuleFormComponent extends FormPageBase {
     this.moduleLabel = data.module_name || '';
     this.menuLabel = data.menu_name || '';
   }
+
+  protected override afterSave(res: any): void {
+    this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
+    super.afterSave(res);
+  }
 }

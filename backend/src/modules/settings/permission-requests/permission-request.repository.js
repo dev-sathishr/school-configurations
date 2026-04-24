@@ -1,4 +1,5 @@
 const db = require('../../../config/database');
+const { scoreModuleDescriptorMatch } = require('../../../shared/helpers/module-code.helper');
 
 async function create(userId, message) {
   const result = await db.query(
@@ -28,16 +29,37 @@ async function updateStatus(id, status, resolvedBy) {
   return result.rows[0];
 }
 
-// Find users who have EDIT permission on GROUPS module — they are the approvers
+// Find users who have EDIT permission on the module that best matches GROUPS.
 async function findApprovers() {
-  const result = await db.query(`
-    SELECT DISTINCT u.id, u.full_name
-    FROM settings.users u
-    JOIN settings.group_permissions gp ON gp.group_id = u.group_id AND gp.deleted_at IS NULL
-    JOIN settings.modules mod ON gp.module_id = mod.id AND mod.deleted_at IS NULL AND UPPER(mod.code) = 'GROUPS'
-    JOIN settings.permissions p ON gp.permission_id = p.id AND p.deleted_at IS NULL AND UPPER(p.code) = 'EDIT'
-    WHERE u.deleted_at IS NULL AND u.is_active = true
+  const modules = await db.query(`
+    SELECT id, name, display_name, route_path, display_order
+      FROM settings.modules
+     WHERE deleted_at IS NULL
   `);
+
+  const candidates = modules.rows
+    .map((row) => ({
+      id: row.id,
+      score: scoreModuleDescriptorMatch(row, 'GROUPS'),
+      display_order: Number(row.display_order ?? 0),
+    }))
+    .filter((m) => m.score > 0)
+    .sort((a, b) => (b.score - a.score) || (a.display_order - b.display_order));
+
+  const moduleId = candidates[0]?.id;
+  if (!moduleId) return [];
+
+  const result = await db.query(
+    `SELECT DISTINCT u.id, u.full_name
+       FROM settings.users u
+       JOIN settings.group_permissions gp ON gp.group_id = u.group_id AND gp.deleted_at IS NULL
+       JOIN settings.modules mod ON gp.module_id = mod.id AND mod.deleted_at IS NULL
+       JOIN settings.permissions p ON gp.permission_id = p.id AND p.deleted_at IS NULL AND UPPER(p.code) = 'EDIT'
+      WHERE u.deleted_at IS NULL
+        AND u.is_active = true
+        AND gp.module_id = $1`,
+    [moduleId]
+  );
   return result.rows;
 }
 

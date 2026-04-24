@@ -196,7 +196,7 @@ async function migrate() {
       CREATE TABLE IF NOT EXISTS settings.modules (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(200) NOT NULL,
-        code VARCHAR(100) NOT NULL,
+        display_name VARCHAR(100) NOT NULL,
         icon VARCHAR(300),
         route_path VARCHAR(300),
         display_order INT DEFAULT 0,
@@ -213,8 +213,8 @@ async function migrate() {
     `);
 
     await client.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_module_code_unique ON settings.modules (LOWER(code)) WHERE deleted_at IS NULL;
-    `).catch(() => console.log('Index idx_module_code_unique already exists'));
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_module_display_name_unique ON settings.modules (LOWER(display_name)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_module_display_name_unique already exists'));
 
     // Existing databases created before `enforce_edit_lock` was introduced.
     await client.query(`
@@ -232,7 +232,7 @@ async function migrate() {
       CREATE TABLE IF NOT EXISTS settings.menus (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(200) NOT NULL,
-        code VARCHAR(100) NOT NULL,
+        display_name VARCHAR(100) NOT NULL,
         icon VARCHAR(300),
         route_path VARCHAR(300),
         display_order INT DEFAULT 0,
@@ -249,8 +249,8 @@ async function migrate() {
     `);
 
     await client.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_menu_code_unique ON settings.menus (LOWER(code)) WHERE deleted_at IS NULL;
-    `).catch(() => console.log('Index idx_menu_code_unique already exists'));
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_menu_display_name_unique ON settings.menus (LOWER(display_name)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_menu_display_name_unique already exists'));
 
     // Menu Modules table (links menus to modules)
     await client.query(`

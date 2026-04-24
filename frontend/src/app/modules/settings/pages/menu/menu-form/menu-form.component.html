@@ -18,7 +18,7 @@
         <h4 class="text-foreground mb-4 text-sm font-semibold">Menu Information</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted" placeholder="e.g. Users" />
-          <app-form-field [formGroup]="form" controlName="code" label="Code" [required]="true" [submitted]="submitted" placeholder="e.g. USERS" />
+          <app-form-field [formGroup]="form" controlName="display_name" label="Display Name" [required]="true" [submitted]="submitted" placeholder="e.g. USERS" />
           <app-form-field [formGroup]="form" controlName="icon" label="Icon" placeholder="e.g. assets/icons/heroicons/outline/users.svg" />
         </div>
       </div>
@@ -54,8 +54,8 @@
                     class="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300" />
                   <div>
                     <span class="text-foreground text-sm font-medium">{{ mod.name }}</span>
-                    @if (mod.code) {
-                      <span class="text-muted-foreground ml-2 text-xs">({{ mod.code }})</span>
+                    @if (mod.display_name) {
+                      <span class="text-muted-foreground ml-2 text-xs">({{ mod.display_name }})</span>
                     }
                   </div>
                 </label>

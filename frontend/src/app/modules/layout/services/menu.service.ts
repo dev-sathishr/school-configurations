@@ -67,7 +67,7 @@ export class MenuService implements OnDestroy {
   private buildMenu(menus: PermittedMenu[]): MenuItem[] {
     const items: SubMenuItem[] = menus.map((menu) => ({
       icon: menu.icon,
-      label: menu.name,
+      label: menu.display_name || menu.code || menu.name,
       route: menu.route_path,
     }));
 

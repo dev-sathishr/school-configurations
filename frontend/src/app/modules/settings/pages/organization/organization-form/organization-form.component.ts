@@ -84,27 +84,18 @@ export class OrganizationFormComponent extends FormPageBase {
     const pendingUpload = !this.editMode && createdId ? this.logoUpload?.uploadPendingFile(createdId) : null;
     if (pendingUpload) {
       pendingUpload.subscribe({
-        next: () => this.navigateAfterSave(),
-        error: () => this.navigateAfterSave(),
+        next: () => this.navigateAfterSave(res?.message),
+        error: () => this.navigateAfterSave(res?.message),
       });
     } else {
-      this.navigateAfterSave();
+      this.navigateAfterSave(res?.message);
     }
   }
 
-  private navigateAfterSave(): void {
+  private navigateAfterSave(message?: string): void {
     this.saving = false;
-    this.cs.showToastr({
-      type: 'success',
-      message: this.editMode ? 'Organization updated' : 'Organization created',
-      description: this.editMode ? 'Changes saved successfully' : 'New organization has been added',
-    });
+    this.cs.showToastr({ type: 'success', message: message || 'Saved successfully' });
     this.cs.navigate({ url: this.listRoute });
-  }
-
-  protected override handleSaveError(err: any): void {
-    super.handleSaveError(err);
-    this.cs.showToastr({ type: 'error', message: 'Failed to save', description: this.errorMessage });
   }
 
   onAddressesChange(addresses: Address[]): void {

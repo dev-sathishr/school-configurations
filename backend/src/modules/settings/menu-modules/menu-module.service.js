@@ -65,12 +65,12 @@ async function importRows(rows, userId) {
     rows, create, userId,
     preResolve: async () => {
       const [menus, mods] = await Promise.all([
-        db.query('SELECT id, code FROM settings.menus WHERE deleted_at IS NULL'),
-        db.query('SELECT id, code FROM settings.modules WHERE deleted_at IS NULL'),
+        db.query('SELECT id, display_name FROM settings.menus WHERE deleted_at IS NULL'),
+        db.query('SELECT id, display_name FROM settings.modules WHERE deleted_at IS NULL'),
       ]);
       return {
-        menuByCode: new Map(menus.rows.map((m) => [String(m.code).toUpperCase(), m.id])),
-        moduleByCode: new Map(mods.rows.map((m) => [String(m.code).toUpperCase(), m.id])),
+        menuByCode: new Map(menus.rows.map((m) => [String(m.display_name).toUpperCase(), m.id])),
+        moduleByCode: new Map(mods.rows.map((m) => [String(m.display_name).toUpperCase(), m.id])),
       };
     },
     transformRow: async (raw, ctx) => {

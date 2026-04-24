@@ -10,7 +10,7 @@ import { API } from '../../../../../core/api/endpoints';
 interface ModuleItem {
   id: string;
   name: string;
-  code?: string;
+  display_name?: string;
   selected: boolean;
   display_order: number;
 }
@@ -31,7 +31,7 @@ export class MenuFormComponent extends FormPageBase implements OnInit {
   protected buildForm(): FormGroup {
     return this.fb.group({
       name: ['', Validators.required],
-      code: ['', Validators.required],
+      display_name: ['', Validators.required],
       icon: [''],
       route_path: [''],
       display_order: [0],
@@ -46,10 +46,10 @@ export class MenuFormComponent extends FormPageBase implements OnInit {
   override ngOnInit(): void {
     this.form = this.buildForm();
     this.modulesLoading = true;
-    this.cs.getService({ url: API.modules.dropdown }).subscribe({
+    this.cs.getService({ url: API.modules.dropdown, params: { page: 1, size: 1000 } }).subscribe({
       next: (res: any) => {
         const items = res.data || res || [];
-        this.allModules = items.map((m: any) => ({ id: m.id, name: m.name, code: m.code, selected: false, display_order: 0 }));
+        this.allModules = items.map((m: any) => ({ id: m.id, name: m.name, display_name: m.display_name, selected: false, display_order: 0 }));
         this.modulesLoading = false;
         this.detectModeAndLoad();
       },
@@ -67,6 +67,16 @@ export class MenuFormComponent extends FormPageBase implements OnInit {
         if (mod) {
           mod.selected = true;
           mod.display_order = assigned.display_order || 0;
+        } else {
+          // Keep already-mapped modules in the payload even if they were not
+          // returned by dropdown (pagination/filtering/inactive edge cases).
+          this.allModules.push({
+            id: assigned.module_id,
+            name: assigned.module_name || assigned.module_code || 'Unknown Module',
+            display_name: assigned.module_code,
+            selected: true,
+            display_order: assigned.display_order || 0,
+          });
         }
       }
     }
@@ -88,5 +98,10 @@ export class MenuFormComponent extends FormPageBase implements OnInit {
   toggleModule(mod: ModuleItem): void {
     mod.selected = !mod.selected;
     if (!mod.selected) mod.display_order = 0;
+  }
+
+  protected override afterSave(res: any): void {
+    this.cs.showToastr({ type: 'success', message: res?.message || 'Saved successfully' });
+    super.afterSave(res);
   }
 }

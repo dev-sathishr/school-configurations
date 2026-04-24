@@ -1,7 +1,9 @@
 <div>
   <div class="mb-6">
-    <h2 class="text-foreground text-xl font-semibold">Employee</h2>
-    <p class="text-muted-foreground text-sm">Manage employee setup and master data</p>
+    <h2 class="text-foreground text-xl font-semibold">{{ menuName() }}</h2>
+    @if (menuDescription()) {
+      <p class="text-muted-foreground text-sm">{{ menuDescription() }}</p>
+    }
   </div>
 
   <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -13,17 +15,18 @@
           type="button"
           (click)="togglePin(card.route, $event)"
           [title]="isPinned(card.route) ? 'Unpin' : 'Pin to top'"
-          [ngClass]="isPinned(card.route)
-            ? 'text-primary'
-            : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-primary'"
-          class="absolute right-2 top-2 flex cursor-pointer items-center justify-center rounded p-1 transition-opacity">
+          [class]="isPinned(card.route)
+            ? 'text-primary absolute right-2 top-2 flex cursor-pointer items-center justify-center rounded p-1 transition-opacity'
+            : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-primary absolute right-2 top-2 flex cursor-pointer items-center justify-center rounded p-1 transition-opacity'">
           <svg-icon src="assets/icons/heroicons/outline/bookmark.svg" [svgClass]="'h-4 w-4'"></svg-icon>
         </button>
-        <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-lg {{ card.color }}">
+        <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <svg-icon [src]="card.icon" [svgClass]="'h-6 w-6'"></svg-icon>
         </div>
         <h3 class="text-foreground group-hover:text-primary text-sm font-semibold">{{ card.label }}</h3>
-        <p class="text-muted-foreground mt-1 text-xs leading-relaxed">{{ card.description }}</p>
+        @if (card.description) {
+          <p class="text-muted-foreground mt-1 text-xs leading-relaxed">{{ card.description }}</p>
+        }
       </div>
     }
   </div>
