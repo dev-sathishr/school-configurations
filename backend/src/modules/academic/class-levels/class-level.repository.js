@@ -2,14 +2,16 @@ const db = require('../../../config/database');
 const { paginate } = require('../../../shared/helpers/pagination.helper');
 const { applyLocationScope, scopedFindByIdClause } = require('../../../shared/helpers/location-scope.helper');
 
-const SELECT_FIELDS = `cl.*, cg.name AS class_name, cg.code AS class_code,
+const SELECT_FIELDS = `cl.*, cg.name AS class_name, cg.code AS class_code, cg.strength AS class_strength,
+  COALESCE(ac.allocated_capacity, 0) AS class_allocated_capacity,
   loc.name AS location_name, loc.code AS location_code,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
 
 const JOINS = `LEFT JOIN academic.class_generals cg ON cl.class_general_id = cg.id
   LEFT JOIN settings.locations loc ON cl.location_id = loc.id
   LEFT JOIN settings.users cb ON cl.created_by = cb.id
-  LEFT JOIN settings.users ub ON cl.updated_by = ub.id`;
+  LEFT JOIN settings.users ub ON cl.updated_by = ub.id
+  LEFT JOIN LATERAL (SELECT COALESCE(SUM(capacity), 0)::int AS allocated_capacity FROM academic.class_levels x WHERE x.class_general_id = cl.class_general_id AND x.deleted_at IS NULL) ac ON true`;
 
 async function findAll(query, scope) {
   const clauses = [];
@@ -38,9 +40,9 @@ async function findAll(query, scope) {
     alias: 'cl',
     selectFields: SELECT_FIELDS,
     joins: JOINS,
-    searchColumns: ['cl.code', 'cl.section', 'cg.name'],
+    searchColumns: ['cl.name', 'cl.code', 'cl.section', 'cg.name'],
     filterableColumns: ['cl.code', 'cl.section', 'cl.is_active', 'cl.class_general_id'],
-    sortableColumns: ['cl.code', 'cl.section', 'cl.capacity', 'cl.is_active', 'cl.created_at', 'cg.name', 'loc.name'],
+    sortableColumns: ['cl.name', 'cl.code', 'cl.section', 'cl.capacity', 'cl.is_active', 'cl.created_at', 'cg.name', 'loc.name'],
     defaultSortBy: 'cl.created_at',
     defaultSortOrder: 'DESC',
     extraWhere: clauses.join(' AND '),
@@ -61,10 +63,10 @@ async function findById(id, scope) {
 
 async function create(data, userId) {
   const result = await db.query(`
-    INSERT INTO academic.class_levels (class_general_id, code, section, capacity, location_id, is_active, notes, created_by, updated_by)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+    INSERT INTO academic.class_levels (class_general_id, name, code, section, capacity, location_id, is_active, notes, created_by, updated_by)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *
   `, [
-    data.class_general_id, data.code, data.section || null, data.capacity || 0,
+    data.class_general_id, data.name || null, data.code, data.section || null, data.capacity || 0,
     data.location_id || null,
     data.is_active !== undefined ? data.is_active : true,
     data.notes || null, userId, userId,
@@ -75,13 +77,14 @@ async function create(data, userId) {
 async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
     UPDATE academic.class_levels SET
-      class_general_id = $1, code = $2, section = $3, capacity = $4, location_id = $5, is_active = $6,
-      notes = $7, updated_by = $8, updated_at = NOW()
-    WHERE id = $9
-      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $10::timestamptz)
+      class_general_id = $1, name = $2, code = $3, section = $4, capacity = $5, location_id = $6, is_active = $7,
+      notes = $8, updated_by = $9, updated_at = NOW()
+    WHERE id = $10
+      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $11::timestamptz)
     RETURNING *
   `, [
     data.class_general_id || current.class_general_id,
+    data.name !== undefined ? (data.name || null) : current.name,
     data.code || current.code,
     data.section !== undefined ? (data.section || null) : current.section,
     data.capacity !== undefined ? data.capacity : current.capacity,
@@ -104,15 +107,34 @@ async function softDeleteMultiple(ids, userId, scope) {
   return repoHelper.softDeleteMultiple({ table: TABLE, ids, userId, scopeColumn: 'location_id', scope });
 }
 
-async function checkUnique(classGeneralId, code, excludeId = null) {
-  let query = 'SELECT id FROM academic.class_levels WHERE class_general_id = $1 AND LOWER(code) = LOWER($2) AND deleted_at IS NULL';
-  const params = [classGeneralId, code.trim()];
+async function checkUnique(classGeneralId, locationId, code, excludeId = null) {
+  let query = 'SELECT id FROM academic.class_levels WHERE class_general_id = $1 AND location_id = $2 AND LOWER(code) = LOWER($3) AND deleted_at IS NULL';
+  const params = [classGeneralId, locationId, code.trim()];
   if (excludeId) {
-    query += ' AND id != $3';
+    query += ' AND id != $4';
     params.push(excludeId);
   }
   const result = await db.query(query, params);
   return result.rows.length > 0;
 }
 
-module.exports = { findAll, findById, create, update, softDelete, softDeleteMultiple, checkUnique };
+async function getClassStrength(classGeneralId) {
+  const result = await db.query(
+    'SELECT strength FROM academic.class_generals WHERE id = $1 AND deleted_at IS NULL',
+    [classGeneralId]
+  );
+  return result.rows[0]?.strength ?? 0;
+}
+
+async function getTotalAllocatedCapacity(classGeneralId, excludeId = null) {
+  let query = 'SELECT COALESCE(SUM(capacity), 0)::int AS total FROM academic.class_levels WHERE class_general_id = $1 AND deleted_at IS NULL';
+  const params = [classGeneralId];
+  if (excludeId) {
+    query += ' AND id != $2';
+    params.push(excludeId);
+  }
+  const result = await db.query(query, params);
+  return result.rows[0]?.total ?? 0;
+}
+
+module.exports = { findAll, findById, create, update, softDelete, softDeleteMultiple, checkUnique, getClassStrength, getTotalAllocatedCapacity };

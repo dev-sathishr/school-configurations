@@ -1,4 +1,4 @@
-import { Component, effect, EventEmitter, Input, input, OnDestroy, OnInit, Output, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, effect, EventEmitter, Input, input, OnDestroy, OnInit, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { TableActionComponent } from './components/table-action/table-action.component';
@@ -84,7 +84,8 @@ export class TableComponent implements OnInit, OnDestroy {
 
   constructor(
     private cs: CommonService,
-    public filterService: TableFilterService
+    public filterService: TableFilterService,
+    private cdr: ChangeDetectorRef
   ) {
     effect(() => {
       if (!this.initialized()) return;
@@ -269,15 +270,21 @@ export class TableComponent implements OnInit, OnDestroy {
     const rows = this.selectedRows;
     this.cs.postService({ url: this.deleteUrl, payload: { ids: rows.map((r) => r.id) } }).subscribe({
       next: () => {
-        this.deleting = false;
-        this.showDeleteConfirm = false;
-        this.cs.showToastr({ type: 'success', message: 'Deleted successfully', description: `${rows.length} record${rows.length > 1 ? 's' : ''} removed` });
-        this.reloadCurrentPage();
+        queueMicrotask(() => {
+          this.deleting = false;
+          this.showDeleteConfirm = false;
+          this.cs.showToastr({ type: 'success', message: 'Deleted successfully', description: `${rows.length} record${rows.length > 1 ? 's' : ''} removed` });
+          this.reloadCurrentPage();
+          this.cdr.detectChanges();
+        });
       },
       error: (err: any) => {
-        this.deleting = false;
-        this.showDeleteConfirm = false;
-        this.cs.showToastr({ type: 'error', message: err.error?.message || 'Delete failed' });
+        queueMicrotask(() => {
+          this.deleting = false;
+          this.showDeleteConfirm = false;
+          this.cs.showToastr({ type: 'error', message: err.error?.message || 'Delete failed' });
+          this.cdr.detectChanges();
+        });
       },
     });
   }

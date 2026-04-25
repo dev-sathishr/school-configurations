@@ -8,6 +8,7 @@ import { environment } from './environments/environment';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { AuthInterceptor } from './app/core/interceptor/auth.interceptor';
 import { LoadingInterceptor } from './app/core/interceptor/loading.interceptor';
+import { ActionTrackingInterceptor } from './app/core/interceptor/action-tracking.interceptor';
 
 if (environment.production) {
   enableProdMode();
@@ -23,6 +24,7 @@ bootstrapApplication(AppComponent, {
     provideHttpClient(withInterceptorsFromDi()),
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: LoadingInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: ActionTrackingInterceptor, multi: true },
     provideAnimations(),
     provideZonelessChangeDetection(),
   ],

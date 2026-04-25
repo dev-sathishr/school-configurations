@@ -3,14 +3,30 @@ const db = require('../../../config/database');
 const { bulkImport, pick } = require('../../../shared/helpers/bulk-import.helper');
 const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
+function mapMenuModule(row) {
+  if (!row) return row;
+  const { menu_id, menu_name, menu_code, module_id, module_name, module_code, ...rest } = row;
+  return {
+    ...rest,
+    menu: menu_id
+      ? { id: menu_id, name: menu_name || '', code: menu_code || '' }
+      : null,
+    module: module_id
+      ? { id: module_id, name: module_name || '', code: module_code || '' }
+      : null,
+  };
+}
+
 async function getAll(query) {
-  return menuModuleRepo.findAll(query);
+  const result = await menuModuleRepo.findAll(query);
+  result.data = (result.data || []).map(mapMenuModule);
+  return result;
 }
 
 async function getById(id) {
   const menuModule = await menuModuleRepo.findById(id);
   if (!menuModule) return { error: 'notFound', message: 'Menu Module mapping not found' };
-  return { data: menuModule };
+  return { data: mapMenuModule(menuModule) };
 }
 
 async function create(body, userId) {
@@ -21,7 +37,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'This menu is already linked to this module' };
 
   const menuModule = await menuModuleRepo.create(body, userId);
-  return { data: menuModule };
+  return getById(menuModule.id);
 }
 
 async function update(id, body, userId) {
@@ -42,7 +58,7 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(menuModule);
   if (stale) return stale;
 
-  return { data: menuModule };
+  return getById(id);
 }
 
 async function remove(id, userId) {

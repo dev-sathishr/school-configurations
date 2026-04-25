@@ -76,15 +76,6 @@ async function authenticate(req, res, next) {
   next();
 }
 
-function authorize(...groupCodes) {
-  return (req, res, next) => {
-    if (!groupCodes.includes(req.user.group_code)) {
-      return forbidden(res, 'Insufficient permissions');
-    }
-    next();
-  };
-}
-
 function authorizeModule(moduleCode, permissionCode) {
   return async (req, res, next) => {
     try {
@@ -203,4 +194,4 @@ function checkRecordOwnership(table, moduleCode) {
   };
 }
 
-module.exports = { authenticate, authorize, authorizeModule, checkModuleView, checkRecordOwnership };
+module.exports = { authenticate, authorizeModule, checkModuleView, checkRecordOwnership };

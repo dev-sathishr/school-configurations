@@ -38,7 +38,7 @@ export class EmployeeGroupListComponent {
   };
 
   readonly rowTransform = (row: any, mapped: any) => {
-    mapped.employee_category_name = row.employee_category_name || '-';
+    mapped.employee_category_name = row.employee_category?.name || '-';
     mapped.description = row.description || '-';
     mapped.is_active = statusLabel(row.is_active);
     return mapped;

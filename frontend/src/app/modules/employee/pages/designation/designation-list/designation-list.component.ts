@@ -38,7 +38,7 @@ export class DesignationListComponent {
   };
 
   readonly rowTransform = (row: any, mapped: any) => {
-    mapped.employee_group_name = row.employee_group_name || '-';
+    mapped.employee_group_name = row.employee_group?.name || '-';
     mapped.description = row.description || '-';
     mapped.is_active = statusLabel(row.is_active);
     return mapped;

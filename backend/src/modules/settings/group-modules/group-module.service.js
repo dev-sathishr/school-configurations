@@ -3,14 +3,30 @@ const db = require('../../../config/database');
 const { bulkImport, pick } = require('../../../shared/helpers/bulk-import.helper');
 const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
+function mapGroupModule(row) {
+  if (!row) return row;
+  const { group_id, group_name, group_code, menu_id, menu_name, menu_code, ...rest } = row;
+  return {
+    ...rest,
+    group: group_id
+      ? { id: group_id, name: group_name || '', code: group_code || '' }
+      : null,
+    menu: menu_id
+      ? { id: menu_id, name: menu_name || '', code: menu_code || '' }
+      : null,
+  };
+}
+
 async function getAll(query) {
-  return groupModuleRepo.findAll(query);
+  const result = await groupModuleRepo.findAll(query);
+  result.data = (result.data || []).map(mapGroupModule);
+  return result;
 }
 
 async function getById(id) {
   const groupModule = await groupModuleRepo.findById(id);
   if (!groupModule) return { error: 'notFound', message: 'Group Module mapping not found' };
-  return { data: groupModule };
+  return { data: mapGroupModule(groupModule) };
 }
 
 async function create(body, userId) {
@@ -21,7 +37,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'This group is already linked to this module' };
 
   const groupModule = await groupModuleRepo.create(body, userId);
-  return { data: groupModule };
+  return getById(groupModule.id);
 }
 
 async function update(id, body, userId) {
@@ -42,7 +58,7 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(groupModule);
   if (stale) return stale;
 
-  return { data: groupModule };
+  return getById(id);
 }
 
 async function remove(id, userId) {

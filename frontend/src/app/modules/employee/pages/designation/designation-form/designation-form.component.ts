@@ -175,13 +175,13 @@ export class DesignationFormComponent {
       next: (res: any) => {
         const data = res.data || res;
         this.form.patchValue({
-          employee_group_id: data.employee_group_id || '',
+          employee_group_id: data.employee_group?.id || '',
           name: data.name || '',
           code: data.code || '',
           description: data.description || '',
           is_active: data.is_active !== undefined ? data.is_active : true,
         });
-        this.employeeGroupLabel = data.employee_group_name || '';
+        this.employeeGroupLabel = data.employee_group?.name || '';
         this.recordUpdatedAt = data.updated_at || '';
         if (this.mode === 'view') this.form.disable();
         this.loading = false;

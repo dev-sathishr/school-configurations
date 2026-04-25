@@ -58,9 +58,10 @@ export class UserFormComponent extends FormPageBase {
   protected override onRecordLoaded(user: any): void {
     this.form.patchValue({
       ...user,
+      group_id: user.group?.id || '',
       phone: { code: user.phone_code || '+91', number: user.phone || '' },
     });
-    this.groupLabel = user.group_name || '';
+    this.groupLabel = user.group?.name || '';
     this.profileImage = user.profile_image || null;
     this.form.get('password')?.clearValidators();
     this.form.get('password')?.updateValueAndValidity();

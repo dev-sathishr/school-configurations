@@ -490,6 +490,7 @@ Auth headers are attached by the interceptor automatically. Base URL is configur
 - Single record: `res.data` is the entity object
 - List: `res.data` is the array, `res.pagination` is `{ page, size, total_count, total_pages }`
 - Login: `res.access_token`, `res.refresh_token`, `res.user` (special auth shape)
+- Relation fields: read nested objects only (for example `organization`, `location`, `group`, `menu`, `module`, `parent`, `employee_category`, `employee_group`, `class_general`), not flat fallback fields.
 
 ### 3.9 Types
 
@@ -704,6 +705,12 @@ async function findById(id, scope) {
 **Success with no body**: `{ success, message }` (e.g. delete)
 **Error**: `{ success: false, message }` with HTTP status
 
+**Relationship object contract (mandatory for CRUD modules):**
+- Many-to-one relations MUST be returned as one nested object only (for example `organization`, `location`, `group`, `menu`, `module`, `parent`, `employee_category`, `employee_group`, `class_general`).
+- Do NOT return duplicate flat relation fields in API responses (`organization_id`, `organization_name`, `location_name`, `group_name`, etc.).
+- Request payloads may still use foreign keys (`organization_id`, `group_id`, `menu_id`, etc.), but response payloads must expose relation data through nested objects only.
+- `POST` and `PUT` response shape must match `GET /:id` exactly. Preferred pattern: save, then return `getById(id)`.
+
 Exceptions (kept for semantic reasons):
 - `POST /auth/login` — `{ access_token, refresh_token, user }` at top level
 - Chat — `{ conversations }`, `{ messages }`, `{ users }`, `{ unread_total }` (multi-value semantics)
@@ -816,6 +823,7 @@ Exceptions (kept for semantic reasons):
 - ❌ **New list written from scratch** — extend `BaseListComponent`
 - ❌ **New form written from scratch** — extend `FormPageBase`
 - ❌ **`res.user` or `res.group`** on single-record responses — use `res.data`
+- ❌ **Returning both nested relation objects and flat relation fields** (`organization` + `organization_id` / `organization_name`) — return nested relation objects only
 - ❌ **Hardcoded navigation strings in a list** — use `routeBase` + inherited methods
 - ❌ **Forgetting `[extraParams]="locationCtx.scopeExtraParams()"`** on a location-scoped list — the data won't filter correctly
 - ❌ **Forgetting `ps.canEdit(CODE)`** on action buttons — permission changes are live

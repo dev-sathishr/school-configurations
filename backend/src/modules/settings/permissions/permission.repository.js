@@ -6,9 +6,11 @@ const TABLE = 'settings.permissions';
 
 const SELECT_FIELDS = `p.id, p.name, p.code, p.description, p.is_active,
   p.created_by, p.updated_by, p.created_at, p.updated_at,
-  cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
+  cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
+  COALESCE(gpc.group_permission_count, 0) AS group_permission_count`;
 
-const JOINS = 'LEFT JOIN settings.users cb ON p.created_by = cb.id LEFT JOIN settings.users ub ON p.updated_by = ub.id';
+const JOINS = `LEFT JOIN settings.users cb ON p.created_by = cb.id LEFT JOIN settings.users ub ON p.updated_by = ub.id
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS group_permission_count FROM settings.group_permissions gp WHERE gp.permission_id = p.id) gpc ON true`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({

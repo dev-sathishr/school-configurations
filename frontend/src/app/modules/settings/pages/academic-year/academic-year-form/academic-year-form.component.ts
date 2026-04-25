@@ -96,14 +96,15 @@ export class AcademicYearFormComponent extends FormPageBase {
   protected override onRecordLoaded(data: any): void {
     this.form.patchValue({
       ...data,
+      location_id: data.location?.id || '',
       // Dates come back as ISO strings; <input type="date"> needs yyyy-mm-dd.
       start_date: data.start_date ? String(data.start_date).slice(0, 10) : '',
       end_date: data.end_date ? String(data.end_date).slice(0, 10) : '',
     });
-    this.recordLocation.set(data.location_id ? {
-      id: data.location_id,
-      name: data.location_name || '',
-      code: data.location_code || '',
+    this.recordLocation.set(data.location?.id ? {
+      id: data.location.id,
+      name: data.location.name || '',
+      code: data.location.code || '',
     } : null);
   }
 

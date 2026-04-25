@@ -5,10 +5,10 @@ const repoHelper = require('../../../shared/helpers/repo.helper');
 const TABLE = 'academic.class_generals';
 
 const SELECT_FIELDS = `c.*, cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
-  COALESCE(lc.level_count, 0) AS level_count`;
+  COALESCE(lc.level_count, 0) AS level_count, COALESCE(lc.allocated_capacity, 0) AS allocated_capacity`;
 const JOINS = `LEFT JOIN settings.users cb ON c.created_by = cb.id
   LEFT JOIN settings.users ub ON c.updated_by = ub.id
-  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS level_count FROM academic.class_levels cl WHERE cl.class_general_id = c.id AND cl.deleted_at IS NULL) lc ON true`;
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS level_count, COALESCE(SUM(capacity), 0)::int AS allocated_capacity FROM academic.class_levels cl WHERE cl.class_general_id = c.id AND cl.deleted_at IS NULL) lc ON true`;
 
 async function findAll(query) {
   return paginate({

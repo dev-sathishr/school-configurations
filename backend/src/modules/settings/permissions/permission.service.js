@@ -24,7 +24,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Permission code already exists' };
 
   const permission = await permissionRepo.create(body, userId);
-  return { data: permission };
+  return getById(permission.id);
 }
 
 async function update(id, body, userId) {
@@ -43,12 +43,15 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(permission);
   if (stale) return stale;
 
-  return { data: permission };
+  return getById(id);
 }
 
 async function remove(id, userId) {
   const current = await permissionRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Permission not found' };
+  if (current.group_permission_count > 0) {
+    return { error: 'conflict', message: `Cannot delete "${current.name}" — it is assigned to ${current.group_permission_count} group(s). Remove the group assignments first.` };
+  }
   await permissionRepo.softDelete(id, userId);
   return {};
 }
@@ -57,6 +60,12 @@ async function removeMultiple(ids, userId) {
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return { error: 'badRequest', message: 'ids array is required' };
   }
+  const blocked = [];
+  for (const id of ids) {
+    const current = await permissionRepo.findById(id);
+    if (current && current.group_permission_count > 0) blocked.push(`"${current.name}" (${current.group_permission_count} group(s))`);
+  }
+  if (blocked.length) return { error: 'conflict', message: `Cannot delete: ${blocked.join(', ')}. Remove their group assignments first.` };
   const deletedCount = await permissionRepo.softDeleteMultiple(ids, userId);
   return { deleted_count: deletedCount };
 }

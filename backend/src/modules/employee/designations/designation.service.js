@@ -3,14 +3,27 @@ const employeeGroupRepo = require('../employee-groups/employee-group.repository'
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
+function mapDesignation(row) {
+  if (!row) return row;
+  const { employee_group_id, employee_group_name, employee_group_code, ...rest } = row;
+  return {
+    ...rest,
+    employee_group: employee_group_id
+      ? { id: employee_group_id, name: employee_group_name || '', code: employee_group_code || '' }
+      : null,
+  };
+}
+
 async function getAll(query, viewOwnUserId) {
-  return designationRepo.findAll(query, viewOwnUserId);
+  const result = await designationRepo.findAll(query, viewOwnUserId);
+  result.data = (result.data || []).map(mapDesignation);
+  return result;
 }
 
 async function getById(id) {
   const designation = await designationRepo.findById(id);
   if (!designation) return { error: 'notFound', message: 'Designation not found' };
-  return { data: designation };
+  return { data: mapDesignation(designation) };
 }
 
 async function getDropdown(query) {
@@ -32,7 +45,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Designation code already exists' };
 
   const designation = await designationRepo.create(body, userId);
-  return { data: designation };
+  return getById(designation.id);
 }
 
 async function update(id, body, userId) {
@@ -61,7 +74,7 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(designation);
   if (stale) return stale;
 
-  return { data: designation };
+  return getById(id);
 }
 
 async function remove(id, userId) {

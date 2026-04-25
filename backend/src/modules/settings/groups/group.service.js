@@ -27,7 +27,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Group code already exists' };
 
   const group = await groupRepo.create(body, userId);
-  return { data: group };
+  return getById(group.id);
 }
 
 async function update(id, body, userId) {
@@ -75,12 +75,15 @@ async function update(id, body, userId) {
     console.error('Error notifying pending users:', err);
   }
 
-  return { data: group };
+  return getById(id);
 }
 
 async function remove(id, userId) {
   const current = await groupRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Group not found' };
+  if (current.user_count > 0) {
+    return { error: 'conflict', message: `Cannot delete "${current.name}" — it has ${current.user_count} user(s) assigned to it. Reassign the users first.` };
+  }
   await groupRepo.softDelete(id, userId);
   return {};
 }
@@ -89,6 +92,12 @@ async function removeMultiple(ids, userId) {
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return { error: 'badRequest', message: 'ids array is required' };
   }
+  const blocked = [];
+  for (const id of ids) {
+    const current = await groupRepo.findById(id);
+    if (current && current.user_count > 0) blocked.push(`"${current.name}" (${current.user_count} user(s))`);
+  }
+  if (blocked.length) return { error: 'conflict', message: `Cannot delete: ${blocked.join(', ')}. Reassign their users first.` };
   const deletedCount = await groupRepo.softDeleteMultiple(ids, userId);
   return { deleted_count: deletedCount };
 }

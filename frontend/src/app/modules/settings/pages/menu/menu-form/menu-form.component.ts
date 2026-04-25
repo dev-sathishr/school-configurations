@@ -58,8 +58,11 @@ export class MenuFormComponent extends FormPageBase implements OnInit {
   }
 
   protected override onRecordLoaded(menu: any): void {
-    this.form.patchValue(menu);
-    this.parentLabel = menu.parent_name || '';
+    this.form.patchValue({
+      ...menu,
+      parent_id: menu.parent?.id || '',
+    });
+    this.parentLabel = menu.parent?.name || '';
 
     if (Array.isArray(menu.modules)) {
       for (const assigned of menu.modules) {

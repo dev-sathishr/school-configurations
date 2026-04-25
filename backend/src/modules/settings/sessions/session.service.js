@@ -46,4 +46,60 @@ async function logActivity(sessionId, body) {
   return { data: {} };
 }
 
-module.exports = { getAll, getById, revoke, revokeOthers, logActivity };
+const ACTION_TYPES = new Set(['CREATE', 'EDIT', 'DELETE', 'IMPORT', 'EXPORT']);
+
+async function trackAction(sessionId, body) {
+  if (!sessionId) return { data: {} };
+  const actionType = String(body?.action_type || '').toUpperCase();
+  if (!ACTION_TYPES.has(actionType)) return { data: {} };
+  const routePath = String(body?.route_path || '').slice(0, 200);
+  const moduleCode = body?.module_code ? String(body.module_code).slice(0, 50) : null;
+  const recordId = body?.record_id || null;
+  const resource = body?.resource ? String(body.resource).slice(0, 100) : null;
+  await sessionRepo.logAction(sessionId, { module_code: moduleCode, route_path: routePath, action_type: actionType, record_id: recordId, resource });
+  return { data: {} };
+}
+
+async function getOnline(scopeUserId) {
+  const users = await sessionRepo.findActive(scopeUserId);
+  return { data: users };
+}
+
+async function getUserAnalytics(userId) {
+  const data = await sessionRepo.getUserAnalytics(userId);
+  return { data };
+}
+
+async function getAdminAnalytics() {
+  const data = await sessionRepo.getAdminAnalytics();
+  return { data };
+}
+
+async function exportSessions(query, scopeUserId) {
+  const csv = await sessionRepo.exportSessions(query, scopeUserId);
+  return csv;
+}
+
+async function getRetention() {
+  const days = await sessionRepo.getRetentionDays();
+  return { data: { days } };
+}
+
+async function setRetention(days) {
+  const d = parseInt(days);
+  if (!d || d < 7 || d > 3650) return { error: 'badRequest', message: 'Retention must be between 7 and 3650 days' };
+  await sessionRepo.setRetentionDays(d);
+  return { data: { days: d } };
+}
+
+async function purge() {
+  const days = await sessionRepo.getRetentionDays();
+  const count = await sessionRepo.purgeOldSessions(days);
+  return { data: { purged_count: count, retention_days: days } };
+}
+
+module.exports = {
+  getAll, getById, getOnline, getUserAnalytics, getAdminAnalytics,
+  exportSessions, getRetention, setRetention, purge,
+  revoke, revokeOthers, logActivity, trackAction,
+};

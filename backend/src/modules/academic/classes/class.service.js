@@ -34,7 +34,7 @@ async function create(body, userId) {
   }
 
   const classGeneral = await classRepo.create(body, userId);
-  return { data: classGeneral };
+  return getById(classGeneral.id);
 }
 
 async function update(id, body, userId) {
@@ -61,12 +61,18 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(classGeneral);
   if (stale) return stale;
 
-  return { data: classGeneral };
+  return getById(id);
 }
 
 async function remove(id, userId) {
   const current = await classRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Class not found' };
+  if (current.level_count > 0) {
+    return {
+      error: 'conflict',
+      message: `Cannot delete "${current.name}" — it has ${current.level_count} class level(s) mapped to it. Remove the class levels first.`,
+    };
+  }
   await classRepo.softDelete(id, userId);
   return {};
 }
@@ -74,6 +80,19 @@ async function remove(id, userId) {
 async function removeMultiple(ids, userId) {
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return { error: 'badRequest', message: 'ids array is required' };
+  }
+  const blocked = [];
+  for (const id of ids) {
+    const current = await classRepo.findById(id);
+    if (current && current.level_count > 0) {
+      blocked.push(`"${current.name}" (${current.level_count} level(s))`);
+    }
+  }
+  if (blocked.length > 0) {
+    return {
+      error: 'conflict',
+      message: `Cannot delete the following classes because they have class levels mapped: ${blocked.join(', ')}. Remove the class levels first.`,
+    };
   }
   const deletedCount = await classRepo.softDeleteMultiple(ids, userId);
   return { deleted_count: deletedCount };

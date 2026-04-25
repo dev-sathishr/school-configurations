@@ -141,9 +141,17 @@ export const API = {
     base: '/sessions',
     detail: (id: string) => `/sessions/${id}`,
     mine: '/sessions/me',
+    online: '/sessions/online',
     revoke: (id: string) => `/sessions/${id}/revoke`,
     revokeOthers: '/sessions/me/revoke-others',
     activity: '/sessions/activity',
+    action: '/sessions/action',
+    myAnalytics: '/sessions/me/analytics',
+    analytics: '/sessions/analytics',
+    userAnalytics: (userId: string) => `/sessions/users/${userId}/analytics`,
+    export: '/sessions/export',
+    retention: '/sessions/retention',
+    purge: '/sessions/purge',
   },
 
   // ── Notifications ────────────────────────────────────────────────

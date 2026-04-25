@@ -71,7 +71,7 @@ async function create(body, userId) {
   const location = await locationRepo.create(body, userId);
   await saveAddresses('location', location.id, body.addresses, userId);
 
-  return { data: location };
+  return getById(location.id);
 }
 
 async function update(id, body, userId) {
@@ -102,13 +102,19 @@ async function update(id, body, userId) {
 
   await saveAddresses('location', id, body.addresses, userId);
 
-  return { data: location };
+  return getById(id);
 }
 
 async function remove(id, userId) {
-  const current = await locationRepo.findByField('id', id);
+  const current = await locationRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Location not found' };
-
+  const mapped = (current.class_level_count || 0) + (current.academic_year_count || 0);
+  if (mapped > 0) {
+    const parts = [];
+    if (current.class_level_count > 0) parts.push(`${current.class_level_count} class level(s)`);
+    if (current.academic_year_count > 0) parts.push(`${current.academic_year_count} academic year(s)`);
+    return { error: 'conflict', message: `Cannot delete "${current.name}" — it has ${parts.join(' and ')} mapped to it. Remove them first.` };
+  }
   await locationRepo.softDelete(id, userId);
   return {};
 }
@@ -117,6 +123,14 @@ async function removeMultiple(ids, userId) {
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return { error: 'badRequest', message: 'ids array is required' };
   }
+  const blocked = [];
+  for (const id of ids) {
+    const current = await locationRepo.findById(id);
+    if (current && ((current.class_level_count || 0) + (current.academic_year_count || 0)) > 0) {
+      blocked.push(`"${current.name}"`);
+    }
+  }
+  if (blocked.length) return { error: 'conflict', message: `Cannot delete: ${blocked.join(', ')}. They have class levels or academic years mapped. Remove them first.` };
   const deletedCount = await locationRepo.softDeleteMultiple(ids, userId);
   return { deleted_count: deletedCount };
 }

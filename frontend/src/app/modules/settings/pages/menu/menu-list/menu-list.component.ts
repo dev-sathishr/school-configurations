@@ -38,7 +38,7 @@ export class MenuListComponent extends BaseListComponent {
   rowTransform = (row: any, mapped: any) => {
     mapped['m.is_active'] = statusLabel(row.is_active);
     mapped['m.route_path'] = row.route_path || '-';
-    mapped['parent_name'] = row.parent_name || '-';
+    mapped['parent_name'] = row.parent?.name || '-';
     mapped['module_count'] = row.module_count ?? 0;
     return mapped;
   };

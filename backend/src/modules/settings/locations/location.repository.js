@@ -15,7 +15,13 @@ const DETAIL_SELECT = `l.id, l.organization_id, l.name, l.code, l.type, l.email,
   l.primary_contact_code, l.primary_contact_no, l.alternate_contact_code, l.alternate_contact_no,
   l.is_active, l.notes, l.created_by, l.updated_by, l.created_at, l.updated_at,
   org.id AS org_id, org.name AS org_name,
-  cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
+  cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
+  COALESCE(cc.class_level_count, 0) AS class_level_count,
+  COALESCE(ay.academic_year_count, 0) AS academic_year_count`;
+
+const DETAIL_JOINS_EXTRA = `
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS class_level_count FROM academic.class_levels cl WHERE cl.location_id = l.id AND cl.deleted_at IS NULL) cc ON true
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS academic_year_count FROM academic.academic_years ay WHERE ay.location_id = l.id AND ay.deleted_at IS NULL) ay ON true`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({
@@ -37,6 +43,7 @@ async function findById(id) {
     SELECT ${DETAIL_SELECT}
     FROM settings.locations l
     ${JOINS}
+    ${DETAIL_JOINS_EXTRA}
     WHERE l.id = $1 AND l.deleted_at IS NULL
   `, [id]);
   return result.rows[0] || null;

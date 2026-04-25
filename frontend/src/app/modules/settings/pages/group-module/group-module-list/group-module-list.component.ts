@@ -24,4 +24,10 @@ export class GroupModuleListComponent extends BaseListComponent {
   displayKeyMap: Record<string, string> = {
     'g.name': 'group_name', 'men.name': 'menu_name',
   };
+
+  rowTransform = (row: any, mapped: any) => {
+    mapped['g.name'] = row.group?.name || '-';
+    mapped['men.name'] = row.menu?.name || '-';
+    return mapped;
+  };
 }

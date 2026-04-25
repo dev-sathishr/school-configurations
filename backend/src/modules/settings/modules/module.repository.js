@@ -6,9 +6,11 @@ const TABLE = 'settings.modules';
 
 const SELECT_FIELDS = `m.id, m.name, m.display_name, m.icon, m.route_path, m.display_order, m.enforce_edit_lock, m.is_active, m.description,
   m.created_by, m.updated_by, m.created_at, m.updated_at,
-  cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
+  cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
+  COALESCE(mm.menu_module_count, 0) AS menu_module_count`;
 
-const JOINS = 'LEFT JOIN settings.users cb ON m.created_by = cb.id LEFT JOIN settings.users ub ON m.updated_by = ub.id';
+const JOINS = `LEFT JOIN settings.users cb ON m.created_by = cb.id LEFT JOIN settings.users ub ON m.updated_by = ub.id
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS menu_module_count FROM settings.menu_modules x WHERE x.module_id = m.id AND x.deleted_at IS NULL) mm ON true`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({

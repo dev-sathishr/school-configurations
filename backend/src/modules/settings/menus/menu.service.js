@@ -3,14 +3,27 @@ const db = require('../../../config/database');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
+function mapMenu(menu) {
+  if (!menu) return menu;
+  const { parent_id, parent_name, ...rest } = menu;
+  return {
+    ...rest,
+    parent: parent_id
+      ? { id: parent_id, name: parent_name || '' }
+      : null,
+  };
+}
+
 async function getAll(query, viewOwnUserId) {
-  return menuRepo.findAll(query, viewOwnUserId);
+  const result = await menuRepo.findAll(query, viewOwnUserId);
+  result.data = (result.data || []).map(mapMenu);
+  return result;
 }
 
 async function getById(id) {
   const menu = await menuRepo.findByIdWithModules(id);
   if (!menu) return { error: 'notFound', message: 'Menu not found' };
-  return { data: menu };
+  return { data: mapMenu(menu) };
 }
 
 async function getDropdown(query) {
@@ -30,7 +43,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Menu display name already exists' };
 
   const menu = await menuRepo.create(body, userId);
-  return { data: menu };
+  return getById(menu.id);
 }
 
 async function update(id, body, userId) {
@@ -49,12 +62,18 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(menu);
   if (stale) return stale;
 
-  return { data: menu };
+  return getById(id);
 }
 
 async function remove(id, userId) {
   const current = await menuRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Menu not found' };
+  if (current.child_menu_count > 0) {
+    return { error: 'conflict', message: `Cannot delete "${current.display_name}" — it has ${current.child_menu_count} child menu(s). Remove the child menus first.` };
+  }
+  if (current.module_count > 0) {
+    return { error: 'conflict', message: `Cannot delete "${current.display_name}" — it has ${current.module_count} module(s) linked to it. Remove the module links first.` };
+  }
   await menuRepo.softDelete(id, userId);
   return {};
 }
@@ -63,6 +82,12 @@ async function removeMultiple(ids, userId) {
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return { error: 'badRequest', message: 'ids array is required' };
   }
+  const blocked = [];
+  for (const id of ids) {
+    const current = await menuRepo.findById(id);
+    if (current && (current.child_menu_count > 0 || current.module_count > 0)) blocked.push(`"${current.display_name}"`);
+  }
+  if (blocked.length) return { error: 'conflict', message: `Cannot delete: ${blocked.join(', ')}. Remove their child menus and module links first.` };
   const deletedCount = await menuRepo.softDeleteMultiple(ids, userId);
   return { deleted_count: deletedCount };
 }

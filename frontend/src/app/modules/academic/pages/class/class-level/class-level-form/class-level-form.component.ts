@@ -39,6 +39,8 @@ export class ClassLevelFormComponent {
   classLabel = '';
   recordUpdatedAt = '';
   private currentClassCode = '';
+  classStrength = 0;
+  private classAllocated = 0;
   private lockAcquired = false;
   private lockHeartbeat: ReturnType<typeof setInterval> | null = null;
 
@@ -56,6 +58,7 @@ export class ClassLevelFormComponent {
     this.form = this.fb.group({
       location_id: ['', Validators.required],
       class_general_id: ['', Validators.required],
+      name: [{ value: '', disabled: true }],
       section: [''],
       code: ['', V.requiredMaxLength(100)],
       capacity: [0],
@@ -84,6 +87,8 @@ export class ClassLevelFormComponent {
     this.editId = '';
     this.classLabel = '';
     this.currentClassCode = '';
+    this.classStrength = 0;
+    this.classAllocated = 0;
     this.submitted = false;
     this.saving = false;
     this.loading = false;
@@ -92,6 +97,7 @@ export class ClassLevelFormComponent {
     this.form.reset({
       location_id: preferredLocationId,
       class_general_id: '',
+      name: '',
       section: '',
       code: '',
       capacity: 0,
@@ -99,6 +105,7 @@ export class ClassLevelFormComponent {
       notes: '',
     });
     this.form.enable();
+    this.form.get('name')?.disable();
     this.showModal = true;
   }
 
@@ -125,9 +132,12 @@ export class ClassLevelFormComponent {
     this.editId = '';
     this.classLabel = '';
     this.currentClassCode = '';
+    this.classStrength = 0;
+    this.classAllocated = 0;
     this.recordUpdatedAt = '';
     this.recordLocation.set(null);
     this.form.enable();
+    this.form.get('name')?.disable();
   }
 
   submit(): void {
@@ -137,7 +147,7 @@ export class ClassLevelFormComponent {
     if (this.form.invalid) return;
 
     this.saving = true;
-    const payload: any = this.form.value;
+    const payload: any = this.form.getRawValue();
     if (this.mode === 'edit') {
       payload.updated_at = this.recordUpdatedAt;
     }
@@ -173,6 +183,7 @@ export class ClassLevelFormComponent {
     this.currentClassCode = '';
     this.recordLocation.set(null);
     this.form.enable();
+    this.form.get('name')?.disable();
 
     if (mode === 'edit') {
       this.editLockService.acquire(this.moduleCode, id).subscribe({
@@ -202,20 +213,28 @@ export class ClassLevelFormComponent {
       next: (res: any) => {
         const data = res.data || res;
         this.form.patchValue({
-          location_id: data.location_id || '',
-          class_general_id: data.class_general_id || '',
+          location_id: data.location?.id || '',
+          class_general_id: data.class_general?.id || '',
+          name: data.name || '',
           section: data.section || '',
           code: data.code || '',
           capacity: data.capacity ?? 0,
           is_active: data.is_active !== undefined ? data.is_active : true,
           notes: data.notes || '',
         });
-        this.classLabel = data.class_code ? `${data.class_name} (${data.class_code})` : (data.class_name || '');
-        this.currentClassCode = data.class_code || '';
-        this.recordLocation.set(data.location_id ? {
-          id: data.location_id,
-          name: data.location_name || '',
-          code: data.location_code || '',
+        this.classLabel = data.class_general?.code
+          ? `${data.class_general?.name || ''} (${data.class_general.code})`
+          : (data.class_general?.name || '');
+        this.currentClassCode = data.class_general?.code || '';
+        this.classStrength = data.class_strength || 0;
+        // allocated includes this record's own capacity; subtract it so the validator
+        // shows how much remains excluding the current level being edited
+        this.classAllocated = (data.class_allocated_capacity || 0) - (data.capacity || 0);
+        this.updateCapacityValidator();
+        this.recordLocation.set(data.location?.id ? {
+          id: data.location.id,
+          name: data.location.name || '',
+          code: data.location.code || '',
         } : null);
         this.recordUpdatedAt = data.updated_at || '';
         if (this.mode === 'view') this.form.disable();
@@ -236,20 +255,51 @@ export class ClassLevelFormComponent {
     if (!classId) {
       this.classLabel = '';
       this.currentClassCode = '';
+      this.classStrength = 0;
+      this.updateCapacityValidator();
+      if (!this.loading) {
+        this.form.patchValue({ name: '' }, { emitEvent: false });
+      }
       return;
     }
 
-    if (this.mode !== 'create') return;
+    // During record load, name and strength are already set from stored data — skip refetch
+    if (this.loading) return;
+
     this.cs.getService({ url: API.classes.detail(classId) }).subscribe({
       next: (res: any) => {
         const data = res?.data || {};
-        this.currentClassCode = data.code || data.name || '';
-        this.updateGeneratedCode();
+        this.currentClassCode = data.code || '';
+        this.classStrength = data.strength || 0;
+        this.classAllocated = data.allocated_capacity || 0;
+        this.form.patchValue({ name: data.name || '' }, { emitEvent: false });
+        this.updateCapacityValidator();
+        if (this.mode === 'create') {
+          this.updateGeneratedCode();
+        }
       },
       error: () => {
         this.currentClassCode = '';
+        this.classStrength = 0;
+        this.classAllocated = 0;
+        this.updateCapacityValidator();
       },
     });
+  }
+
+  get remainingCapacity(): number {
+    if (this.classStrength <= 0) return 0;
+    return Math.max(0, this.classStrength - this.classAllocated);
+  }
+
+  private updateCapacityValidator(): void {
+    const ctrl = this.form.get('capacity');
+    if (!ctrl) return;
+    const validators = this.classStrength > 0
+      ? [Validators.min(0), Validators.max(this.remainingCapacity)]
+      : [Validators.min(0)];
+    ctrl.setValidators(validators);
+    ctrl.updateValueAndValidity({ emitEvent: false });
   }
 
   private updateGeneratedCode(): void {

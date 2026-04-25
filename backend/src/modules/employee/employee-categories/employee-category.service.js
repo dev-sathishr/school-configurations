@@ -24,7 +24,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Employee category code already exists' };
 
   const employeeCategory = await employeeCategoryRepo.create(body, userId);
-  return { data: employeeCategory };
+  return getById(employeeCategory.id);
 }
 
 async function update(id, body, userId) {
@@ -43,12 +43,15 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(employeeCategory);
   if (stale) return stale;
 
-  return { data: employeeCategory };
+  return getById(id);
 }
 
 async function remove(id, userId) {
   const current = await employeeCategoryRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Employee category not found' };
+  if (current.employee_group_count > 0) {
+    return { error: 'conflict', message: `Cannot delete "${current.name}" — it has ${current.employee_group_count} employee group(s) mapped to it. Remove the groups first.` };
+  }
   await employeeCategoryRepo.softDelete(id, userId);
   return {};
 }
@@ -57,6 +60,12 @@ async function removeMultiple(ids, userId) {
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return { error: 'badRequest', message: 'ids array is required' };
   }
+  const blocked = [];
+  for (const id of ids) {
+    const current = await employeeCategoryRepo.findById(id);
+    if (current && current.employee_group_count > 0) blocked.push(`"${current.name}" (${current.employee_group_count} group(s))`);
+  }
+  if (blocked.length) return { error: 'conflict', message: `Cannot delete: ${blocked.join(', ')}. Remove their employee groups first.` };
   const deletedCount = await employeeCategoryRepo.softDeleteMultiple(ids, userId);
   return { deleted_count: deletedCount };
 }

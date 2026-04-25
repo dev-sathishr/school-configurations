@@ -8,12 +8,14 @@ const SELECT_FIELDS = `m.id, m.name, m.display_name, m.icon, m.route_path, m.dis
   m.parent_id, p.name AS parent_name,
   m.created_by, m.updated_by, m.created_at, m.updated_at,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
-  COALESCE(mc.module_count, 0) AS module_count`;
+  COALESCE(mc.module_count, 0) AS module_count,
+  COALESCE(cm.child_menu_count, 0) AS child_menu_count`;
 
 const JOINS = `LEFT JOIN settings.menus p ON m.parent_id = p.id
   LEFT JOIN settings.users cb ON m.created_by = cb.id
   LEFT JOIN settings.users ub ON m.updated_by = ub.id
-  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS module_count FROM settings.menu_modules mm WHERE mm.menu_id = m.id AND mm.deleted_at IS NULL) mc ON true`;
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS module_count FROM settings.menu_modules mm WHERE mm.menu_id = m.id AND mm.deleted_at IS NULL) mc ON true
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS child_menu_count FROM settings.menus ch WHERE ch.parent_id = m.id AND ch.deleted_at IS NULL) cm ON true`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({

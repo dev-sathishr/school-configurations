@@ -25,6 +25,7 @@ export class ClassLevelListComponent {
   readonly deleteUrl = API.classLevels.deleteMultiple;
 
   readonly columns: ColumnConfig[] = [
+    { key: 'cl.name', label: 'Name', sortable: true, searchable: true },
     { key: 'cl.code', label: 'Code', sortable: true, searchable: true },
     { key: 'cl.section', label: 'Section', sortable: true },
     { key: 'cl.capacity', label: 'Capacity', sortable: true },
@@ -33,6 +34,7 @@ export class ClassLevelListComponent {
   ];
 
   readonly displayKeyMap: Record<string, string> = {
+    'cl.name': 'name',
     'cl.code': 'code',
     'cl.section': 'section',
     'cl.capacity': 'capacity',
@@ -44,8 +46,11 @@ export class ClassLevelListComponent {
     mapped['cl.is_active'] = statusLabel(row.is_active);
     mapped['cl.capacity'] = row.capacity || 0;
     mapped['cl.section'] = row.section || '-';
-    mapped['loc.name'] = row.location_name
-      ? (row.location_code ? `${row.location_name} (${row.location_code})` : row.location_name)
+    mapped['cl.name'] = row.name || '-';
+    const locationName = row.location?.name || '';
+    const locationCode = row.location?.code || '';
+    mapped['loc.name'] = locationName
+      ? (locationCode ? `${locationName} (${locationCode})` : locationName)
       : '-';
     return mapped;
   };

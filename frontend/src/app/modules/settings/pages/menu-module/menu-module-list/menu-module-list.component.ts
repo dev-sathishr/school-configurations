@@ -26,4 +26,10 @@ export class MenuModuleListComponent extends BaseListComponent {
     'mod.name': 'module_name', 'men.name': 'menu_name',
     'mm.display_order': 'display_order',
   };
+
+  rowTransform = (row: any, mapped: any) => {
+    mapped['mod.name'] = row.module?.name || '-';
+    mapped['men.name'] = row.menu?.name || '-';
+    return mapped;
+  };
 }

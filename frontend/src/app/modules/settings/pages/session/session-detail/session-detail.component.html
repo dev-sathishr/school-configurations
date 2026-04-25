@@ -6,6 +6,8 @@
   @if (loading) {
     <app-loader size="large" text="Loading session..." />
   } @else if (session) {
+
+    <!-- Session info card -->
     <div class="bg-background border-muted/30 rounded-lg border p-5">
       <div class="mb-4 flex items-start justify-between gap-3">
         <div class="flex items-center gap-3">
@@ -83,8 +85,37 @@
         }
       </div>
 
-      <div class="mt-6 flex justify-end gap-3">
+      <!-- Stats row -->
+      <div class="border-muted/30 mt-5 grid grid-cols-2 gap-3 border-t pt-5 sm:grid-cols-4 lg:grid-cols-5">
+        <div class="bg-muted/30 rounded-lg p-3 text-center">
+          <p class="text-muted-foreground mb-1 text-xs">Session Duration</p>
+          <p class="text-foreground text-sm font-semibold">{{ formatDuration(sessionDurationSeconds) }}</p>
+        </div>
+        <div class="bg-muted/30 rounded-lg p-3 text-center">
+          <p class="text-muted-foreground mb-1 text-xs">Time Tracked</p>
+          <p class="text-foreground text-sm font-semibold">{{ formatDuration(trackedTimeSeconds) }}</p>
+        </div>
+        <div class="bg-muted/30 rounded-lg p-3 text-center">
+          <p class="text-muted-foreground mb-1 text-xs">Modules Used</p>
+          <p class="text-foreground text-sm font-semibold">{{ moduleBreakdown.length }}</p>
+        </div>
+        <div class="bg-muted/30 rounded-lg p-3 text-center">
+          <p class="text-muted-foreground mb-1 text-xs">Pages Visited</p>
+          <p class="text-foreground text-sm font-semibold">{{ session.activity.length - totalActions }}</p>
+        </div>
+        <div class="bg-muted/30 rounded-lg p-3 text-center">
+          <p class="text-muted-foreground mb-1 text-xs">Actions</p>
+          <p class="text-foreground text-sm font-semibold">{{ totalActions }}</p>
+        </div>
+      </div>
+
+      <div class="mt-5 flex justify-end gap-3">
         <app-button impact="light" tone="light" shape="rounded" size="medium" (buttonClick)="back()">Back</app-button>
+        @if (ps.canView('SESSIONS')) {
+          <app-button impact="light" tone="primary" shape="rounded" size="medium" (buttonClick)="viewUserAnalytics()">
+            User Analytics
+          </app-button>
+        }
         @if (session.status === 'active' && ps.canDelete('SESSIONS')) {
           <app-button impact="bold" tone="danger" shape="rounded" size="medium" (buttonClick)="askRevoke()">
             Force logout
@@ -93,24 +124,193 @@
       </div>
     </div>
 
-    <div class="bg-background border-muted/30 mt-6 rounded-lg border p-5">
-      <h4 class="text-foreground mb-3 text-sm font-semibold">Activity ({{ session.activity.length }})</h4>
-      @if (session.activity.length === 0) {
-        <p class="text-muted-foreground text-sm">No recorded activity yet.</p>
-      } @else {
-        <ol class="border-muted/30 divide-y divide-muted/30 text-sm">
-          @for (a of session.activity; track a.id) {
-            <li class="flex items-center justify-between py-2">
-              <div class="flex flex-col">
-                <span class="text-foreground">{{ a.module_code || '—' }}</span>
-                <span class="text-muted-foreground text-xs">{{ a.route_path }}</span>
+    @if (session.activity.length > 0) {
+
+      <!-- Module time breakdown card -->
+      <div class="bg-background border-muted/30 mt-4 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Module Breakdown</h4>
+        <div class="divide-muted/30 divide-y">
+          @for (m of moduleBreakdown; track (m.module_code ?? '__none__')) {
+            <div>
+              <button
+                type="button"
+                class="flex w-full items-center justify-between py-3 text-left"
+                (click)="toggleModule(m.module_code)">
+                <div class="flex items-center gap-3">
+                  <span class="bg-primary/10 text-primary min-w-[80px] rounded px-2 py-0.5 text-center text-xs font-medium">
+                    {{ m.module_code || '—' }}
+                  </span>
+                  <span class="text-muted-foreground text-xs">
+                    {{ m.nav_count }} page{{ m.nav_count !== 1 ? 's' : '' }}
+                    @if (m.action_count > 0) {
+                      · {{ m.action_count }} action{{ m.action_count !== 1 ? 's' : '' }}
+                    }
+                  </span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-foreground text-sm font-medium">{{ formatDuration(m.total_seconds) }}</span>
+                  <span class="text-muted-foreground text-xs">{{ isExpanded(m.module_code) ? '▲' : '▼' }}</span>
+                </div>
+              </button>
+
+              @if (isExpanded(m.module_code)) {
+                <div class="border-muted/30 mb-3 ml-2 border-l-2 pl-4">
+                  @for (a of m.items; track a.id) {
+                    <div class="flex items-start justify-between gap-4 py-1.5 text-xs">
+                      <div class="flex min-w-0 items-center gap-2">
+                        @if (a.action_type) {
+                          <span class="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium"
+                            [class]="actionStyle(a.action_type).pill">
+                            {{ actionStyle(a.action_type).label }}
+                          </span>
+                          @if (a.resource) {
+                            <span class="text-foreground text-xs font-medium">{{ a.resource }}</span>
+                          }
+                        } @else {
+                          <span class="text-muted-foreground truncate">{{ a.route_path }}</span>
+                        }
+                      </div>
+                      <div class="text-muted-foreground flex shrink-0 items-center gap-3">
+                        <span>{{ a.accessed_at | date: 'shortTime' }}</span>
+                        @if (!a.action_type) {
+                          <span class="text-foreground w-14 text-right font-medium">
+                            @if (a.exit_at) {
+                              {{ formatDuration(a.duration_seconds) }}
+                            } @else {
+                              <span class="text-green-600">Active</span>
+                            }
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Activity timeline — tree view -->
+      <div class="bg-background border-muted/30 mt-4 rounded-lg border p-5">
+
+        <!-- Header -->
+        <div class="mb-3 flex items-center justify-between">
+          <h4 class="text-foreground text-sm font-semibold">
+            Activity Timeline
+            <span class="text-muted-foreground font-normal">({{ groupedTimeline.length }} pages · {{ totalActions }} actions)</span>
+          </h4>
+          @if (hasExpandable) {
+            <div class="flex gap-2">
+              <button type="button" class="text-primary text-xs hover:underline" (click)="expandAll()">Expand all</button>
+              <span class="text-muted-foreground text-xs">·</span>
+              <button type="button" class="text-primary text-xs hover:underline" (click)="collapseAll()">Collapse all</button>
+            </div>
+          }
+        </div>
+
+        <ol class="text-xs">
+          @for (entry of groupedTimeline; track entry.nav.id; let last = $last) {
+            <li>
+              <!-- Page visit row -->
+              <div class="group flex items-center gap-2 py-2"
+                [class.border-b]="!last || entry.actions.length"
+                [class.border-muted/20]="!last || entry.actions.length">
+
+                <!-- Expand toggle (only if has actions) -->
+                <div class="w-4 shrink-0 text-center">
+                  @if (entry.actions.length) {
+                    <button type="button"
+                      class="text-muted-foreground hover:text-foreground transition-transform"
+                      (click)="toggleRow(entry.nav.id)">
+                      <span class="inline-block transition-transform duration-150"
+                        [class.rotate-90]="isRowExpanded(entry.nav.id)">▶</span>
+                    </button>
+                  }
+                </div>
+
+                <!-- Module badge -->
+                @if (entry.nav.module_code) {
+                  <span class="bg-primary/10 text-primary shrink-0 rounded px-1.5 py-0.5 font-medium">
+                    {{ entry.nav.module_code }}
+                  </span>
+                }
+
+                <!-- Route -->
+                <span class="text-muted-foreground min-w-0 flex-1 truncate">{{ entry.nav.route_path }}</span>
+
+                <!-- Time range -->
+                <span class="text-muted-foreground shrink-0">
+                  {{ entry.nav.accessed_at | date: 'shortTime' }}
+                  @if (entry.nav.exit_at) {
+                    → {{ entry.nav.exit_at | date: 'shortTime' }}
+                  } @else {
+                    → <span class="text-green-600">Active</span>
+                  }
+                </span>
+
+                <!-- Duration -->
+                <span class="text-foreground w-14 shrink-0 text-right font-medium">
+                  @if (entry.nav.exit_at) {
+                    {{ formatDuration(entry.nav.duration_seconds) }}
+                  } @else {
+                    <span class="text-green-600">Active</span>
+                  }
+                </span>
+
+                <!-- Actions count badge -->
+                @if (entry.actions.length) {
+                  <span class="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[10px]">
+                    {{ entry.actions.length }} action{{ entry.actions.length !== 1 ? 's' : '' }}
+                  </span>
+                }
+
               </div>
-              <span class="text-muted-foreground text-xs">{{ a.accessed_at | date: 'short' }}</span>
+
+              <!-- Expanded action children -->
+              @if (entry.actions.length && isRowExpanded(entry.nav.id)) {
+                <div class="border-muted/20 mb-1 ml-6 border-l-2 pl-3">
+                  @for (a of entry.actions; track a.id; let alast = $last) {
+                    <div class="flex items-center gap-2 py-1.5"
+                      [class.border-b]="!alast"
+                      [class.border-muted/10]="!alast">
+
+                      <!-- Connector dot -->
+                      <span class="bg-muted-foreground/40 -ml-[17px] mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
+
+                      <!-- Action badge -->
+                      <span class="shrink-0 rounded px-1.5 py-0.5 font-medium"
+                        [class]="actionStyle(a.action_type).pill">
+                        {{ actionStyle(a.action_type).label }}
+                      </span>
+
+                      <!-- Resource -->
+                      @if (a.resource) {
+                        <span class="text-foreground font-medium">{{ a.resource }}</span>
+                      }
+
+                      <!-- Route (if different from parent) -->
+                      @if (a.route_path && a.route_path !== entry.nav.route_path) {
+                        <span class="text-muted-foreground truncate">{{ a.route_path }}</span>
+                      }
+
+                      <span class="text-muted-foreground ml-auto shrink-0">{{ a.accessed_at | date: 'shortTime' }}</span>
+                    </div>
+                  }
+                </div>
+              }
             </li>
           }
         </ol>
-      }
-    </div>
+
+      </div>
+
+    } @else {
+      <div class="bg-background border-muted/30 mt-4 rounded-lg border p-5">
+        <p class="text-muted-foreground text-sm">No recorded activity yet.</p>
+      </div>
+    }
+
   }
 
   <app-confirm-dialog

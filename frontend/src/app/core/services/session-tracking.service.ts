@@ -6,15 +6,6 @@ import { AuthService } from './auth.service';
 import { PermissionService } from './permission.service';
 import { API } from '../api/endpoints';
 
-/**
- * Logs route changes to `POST /sessions/activity` so the admin can audit
- * which modules a user opened during their session.
- *
- * Throttled client-side to the same route within 60s — the backend also
- * dedupes, but short-circuiting here saves a round-trip per re-mount.
- * Skipped when the user isn't logged in (sign-in page navigations don't
- * belong in an authenticated session's activity).
- */
 @Injectable({ providedIn: 'root' })
 export class SessionTrackingService {
   private readonly router = inject(Router);
@@ -22,8 +13,10 @@ export class SessionTrackingService {
   private readonly auth = inject(AuthService);
   private readonly perms = inject(PermissionService);
 
-  private readonly THROTTLE_MS = 60_000;
-  private lastLogged = new Map<string, number>(); // route -> epoch ms
+  // 3 s is long enough to ignore component re-mounts but short enough that
+  // normal navigation (dashboard → class → dashboard) is always captured.
+  private readonly THROTTLE_MS = 3_000;
+  private lastLogged = new Map<string, number>();
 
   start(): void {
     this.router.events
@@ -44,22 +37,26 @@ export class SessionTrackingService {
     this.cs.postService({
       url: API.sessions.activity,
       payload: { route_path: route, module_code: moduleCode },
-    }).subscribe({ error: () => { /* non-critical — swallow */ } });
+    }).subscribe({ error: () => {} });
   }
 
-  /**
-   * Match the current route against the permissioned-module list so the
-   * activity row carries the human-readable module code (USERS, CLASSES).
-   * Falls back to the top-level segment (/settings/x -> SETTINGS) when no
-   * match is found, which happens for dashboard / profile / etc.
-   */
-  private resolveModuleCode(route: string): string | null {
+  /** Longest-prefix match so /academic/class wins over /academic. */
+  resolveModuleCode(route: string): string | null {
+    let best: { code: string; len: number } | null = null;
     for (const menu of this.perms.menus) {
       for (const mod of menu.modules) {
-        if (mod.route_path && route.startsWith(mod.route_path)) return mod.code;
+        if (mod.route_path && route.startsWith(mod.route_path)) {
+          if (!best || mod.route_path.length > best.len) {
+            best = { code: mod.code, len: mod.route_path.length };
+          }
+        }
       }
-      if (menu.route_path && route.startsWith(menu.route_path)) return menu.code;
+      if (menu.route_path && route.startsWith(menu.route_path)) {
+        if (!best || menu.route_path.length > best.len) {
+          best = { code: menu.code, len: menu.route_path.length };
+        }
+      }
     }
-    return null;
+    return best?.code ?? null;
   }
 }

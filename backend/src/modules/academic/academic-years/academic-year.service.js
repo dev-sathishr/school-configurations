@@ -11,6 +11,17 @@ const AY_RULES = {
   notes:         { max: 500, label: 'Notes' },
 };
 
+function mapAcademicYear(record) {
+  if (!record) return record;
+  const { location_id, location_name, location_code, ...rest } = record;
+  return {
+    ...rest,
+    location: location_id
+      ? { id: location_id, name: location_name || '', code: location_code || '' }
+      : null,
+  };
+}
+
 /**
  * Enforce `YYYY-YYYY` where the second year is exactly the first + 1.
  * Mirrors the frontend's `academicYearFormat` validator so both sides refuse
@@ -27,14 +38,16 @@ function validateAcademicYearFormat(value) {
 
 async function getAll(query, userId) {
   const scope = await getUserLocationScope(userId);
-  return ayRepo.findAll(query, scope);
+  const result = await ayRepo.findAll(query, scope);
+  result.data = (result.data || []).map(mapAcademicYear);
+  return result;
 }
 
 async function getById(id, userId) {
   const scope = await getUserLocationScope(userId);
   const record = await ayRepo.findById(id, scope);
   if (!record) return { error: 'notFound', message: 'Academic year not found' };
-  return { data: record };
+  return { data: mapAcademicYear(record) };
 }
 
 async function create(body, userId) {
@@ -68,7 +81,7 @@ async function create(body, userId) {
   }
 
   const record = await ayRepo.create(body, userId);
-  return { data: record };
+  return getById(record.id, userId);
 }
 
 async function update(id, body, userId) {
@@ -110,7 +123,7 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(record);
   if (stale) return stale;
 
-  return { data: record };
+  return getById(id, userId);
 }
 
 async function remove(id, userId) {

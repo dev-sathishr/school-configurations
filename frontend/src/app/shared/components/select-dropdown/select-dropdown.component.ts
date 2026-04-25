@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LoaderComponent } from '../loader/loader.component';
 import { CommonService } from '../../services/common/common.service';
@@ -14,7 +14,7 @@ export interface DropdownOption {
   templateUrl: './select-dropdown.component.html',
   imports: [FormsModule, LoaderComponent],
 })
-export class SelectDropdownComponent implements OnInit, OnDestroy {
+export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
   // Options (static)
   @Input() options: DropdownOption[] = [];
   @Input() placeholder = 'Select...';
@@ -118,6 +118,12 @@ export class SelectDropdownComponent implements OnInit, OnDestroy {
     }
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['initialLabel']) {
+      this._selectedLabel = this.initialLabel;
+    }
+  }
+
   // Display label for single/multi select trigger
   get selectedLabel(): string {
     if (this.multiSelect) {
@@ -130,6 +136,7 @@ export class SelectDropdownComponent implements OnInit, OnDestroy {
       return labels.join(', ');
     }
     if (this.isAsync) {
+      if (!this.value) return '';
       const match = this.asyncOptions.find((o) => o.value === this.value);
       return match?.label || this._selectedLabel;
     }

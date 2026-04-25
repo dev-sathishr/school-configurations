@@ -2,6 +2,7 @@ const userRepo = require('../settings/users/user.repository');
 const locationRepo = require('../settings/locations/location.repository');
 const sessionRepo = require('../settings/sessions/session.repository');
 const fileRepo = require('../files/file.repository');
+const notificationRepo = require('../notifications/notification.repository');
 const password = require('../../shared/helpers/password.helper');
 const jwt = require('../../shared/helpers/jwt.helper');
 const db = require('../../config/database');
@@ -36,6 +37,29 @@ async function login(username, pwd, context = {}) {
     longitude: context.longitude ?? null,
     location_label: context.location_label || null,
     login_method: 'password',
+  });
+
+  // Fire-and-forget: detect new IP or unusual login hour and notify the user.
+  setImmediate(async () => {
+    try {
+      const ip = context.ip_address ? String(context.ip_address) : null;
+      const isNew = await sessionRepo.isNewIpForUser(user.id, ip, session.id);
+      const hour = new Date().getHours();
+      const isUnusualHour = hour >= 0 && hour < 5;
+
+      if (isNew || isUnusualHour) {
+        const reasons = [];
+        if (isNew && ip) reasons.push(`new IP address (${ip})`);
+        if (isUnusualHour) reasons.push(`unusual login time (${hour}:00)`);
+        await notificationRepo.create(
+          user.id,
+          'security',
+          'New sign-in detected',
+          `Your account was accessed from ${reasons.join(' and ')}.`,
+          { ip, user_agent: context.user_agent, session_id: session.id }
+        );
+      }
+    } catch (_) { /* never block login */ }
   });
 
   const tokenPayload = {

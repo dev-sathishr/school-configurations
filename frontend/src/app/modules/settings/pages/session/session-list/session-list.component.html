@@ -2,13 +2,296 @@
   <app-breadcrumb></app-breadcrumb>
 </div>
 
-<app-table
-  [apiUrl]="apiUrl"
-  [columns]="columns"
-  [displayKeyMap]="displayKeyMap"
-  [rowTransform]="rowTransform"
-  [canEdit]="false"
-  [canDelete]="false"
-  [canView]="ps.canView('SESSIONS')"
-  (onView)="viewSelected($event)">
-</app-table>
+<!-- Tab switcher -->
+<div class="border-muted/30 mb-5 flex items-center gap-1 border-b">
+  <button
+    type="button"
+    class="border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
+    [class.border-primary]="activeTab === 'all'"
+    [class.text-primary]="activeTab === 'all'"
+    [class.border-transparent]="activeTab !== 'all'"
+    [class.text-muted-foreground]="activeTab !== 'all'"
+    (click)="switchTab('all')">
+    All Sessions
+  </button>
+  <button
+    type="button"
+    class="flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
+    [class.border-primary]="activeTab === 'online'"
+    [class.text-primary]="activeTab === 'online'"
+    [class.border-transparent]="activeTab !== 'online'"
+    [class.text-muted-foreground]="activeTab !== 'online'"
+    (click)="switchTab('online')">
+    Online Now
+    @if (onlineUsers.length > 0) {
+      <span class="rounded-full bg-green-500 px-1.5 py-0.5 text-xs leading-none text-white">
+        {{ onlineUsers.length }}
+      </span>
+    }
+  </button>
+  <button
+    type="button"
+    class="border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
+    [class.border-primary]="activeTab === 'analytics'"
+    [class.text-primary]="activeTab === 'analytics'"
+    [class.border-transparent]="activeTab !== 'analytics'"
+    [class.text-muted-foreground]="activeTab !== 'analytics'"
+    (click)="switchTab('analytics')">
+    Analytics
+  </button>
+</div>
+
+<!-- All Sessions tab -->
+@if (activeTab === 'all') {
+  <app-table
+    [apiUrl]="apiUrl"
+    [columns]="columns"
+    [displayKeyMap]="displayKeyMap"
+    [rowTransform]="rowTransform"
+    [canEdit]="false"
+    [canDelete]="false"
+    [canView]="ps.canView('SESSIONS')"
+    (onView)="viewSelected($event)">
+  </app-table>
+}
+
+<!-- Online Now tab -->
+@if (activeTab === 'online') {
+  @if (onlineLoading && onlineUsers.length === 0) {
+    <app-loader size="large" text="Loading active sessions..." />
+  } @else if (onlineUsers.length === 0) {
+    <div class="border-muted/30 rounded-lg border p-10 text-center">
+      <p class="text-muted-foreground text-sm">No active sessions right now.</p>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      @for (u of onlineUsers; track u.id) {
+        <div class="bg-background border-muted/30 flex flex-col gap-3 rounded-lg border p-4">
+
+          <!-- User header -->
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex min-w-0 items-center gap-2.5">
+              @if (getAvatarUrl(u)) {
+                <img
+                  [src]="getAvatarUrl(u)"
+                  alt=""
+                  class="border-muted/30 h-9 w-9 shrink-0 rounded-full border object-cover"
+                  (error)="onAvatarError(u)" />
+              } @else {
+                <div class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
+                  {{ (u.full_name || u.username || '?').charAt(0).toUpperCase() }}
+                </div>
+              }
+              <div class="min-w-0">
+                <p class="text-foreground truncate text-sm font-medium">{{ u.full_name || u.username }}</p>
+                <p class="text-muted-foreground truncate text-xs">{{ u.email }}</p>
+              </div>
+            </div>
+            <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-green-500"></span>
+          </div>
+
+          <!-- Current page -->
+          <div class="bg-muted/30 rounded-md p-2.5">
+            <div class="flex items-center gap-2">
+              @if (u.current_module) {
+                <span class="bg-primary/10 text-primary shrink-0 rounded px-1.5 py-0.5 text-xs font-medium">
+                  {{ u.current_module }}
+                </span>
+              }
+              <span class="text-muted-foreground truncate text-xs">
+                {{ u.current_route || 'No activity yet' }}
+              </span>
+            </div>
+            @if (u.current_route) {
+              <p class="text-muted-foreground mt-1.5 text-xs">
+                On this page for <span class="text-foreground font-medium">{{ formatSeconds(u.seconds_on_page) }}</span>
+              </p>
+            }
+          </div>
+
+          <!-- Session stats row -->
+          <div class="flex items-center justify-between text-xs">
+            <div class="text-muted-foreground">
+              Session:
+              <span class="text-foreground font-medium">{{ formatSeconds(u.session_seconds) }}</span>
+            </div>
+            <div class="text-muted-foreground">{{ u.ip_address || '—' }}</div>
+          </div>
+
+          <!-- Device -->
+          @if (u.ua_summary) {
+            <p class="text-muted-foreground text-xs">{{ u.ua_summary }}</p>
+          }
+
+          <!-- Action -->
+          @if (ps.canView('SESSIONS')) {
+            <app-button impact="light" tone="light" shape="rounded" size="small" (buttonClick)="viewSelected(u)">
+              View session
+            </app-button>
+          }
+
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Footer: refresh controls -->
+  <div class="mt-4 flex items-center justify-between">
+    <p class="text-muted-foreground text-xs">Auto-refreshes every 30s</p>
+    <app-button impact="light" tone="light" shape="rounded" size="small" [loading]="onlineLoading" (buttonClick)="loadOnlineUsers()">
+      Refresh
+    </app-button>
+  </div>
+}
+
+<!-- Analytics tab -->
+@if (activeTab === 'analytics') {
+  @if (analyticsLoading) {
+    <app-loader size="large" text="Loading analytics..." />
+  } @else if (adminAnalytics) {
+
+    <!-- Live stats -->
+    <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="bg-muted/30 rounded-lg p-4 text-center">
+        <p class="text-muted-foreground mb-1 text-xs">Active Sessions</p>
+        <p class="text-foreground text-2xl font-bold">{{ adminAnalytics.live.active_sessions }}</p>
+      </div>
+      <div class="bg-muted/30 rounded-lg p-4 text-center">
+        <p class="text-muted-foreground mb-1 text-xs">Active Users</p>
+        <p class="text-foreground text-2xl font-bold">{{ adminAnalytics.live.active_users }}</p>
+      </div>
+      <div class="bg-muted/30 rounded-lg p-4 text-center">
+        <p class="text-muted-foreground mb-1 text-xs">Sessions Today</p>
+        <p class="text-foreground text-2xl font-bold">{{ adminAnalytics.totals.sessions_today }}</p>
+      </div>
+      <div class="bg-muted/30 rounded-lg p-4 text-center">
+        <p class="text-muted-foreground mb-1 text-xs">Avg Session</p>
+        <p class="text-foreground text-2xl font-bold">{{ formatDuration(adminAnalytics.totals.avg_session_seconds) }}</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+      <!-- Sessions per day bar chart -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Sessions per Day <span class="text-muted-foreground font-normal">(last 30 days)</span></h4>
+        <div class="flex items-end gap-0.5" style="height: 84px">
+          @for (d of adminAnalytics.sessions_per_day; track d.day) {
+            <div class="group relative flex flex-1 flex-col items-center justify-end" style="height: 60px">
+              <div
+                class="w-full rounded-sm transition-all"
+                [class.bg-primary]="d.session_count > 0"
+                [class.bg-muted]="d.session_count === 0"
+                [style.height.px]="dayBarHeight(d.session_count) || 2"
+                [title]="d.day + ': ' + d.session_count + ' sessions'">
+              </div>
+            </div>
+          }
+        </div>
+        <div class="text-muted-foreground mt-1 flex justify-between text-[10px]">
+          <span>{{ adminAnalytics.sessions_per_day[0]?.day | date: 'MMM d' }}</span>
+          <span>{{ adminAnalytics.sessions_per_day[adminAnalytics.sessions_per_day.length - 1]?.day | date: 'MMM d' }}</span>
+        </div>
+      </div>
+
+      <!-- Top modules -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Top Modules by Time <span class="text-muted-foreground font-normal">(last 30 days)</span></h4>
+        @if (adminAnalytics.top_modules.length === 0) {
+          <p class="text-muted-foreground text-sm">No data yet.</p>
+        } @else {
+          <div class="space-y-3">
+            @for (m of adminAnalytics.top_modules; track m.module_code) {
+              <div>
+                <div class="mb-1 flex items-center justify-between text-xs">
+                  <div class="flex items-center gap-2">
+                    <span class="bg-primary/10 text-primary rounded px-2 py-0.5 font-medium">{{ m.module_code }}</span>
+                    <span class="text-muted-foreground">{{ m.visit_count }} visits</span>
+                  </div>
+                  <span class="text-foreground font-medium">{{ formatDuration(m.total_seconds) }}</span>
+                </div>
+                <div class="bg-muted/40 h-1.5 w-full overflow-hidden rounded-full">
+                  <div class="bg-primary h-full rounded-full" [style.width.%]="modulePercent(m.total_seconds)"></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+
+    <!-- Most Active Users (this week) -->
+    <div class="bg-background border-muted/30 mt-4 rounded-lg border p-5">
+      <h4 class="text-foreground mb-4 text-sm font-semibold">
+        Most Active Users <span class="text-muted-foreground font-normal">(last 7 days)</span>
+      </h4>
+      @if (!adminAnalytics.top_users.length) {
+        <p class="text-muted-foreground text-sm">No session data this week.</p>
+      } @else {
+        <div class="divide-muted/30 divide-y text-sm">
+          @for (u of adminAnalytics.top_users; track u.id; let i = $index) {
+            <div class="flex items-center gap-3 py-2.5">
+              <span class="text-muted-foreground w-5 shrink-0 text-center text-xs font-medium">{{ i + 1 }}</span>
+              @if (getTopUserAvatar(u)) {
+                <img [src]="getTopUserAvatar(u)" alt=""
+                  class="border-muted/30 h-8 w-8 shrink-0 rounded-full border object-cover"
+                  (error)="onTopUserAvatarError(u.id)" />
+              } @else {
+                <div class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                  {{ (u.full_name || u.username || '?').charAt(0).toUpperCase() }}
+                </div>
+              }
+              <div class="min-w-0 flex-1">
+                <p class="text-foreground truncate text-sm font-medium">{{ u.full_name || u.username }}</p>
+                <p class="text-muted-foreground truncate text-xs">{{ u.email }}</p>
+              </div>
+              <div class="flex shrink-0 items-center gap-4 text-xs">
+                <span class="text-muted-foreground">{{ u.session_count }} sessions · {{ u.action_count }} actions</span>
+                <span class="text-foreground font-medium">{{ formatDuration(u.total_seconds) }}</span>
+                @if (ps.canView('SESSIONS')) {
+                  <app-button impact="light" tone="light" shape="rounded" size="small" (buttonClick)="viewUserAnalytics(u.id)">
+                    Analytics
+                  </app-button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Retention settings -->
+    @if (ps.canEdit('SESSIONS') || ps.canDelete('SESSIONS')) {
+      <div class="bg-background border-muted/30 mt-4 rounded-lg border p-5">
+        <h4 class="text-foreground mb-1 text-sm font-semibold">Data Retention</h4>
+        <p class="text-muted-foreground mb-4 text-xs">Ended and revoked sessions older than this will be deleted when purged.</p>
+        <div class="flex flex-wrap items-end gap-3">
+          @if (ps.canEdit('SESSIONS')) {
+            <div class="flex items-center gap-2">
+              <input type="number" min="7" max="3650"
+                class="border-muted/50 bg-background text-foreground w-24 rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-1"
+                [(ngModel)]="retentionDays" />
+              <span class="text-muted-foreground text-sm">days</span>
+            </div>
+            <app-button impact="bold" tone="primary" shape="rounded" size="small" [loading]="retentionSaving" (buttonClick)="saveRetention()">
+              Save
+            </app-button>
+          }
+          @if (ps.canDelete('SESSIONS')) {
+            <app-button impact="light" tone="danger" shape="rounded" size="small" [loading]="purgingNow" (buttonClick)="purgeNow()">
+              Purge Now
+            </app-button>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="mt-4 flex justify-end">
+      <app-button impact="light" tone="light" shape="rounded" size="small" [loading]="analyticsLoading" (buttonClick)="loadAdminAnalytics()">
+        Refresh
+      </app-button>
+    </div>
+
+  }
+}

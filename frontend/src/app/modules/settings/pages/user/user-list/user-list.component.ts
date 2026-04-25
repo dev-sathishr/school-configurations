@@ -37,7 +37,7 @@ export class UserListComponent extends BaseListComponent {
 
   rowTransform = (row: any, mapped: any) => {
     mapped['u.is_active'] = statusLabel(row.is_active);
-    mapped['g.name'] = row.group_name || '-';
+    mapped['g.name'] = row.group?.name || '-';
     mapped['u.phone'] = row.phone ? `${row.phone_code || '+91'} ${row.phone}` : '-';
     mapped['u.last_login'] = row.last_login ? new Date(row.last_login).toLocaleDateString('en-IN', {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',

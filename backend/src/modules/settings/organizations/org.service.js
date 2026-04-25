@@ -59,7 +59,7 @@ async function create(body, userId) {
   const org = await orgRepo.create(body, userId);
   await saveAddresses('organization', org.id, body.addresses, userId);
 
-  return { data: org };
+  return getById(org.id);
 }
 
 async function update(id, body, userId) {
@@ -93,13 +93,15 @@ async function update(id, body, userId) {
 
   await saveAddresses('organization', id, body.addresses, userId);
 
-  return { data: org };
+  return getById(id);
 }
 
 async function remove(id, userId) {
   const current = await orgRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Organization not found' };
-
+  if (current.location_count > 0) {
+    return { error: 'conflict', message: `Cannot delete "${current.name}" — it has ${current.location_count} location(s) mapped to it. Remove the locations first.` };
+  }
   await orgRepo.softDelete(id, userId);
   return {};
 }
@@ -108,6 +110,12 @@ async function removeMultiple(ids, userId) {
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return { error: 'badRequest', message: 'ids array is required' };
   }
+  const blocked = [];
+  for (const id of ids) {
+    const current = await orgRepo.findById(id);
+    if (current && current.location_count > 0) blocked.push(`"${current.name}" (${current.location_count} location(s))`);
+  }
+  if (blocked.length) return { error: 'conflict', message: `Cannot delete: ${blocked.join(', ')}. Remove their locations first.` };
   const deletedCount = await orgRepo.softDeleteMultiple(ids, userId);
   return { deleted_count: deletedCount };
 }

@@ -736,12 +736,17 @@ async function migrate() {
 
     // Drop old index on name (if it exists) and create new on code
     await client.query('DROP INDEX IF EXISTS academic.idx_class_level_name_unique').catch(() => {});
+    // Drop the old location-unaware index and replace with one scoped to location
+    await client.query('DROP INDEX IF EXISTS academic.idx_class_level_code_unique').catch(() => {});
     await client.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_class_level_code_unique ON academic.class_levels (class_general_id, LOWER(code)) WHERE deleted_at IS NULL;
-    `).catch(() => console.log('Index idx_class_level_code_unique already exists'));
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_class_level_code_location_unique ON academic.class_levels (class_general_id, location_id, LOWER(code)) WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_class_level_code_location_unique already exists'));
 
     // Add notes column if missing
     await client.query('ALTER TABLE academic.class_levels ADD COLUMN IF NOT EXISTS notes TEXT').catch(() => {});
+
+    // Add name column if missing
+    await client.query('ALTER TABLE academic.class_levels ADD COLUMN IF NOT EXISTS name VARCHAR(200)').catch(() => {});
 
     // Associate each class-level section with a physical location
     await client.query(`
@@ -825,6 +830,11 @@ async function migrate() {
       );
     `);
     await client.query('CREATE INDEX IF NOT EXISTS idx_session_activity_session ON settings.session_activity (session_id, accessed_at DESC)').catch(() => {});
+    await client.query(`ALTER TABLE settings.session_activity ADD COLUMN IF NOT EXISTS exit_at TIMESTAMPTZ`).catch(() => {});
+    await client.query(`ALTER TABLE settings.session_activity ADD COLUMN IF NOT EXISTS action_type VARCHAR(20)`).catch(() => {});
+    await client.query(`ALTER TABLE settings.session_activity ADD COLUMN IF NOT EXISTS record_id UUID`).catch(() => {});
+    await client.query(`ALTER TABLE settings.session_activity ADD COLUMN IF NOT EXISTS resource VARCHAR(100)`).catch(() => {});
+    await client.query('CREATE INDEX IF NOT EXISTS idx_session_activity_open ON settings.session_activity (session_id) WHERE exit_at IS NULL AND action_type IS NULL').catch(() => {});
 
     // Add soft delete columns to all settings tables
     const tables = ['settings.users', 'settings.organizations', 'settings.locations'];
@@ -836,6 +846,20 @@ async function migrate() {
         ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
       `).catch(() => {});
     }
+
+    // Key-value store for application-level settings (e.g. session retention).
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.app_settings (
+        key         TEXT PRIMARY KEY,
+        value       TEXT NOT NULL,
+        updated_at  TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      INSERT INTO settings.app_settings (key, value)
+      VALUES ('session_retention_days', '90')
+      ON CONFLICT (key) DO NOTHING;
+    `);
 
     console.log('Migration completed successfully');
   } catch (err) {

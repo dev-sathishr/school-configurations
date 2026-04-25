@@ -21,6 +21,12 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
     '/settings/location': 'Location',
   };
 
+  // Intermediate path segments that exist in URLs but have no real page —
+  // show as plain text in the breadcrumb, not a clickable link.
+  private nonNavigable = new Set([
+    '/settings/session/users',
+  ]);
+
   constructor(private router: Router) {}
 
   ngOnInit(): void {
@@ -46,7 +52,8 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
       path += '/' + part;
       if (this.isId(part)) continue;
       const label = this.routeMap[path] || part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
-      this.breadcrumbs.push({ label, route: path });
+      const route = this.nonNavigable.has(path) ? undefined : path;
+      this.breadcrumbs.push({ label, route });
     }
   }
 }

@@ -7,11 +7,13 @@ const TABLE = 'settings.groups';
 const SELECT_FIELDS = `g.id, g.name, g.code, g.description, g.is_active,
   g.created_by, g.updated_by, g.created_at, g.updated_at,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
-  COALESCE(mc.menu_count, 0) AS menu_count`;
+  COALESCE(mc.menu_count, 0) AS menu_count,
+  COALESCE(uc.user_count, 0) AS user_count`;
 
 const JOINS = `LEFT JOIN settings.users cb ON g.created_by = cb.id
   LEFT JOIN settings.users ub ON g.updated_by = ub.id
-  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS menu_count FROM settings.group_modules gm WHERE gm.group_id = g.id AND gm.deleted_at IS NULL) mc ON true`;
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS menu_count FROM settings.group_modules gm WHERE gm.group_id = g.id AND gm.deleted_at IS NULL) mc ON true
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS user_count FROM settings.users u WHERE u.group_id = g.id AND u.deleted_at IS NULL) uc ON true`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({

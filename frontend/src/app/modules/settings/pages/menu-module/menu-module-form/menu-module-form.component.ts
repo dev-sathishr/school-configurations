@@ -28,9 +28,13 @@ export class MenuModuleFormComponent extends FormPageBase {
   }
 
   protected override onRecordLoaded(data: any): void {
-    this.form.patchValue(data);
-    this.moduleLabel = data.module_name || '';
-    this.menuLabel = data.menu_name || '';
+    this.form.patchValue({
+      module_id: data.module?.id || '',
+      menu_id: data.menu?.id || '',
+      display_order: data.display_order ?? 0,
+    });
+    this.moduleLabel = data.module?.name || '';
+    this.menuLabel = data.menu?.name || '';
   }
 
   protected override afterSave(res: any): void {

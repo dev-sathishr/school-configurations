@@ -27,9 +27,12 @@ export class GroupModuleFormComponent extends FormPageBase {
   }
 
   protected override onRecordLoaded(data: any): void {
-    this.form.patchValue(data);
-    this.groupLabel = data.group_name || '';
-    this.menuLabel = data.menu_name || '';
+    this.form.patchValue({
+      group_id: data.group?.id || '',
+      menu_id: data.menu?.id || '',
+    });
+    this.groupLabel = data.group?.name || '';
+    this.menuLabel = data.menu?.name || '';
   }
 
   protected override afterSave(res: any): void {

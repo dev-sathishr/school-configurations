@@ -3,14 +3,27 @@ const employeeCategoryRepo = require('../employee-categories/employee-category.r
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
+function mapEmployeeGroup(row) {
+  if (!row) return row;
+  const { employee_category_id, employee_category_name, employee_category_code, ...rest } = row;
+  return {
+    ...rest,
+    employee_category: employee_category_id
+      ? { id: employee_category_id, name: employee_category_name || '', code: employee_category_code || '' }
+      : null,
+  };
+}
+
 async function getAll(query, viewOwnUserId) {
-  return employeeGroupRepo.findAll(query, viewOwnUserId);
+  const result = await employeeGroupRepo.findAll(query, viewOwnUserId);
+  result.data = (result.data || []).map(mapEmployeeGroup);
+  return result;
 }
 
 async function getById(id) {
   const employeeGroup = await employeeGroupRepo.findById(id);
   if (!employeeGroup) return { error: 'notFound', message: 'Employee group not found' };
-  return { data: employeeGroup };
+  return { data: mapEmployeeGroup(employeeGroup) };
 }
 
 async function getDropdown(query) {
@@ -32,7 +45,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Employee group code already exists' };
 
   const employeeGroup = await employeeGroupRepo.create(body, userId);
-  return { data: employeeGroup };
+  return getById(employeeGroup.id);
 }
 
 async function update(id, body, userId) {
@@ -61,12 +74,15 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(employeeGroup);
   if (stale) return stale;
 
-  return { data: employeeGroup };
+  return getById(id);
 }
 
 async function remove(id, userId) {
   const current = await employeeGroupRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Employee group not found' };
+  if (current.designation_count > 0) {
+    return { error: 'conflict', message: `Cannot delete "${current.name}" — it has ${current.designation_count} designation(s) mapped to it. Remove the designations first.` };
+  }
   await employeeGroupRepo.softDelete(id, userId);
   return {};
 }
@@ -75,6 +91,12 @@ async function removeMultiple(ids, userId) {
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return { error: 'badRequest', message: 'ids array is required' };
   }
+  const blocked = [];
+  for (const id of ids) {
+    const current = await employeeGroupRepo.findById(id);
+    if (current && current.designation_count > 0) blocked.push(`"${current.name}" (${current.designation_count} designation(s))`);
+  }
+  if (blocked.length) return { error: 'conflict', message: `Cannot delete: ${blocked.join(', ')}. Remove their designations first.` };
   const deletedCount = await employeeGroupRepo.softDeleteMultiple(ids, userId);
   return { deleted_count: deletedCount };
 }

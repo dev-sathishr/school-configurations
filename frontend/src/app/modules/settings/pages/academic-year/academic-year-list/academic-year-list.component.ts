@@ -37,7 +37,9 @@ export class AcademicYearListComponent extends BaseListComponent {
   };
 
   rowTransform = (row: any, mapped: any) => {
-    mapped['loc.name'] = row.location_code ? `${row.location_name} (${row.location_code})` : (row.location_name || '-');
+    const locationName = row.location?.name || '';
+    const locationCode = row.location?.code || '';
+    mapped['loc.name'] = locationName ? (locationCode ? `${locationName} (${locationCode})` : locationName) : '-';
     mapped['period'] = this.formatPeriod(row.start_date, row.end_date);
     mapped['ay.is_default'] = defaultFlagLabel(row.is_default);
     mapped['ay.is_active'] = statusLabel(row.is_active);

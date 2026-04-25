@@ -175,13 +175,13 @@ export class EmployeeGroupFormComponent {
       next: (res: any) => {
         const data = res.data || res;
         this.form.patchValue({
-          employee_category_id: data.employee_category_id || '',
+          employee_category_id: data.employee_category?.id || '',
           name: data.name || '',
           code: data.code || '',
           description: data.description || '',
           is_active: data.is_active !== undefined ? data.is_active : true,
         });
-        this.employeeCategoryLabel = data.employee_category_name || '';
+        this.employeeCategoryLabel = data.employee_category?.name || '';
         this.recordUpdatedAt = data.updated_at || '';
         if (this.mode === 'view') this.form.disable();
         this.loading = false;

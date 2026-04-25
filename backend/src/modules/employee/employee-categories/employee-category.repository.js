@@ -6,10 +6,12 @@ const TABLE = 'settings.employee_categories';
 
 const SELECT_FIELDS = `ec.id, ec.name, ec.code, ec.description, ec.is_active,
   ec.created_by, ec.updated_by, ec.created_at, ec.updated_at,
-  cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
+  cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
+  COALESCE(gc.group_count, 0) AS employee_group_count`;
 
 const JOINS = `LEFT JOIN settings.users cb ON ec.created_by = cb.id
-  LEFT JOIN settings.users ub ON ec.updated_by = ub.id`;
+  LEFT JOIN settings.users ub ON ec.updated_by = ub.id
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS group_count FROM settings.employee_groups eg WHERE eg.employee_category_id = ec.id AND eg.deleted_at IS NULL) gc ON true`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({

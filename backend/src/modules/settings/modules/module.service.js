@@ -24,7 +24,7 @@ async function create(body, userId) {
   if (existing) return { error: 'conflict', message: 'Module display name already exists' };
 
   const mod = await moduleRepo.create(body, userId);
-  return { data: mod };
+  return getById(mod.id);
 }
 
 async function update(id, body, userId) {
@@ -43,12 +43,15 @@ async function update(id, body, userId) {
   const stale = toConflictIfStale(mod);
   if (stale) return stale;
 
-  return { data: mod };
+  return getById(id);
 }
 
 async function remove(id, userId) {
   const current = await moduleRepo.findById(id);
   if (!current) return { error: 'notFound', message: 'Module not found' };
+  if (current.menu_module_count > 0) {
+    return { error: 'conflict', message: `Cannot delete "${current.display_name}" — it is linked to ${current.menu_module_count} menu(s). Remove the menu links first.` };
+  }
   await moduleRepo.softDelete(id, userId);
   return {};
 }
@@ -57,6 +60,12 @@ async function removeMultiple(ids, userId) {
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return { error: 'badRequest', message: 'ids array is required' };
   }
+  const blocked = [];
+  for (const id of ids) {
+    const current = await moduleRepo.findById(id);
+    if (current && current.menu_module_count > 0) blocked.push(`"${current.display_name}" (${current.menu_module_count} menu link(s))`);
+  }
+  if (blocked.length) return { error: 'conflict', message: `Cannot delete: ${blocked.join(', ')}. Remove their menu links first.` };
   const deletedCount = await moduleRepo.softDeleteMultiple(ids, userId);
   return { deleted_count: deletedCount };
 }

@@ -4,8 +4,21 @@ const password = require('../../../shared/helpers/password.helper');
 const { bulkImport, pick, asBool } = require('../../../shared/helpers/bulk-import.helper');
 const { getExpectedUpdatedAt, toConflictIfStale } = require('../../../shared/helpers/optimistic-lock.helper');
 
+function mapUser(user) {
+  if (!user) return user;
+  const { group_id, group_name, group_code, ...rest } = user;
+  return {
+    ...rest,
+    group: group_id
+      ? { id: group_id, name: group_name || '', code: group_code || '' }
+      : null,
+  };
+}
+
 async function getAll(query, viewOwnUserId) {
-  return userRepo.findAll(query, viewOwnUserId);
+  const result = await userRepo.findAll(query, viewOwnUserId);
+  result.data = (result.data || []).map(mapUser);
+  return result;
 }
 
 async function getById(id) {
@@ -17,7 +30,13 @@ async function getById(id) {
     fileRepo.findOneByEntity('user', id, 'profile_image'),
   ]);
 
-  return { data: { ...user, locations, profile_image: profileImage || null } };
+  return {
+    data: mapUser({
+      ...user,
+      locations,
+      profile_image: profileImage || null,
+    }),
+  };
 }
 
 async function create(body, userId) {
@@ -38,7 +57,7 @@ async function create(body, userId) {
     await userRepo.saveUserLocations(user.id, body.location_ids, defaultLocId, userId);
   }
 
-  return { data: user };
+  return getById(user.id);
 }
 
 async function update(id, body, userId) {
@@ -76,7 +95,7 @@ async function update(id, body, userId) {
     await userRepo.saveUserLocations(id, locIds, defaultLocId, userId);
   }
 
-  return { data: user };
+  return getById(id);
 }
 
 async function remove(id, userId) {
