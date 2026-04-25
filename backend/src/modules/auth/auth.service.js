@@ -121,7 +121,7 @@ async function getMyPermissions(userId) {
   const result = await db.query(`
     SELECT m.id AS menu_id, m.name AS menu_name, m.display_name AS menu_code, m.description AS menu_description,
       m.icon AS menu_icon, m.route_path AS menu_route_path, m.display_order AS menu_order,
-      mm.module_id, mod.name AS module_name, mod.display_name AS module_code,
+      mm.module_id, mod.name AS module_name, mod.display_name AS module_display_name, mod.display_name AS module_code,
       mod.icon AS module_icon, mod.route_path AS module_route_path, mm.display_order AS module_order,
       mod.enforce_edit_lock AS module_enforce_edit_lock, mod.description AS module_description,
       p.code AS permission_code
@@ -158,7 +158,7 @@ async function getMyPermissions(userId) {
       let mod = menu.modules.find(m => m.id === row.module_id);
       if (!mod) {
         mod = {
-          id: row.module_id, name: row.module_name, code: row.module_code,
+          id: row.module_id, name: row.module_name, display_name: row.module_display_name, code: row.module_code,
           icon: row.module_icon, route_path: row.module_route_path,
           display_order: row.module_order, enforce_edit_lock: !!row.module_enforce_edit_lock,
           description: row.module_description || null, permissions: {},

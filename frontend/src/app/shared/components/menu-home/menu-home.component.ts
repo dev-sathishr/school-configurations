@@ -53,7 +53,7 @@ export class MenuHomeComponent {
 
       const rawCards: HomeCard[] = Array.from(routeMap.values()).map(mod => ({
         icon: mod.icon || 'assets/icons/heroicons/outline/cube.svg',
-        label: mod.name,
+        label: mod.display_name || mod.name,
         description: mod.description || '',
         route: mod.route_path,
       }));
