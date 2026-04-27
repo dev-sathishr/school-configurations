@@ -13,10 +13,10 @@
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
 
         <!-- Tab bar -->
-        <div class="border-border flex border-b">
+        <div class="border-border flex border-b overflow-x-auto scrollbar-none">
           <button type="button"
             (click)="setTab('personal')"
-            class="px-5 py-2.5 text-xs font-semibold transition-colors"
+            class="shrink-0 whitespace-nowrap px-5 py-2.5 text-xs font-semibold transition-colors"
             [class.text-primary]="activeTab() === 'personal'"
             [class.border-b-2]="activeTab() === 'personal'"
             [class.border-primary]="activeTab() === 'personal'"
@@ -25,7 +25,7 @@
           </button>
           <button type="button"
             (click)="setTab('contact')"
-            class="px-5 py-2.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
+            class="shrink-0 whitespace-nowrap px-5 py-2.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
             [class.text-primary]="activeTab() === 'contact'"
             [class.border-b-2]="activeTab() === 'contact'"
             [class.border-primary]="activeTab() === 'contact'"
@@ -42,7 +42,7 @@
           @if (editMode || viewMode) {
             <button type="button"
               (click)="setTab('payroll')"
-              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              class="shrink-0 whitespace-nowrap px-5 py-2.5 text-xs font-semibold transition-colors"
               [class.text-primary]="activeTab() === 'payroll'"
               [class.border-b-2]="activeTab() === 'payroll'"
               [class.border-primary]="activeTab() === 'payroll'"
@@ -51,7 +51,7 @@
             </button>
             <button type="button"
               (click)="setTab('bank')"
-              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              class="shrink-0 whitespace-nowrap px-5 py-2.5 text-xs font-semibold transition-colors"
               [class.text-primary]="activeTab() === 'bank'"
               [class.border-b-2]="activeTab() === 'bank'"
               [class.border-primary]="activeTab() === 'bank'"
@@ -60,7 +60,7 @@
             </button>
             <button type="button"
               (click)="setTab('qualification')"
-              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              class="shrink-0 whitespace-nowrap px-5 py-2.5 text-xs font-semibold transition-colors"
               [class.text-primary]="activeTab() === 'qualification'"
               [class.border-b-2]="activeTab() === 'qualification'"
               [class.border-primary]="activeTab() === 'qualification'"
@@ -69,7 +69,7 @@
             </button>
             <button type="button"
               (click)="setTab('experience')"
-              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              class="shrink-0 whitespace-nowrap px-5 py-2.5 text-xs font-semibold transition-colors"
               [class.text-primary]="activeTab() === 'experience'"
               [class.border-b-2]="activeTab() === 'experience'"
               [class.border-primary]="activeTab() === 'experience'"
@@ -78,7 +78,7 @@
             </button>
             <button type="button"
               (click)="setTab('document')"
-              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              class="shrink-0 whitespace-nowrap px-5 py-2.5 text-xs font-semibold transition-colors"
               [class.text-primary]="activeTab() === 'document'"
               [class.border-b-2]="activeTab() === 'document'"
               [class.border-primary]="activeTab() === 'document'"
