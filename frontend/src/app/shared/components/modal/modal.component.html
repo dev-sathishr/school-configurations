@@ -1,34 +1,129 @@
 @if (visible) {
-  <!-- Backdrop -->
-  <div class="fixed inset-0 z-50 bg-black/50" (click)="onBackdropClick()"></div>
-  <!-- Dialog -->
-  <div class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="bg-background pointer-events-auto flex max-h-[90vh] w-full flex-col rounded-xl border border-muted/30 shadow-xl"
-      [ngClass]="sizeClass"
-      (click)="$event.stopPropagation()">
 
-      <!-- Header (sticky) -->
-      <div class="border-muted/20 flex shrink-0 items-center justify-between border-b px-6 py-4">
-        <h3 class="text-foreground text-lg font-semibold">{{ title }}</h3>
-        @if (showClose) {
-          <button type="button" (click)="close()"
-            class="text-muted-foreground hover:text-foreground rounded-lg p-1 transition-colors hover:bg-muted/20">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        }
-      </div>
+  <!-- ── Backdrop (only in non-windowed mode) ── -->
+  @if (!windowed) {
+    <div class="fixed inset-0 z-[999] bg-black/50" (click)="onBackdropClick()"></div>
+  }
 
-      <!-- Body (scrollable) -->
-      <div class="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-y-auto px-6 py-5">
-        <ng-content></ng-content>
-      </div>
-
-      <!-- Footer (sticky) -->
-      <div class="border-muted/20 shrink-0 border-t px-6 py-4">
-        <ng-content select="[modal-footer]"></ng-content>
-      </div>
+  <!-- ── Minimized taskbar pill ── -->
+  @if (windowed && minimized) {
+    <div
+      class="fixed bottom-4 left-4 z-[1000] flex h-12 w-64 cursor-pointer items-center gap-2 rounded-lg border border-muted/30 bg-background px-3 shadow-xl"
+      (click)="restoreFromMinimized()">
+      <svg class="h-4 w-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5h18M3 12h18M3 16.5h18" />
+      </svg>
+      <span class="text-foreground truncate text-xs font-semibold">{{ title }}</span>
+      <button type="button" (click)="$event.stopPropagation(); close()"
+        class="ml-auto text-muted-foreground hover:text-foreground transition-colors">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
-  </div>
+  }
+
+  <!-- ── Main panel ── -->
+  @if (!minimized) {
+    <div
+      #panel
+      [style.position]="windowed ? 'fixed' : null"
+      [style.left.px]="windowed ? rect.x : null"
+      [style.top.px]="windowed ? rect.y : null"
+      [style.width.px]="windowed ? rect.w : null"
+      [style.height.px]="windowed ? rect.h : null"
+      [style.z-index]="windowed ? '1000' : null"
+      [class]="windowed
+        ? 'bg-background flex flex-col rounded-xl border border-muted/30 shadow-2xl overflow-hidden'
+        : 'pointer-events-none fixed inset-0 z-[1000] flex items-center justify-center p-4'"
+      (click)="!windowed && $event.stopPropagation()">
+
+      <!-- inner wrapper for centered (non-windowed) mode -->
+      <div [class]="windowed ? 'flex flex-col w-full h-full' : 'bg-background pointer-events-auto flex max-h-[90vh] w-full flex-col rounded-xl border border-muted/30 shadow-xl ' + sizeClass">
+
+        <!-- ── Header ── -->
+        <div
+          class="border-muted/20 flex shrink-0 select-none items-center justify-between border-b px-4 py-3"
+          [class.cursor-move]="draggable && windowed && !maximized"
+          (mousedown)="onHeaderMouseDown($event)"
+          (dblclick)="draggable && toggleMaximize()">
+
+          <h3 class="text-foreground truncate text-sm font-semibold">{{ title }}</h3>
+
+          <div class="flex items-center gap-1">
+            <!-- Undock button (shown only in centered mode when draggable) -->
+            @if (draggable && !windowed) {
+              <button type="button" (click)="undock()" title="Pop out"
+                class="text-muted-foreground hover:text-foreground rounded p-1 transition-colors hover:bg-muted/20">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                </svg>
+              </button>
+            }
+
+            <!-- Window controls (shown only when windowed) -->
+            @if (draggable && windowed) {
+              <!-- Minimize -->
+              <button type="button" (click)="toggleMinimize()" title="Minimize"
+                class="text-muted-foreground hover:text-foreground rounded p-1 transition-colors hover:bg-muted/20">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
+                </svg>
+              </button>
+              <!-- Maximize / Restore -->
+              <button type="button" (click)="toggleMaximize()" [title]="maximized ? 'Restore' : 'Maximize'"
+                class="text-muted-foreground hover:text-foreground rounded p-1 transition-colors hover:bg-muted/20">
+                @if (maximized) {
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                  </svg>
+                } @else {
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                  </svg>
+                }
+              </button>
+            }
+
+            <!-- Close -->
+            @if (showClose) {
+              <button type="button" (click)="close()" title="Close"
+                class="text-muted-foreground hover:text-foreground rounded p-1 transition-colors hover:bg-muted/20">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- ── Body ── -->
+        <div class="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-y-auto px-6 py-5">
+          <ng-content></ng-content>
+        </div>
+
+        <!-- ── Footer ── -->
+        <div class="border-muted/20 shrink-0 border-t px-6 py-4">
+          <ng-content select="[modal-footer]"></ng-content>
+        </div>
+
+      </div>
+
+      <!-- ── Resize handles (only in windowed, non-maximized mode) ── -->
+      @if (windowed && !maximized) {
+        <!-- edges -->
+        <div class="absolute top-0 left-2 right-2 h-1 cursor-n-resize"       (mousedown)="onResizeMouseDown($event, 'n')"></div>
+        <div class="absolute bottom-0 left-2 right-2 h-1 cursor-s-resize"    (mousedown)="onResizeMouseDown($event, 's')"></div>
+        <div class="absolute left-0 top-2 bottom-2 w-1 cursor-w-resize"      (mousedown)="onResizeMouseDown($event, 'w')"></div>
+        <div class="absolute right-0 top-2 bottom-2 w-1 cursor-e-resize"     (mousedown)="onResizeMouseDown($event, 'e')"></div>
+        <!-- corners -->
+        <div class="absolute top-0 left-0 h-3 w-3 cursor-nw-resize"          (mousedown)="onResizeMouseDown($event, 'nw')"></div>
+        <div class="absolute top-0 right-0 h-3 w-3 cursor-ne-resize"         (mousedown)="onResizeMouseDown($event, 'ne')"></div>
+        <div class="absolute bottom-0 left-0 h-3 w-3 cursor-sw-resize"       (mousedown)="onResizeMouseDown($event, 'sw')"></div>
+        <div class="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize"      (mousedown)="onResizeMouseDown($event, 'se')"></div>
+      }
+
+    </div>
+  }
+
 }

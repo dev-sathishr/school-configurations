@@ -22,7 +22,7 @@ const WAGE_TYPE_OPTIONS = [
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, ModalComponent],
   template: `
-    <app-modal [visible]="showModal" [title]="modalTitle" size="large" (onClose)="closeModal()">
+    <app-modal [visible]="showModal" [title]="modalTitle" size="large" [draggable]="true" (onClose)="closeModal()">
       @if (loading) {
         <app-loader size="small" text="Loading..." />
       } @else {

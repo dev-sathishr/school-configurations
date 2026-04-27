@@ -1,4 +1,4 @@
-<app-modal [visible]="showModal" [title]="title" size="large" (onClose)="closeModal()">
+<app-modal [visible]="showModal" [title]="title" size="large" [draggable]="true" (onClose)="closeModal()">
   @if (loading) {
     <app-loader size="small" text="Loading..." />
   } @else {

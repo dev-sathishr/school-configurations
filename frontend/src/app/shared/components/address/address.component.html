@@ -50,7 +50,7 @@
 </div>
 
 <!-- Address Modal -->
-<app-modal [visible]="showModal" [title]="editIndex !== null ? 'Edit Address' : 'Add Address'" size="full" (onClose)="closeModal()">
+<app-modal [visible]="showModal" [title]="editIndex !== null ? 'Edit Address' : 'Add Address'" size="full" [draggable]="true" (onClose)="closeModal()">
   @if (form) {
     <!-- Map Section -->
     <div class="mb-4">

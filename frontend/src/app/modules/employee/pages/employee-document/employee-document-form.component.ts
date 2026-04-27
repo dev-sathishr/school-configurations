@@ -18,7 +18,7 @@ type FormMode = 'create' | 'edit' | 'view';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, ModalComponent, FileUploadComponent],
   template: `
-    <app-modal [visible]="showModal" [title]="modalTitle" size="medium" (onClose)="closeModal()">
+    <app-modal [visible]="showModal" [title]="modalTitle" size="medium" [draggable]="true" (onClose)="closeModal()">
       @if (loading) {
         <app-loader size="small" text="Loading..." />
       } @else {

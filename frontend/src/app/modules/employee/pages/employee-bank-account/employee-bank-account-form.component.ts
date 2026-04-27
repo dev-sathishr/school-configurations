@@ -20,7 +20,7 @@ const IFSC_PATTERN = /^[A-Z]{4}0[A-Z0-9]{6}$/;
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FormFieldComponent, LoaderComponent, ModalComponent],
   template: `
-    <app-modal [visible]="showModal" [title]="modalTitle" size="medium" (onClose)="closeModal()">
+    <app-modal [visible]="showModal" [title]="modalTitle" size="medium" [draggable]="true" (onClose)="closeModal()">
       @if (loading) {
         <app-loader size="small" text="Loading..." />
       } @else {
