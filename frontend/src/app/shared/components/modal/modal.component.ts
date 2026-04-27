@@ -10,7 +10,7 @@ export class ModalComponent {
   @Input() visible = false;
   @Input() title = '';
   @Input() size: 'small' | 'medium' | 'large' | 'full' = 'medium';
-  @Input() closeOnBackdrop = true;
+  @Input() closeOnBackdrop = false;
   @Input() closeOnEsc = true;
   @Input() showClose = true;
 
