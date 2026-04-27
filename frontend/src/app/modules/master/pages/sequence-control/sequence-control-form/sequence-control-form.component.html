@@ -1,0 +1,111 @@
+<app-modal [visible]="showModal" [title]="title" size="large" (onClose)="closeModal()">
+  @if (loading) {
+    <app-loader size="small" text="Loading..." />
+  } @else {
+    <form [formGroup]="form">
+      <fieldset [disabled]="viewMode" class="space-y-4">
+
+        <!-- Sequence Configuration -->
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <app-form-field
+            [formGroup]="form"
+            controlName="sequence_code_id"
+            label="Sequence Code"
+            fieldType="async-select"
+            [asyncUrl]="sequenceCodeApiUrl"
+            asyncValueKey="id"
+            asyncLabelKey="name"
+            [required]="true"
+            [submitted]="submitted"
+            placeholder="Select sequence code" />
+          <app-form-field
+            [formGroup]="form"
+            controlName="location_id"
+            label="Location"
+            fieldType="async-select"
+            [asyncUrl]="locationApiUrl"
+            asyncValueKey="id"
+            asyncLabelKey="name"
+            asyncExtraKey="code"
+            (extraChange)="onLocationCodeChange($event)"
+            [required]="true"
+            [submitted]="submitted"
+            placeholder="Select location" />
+        </div>
+
+        <!-- Counter Settings -->
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <app-form-field
+            [formGroup]="form"
+            controlName="prefix"
+            label="Prefix"
+            [submitted]="submitted"
+            placeholder="e.g. EMP-"
+            [maxLength]="20" />
+          <app-form-field
+            [formGroup]="form"
+            controlName="suffix"
+            label="Suffix"
+            [submitted]="submitted"
+            placeholder="e.g. -A"
+            [maxLength]="20" />
+          <app-form-field
+            [formGroup]="form"
+            controlName="digit_length"
+            label="Digits"
+            [submitted]="submitted"
+            placeholder="e.g. 3"
+            [digitsOnly]="true"
+            [minLength]="1"
+            [maxLength]="2" />
+          <app-form-field
+            [formGroup]="form"
+            controlName="last_no"
+            label="Last No"
+            [submitted]="submitted"
+            [digitsOnly]="true"
+            [maxLength]="15" />
+          <app-form-field
+            [formGroup]="form"
+            controlName="max_no"
+            label="Max No"
+            [submitted]="submitted"
+            [digitsOnly]="true"
+            [maxLength]="15" />
+          <app-form-field
+            [formGroup]="form"
+            controlName="is_active"
+            label="Active"
+            fieldType="checkbox" />
+        </div>
+
+        <!-- Notes -->
+        <app-form-field
+          [formGroup]="form"
+          controlName="notes"
+          label="Notes"
+          fieldType="textarea"
+          placeholder="Additional notes..."
+          [maxLength]="500" />
+
+      </fieldset>
+    </form>
+  }
+
+  <div modal-footer class="flex justify-end gap-3">
+    <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="closeModal()">
+      {{ viewMode ? 'Back' : 'Cancel' }}
+    </app-button>
+    @if (viewMode) {
+      @if (ps.canEdit(moduleCode)) {
+        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">
+          Edit
+        </app-button>
+      }
+    } @else {
+      <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" [loading]="saving" (buttonClick)="submit()">
+        {{ mode === 'edit' ? 'Update' : 'Create' }}
+      </app-button>
+    }
+  </div>
+</app-modal>

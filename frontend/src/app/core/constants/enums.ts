@@ -126,3 +126,183 @@ export const ADDRESS_TYPE_OPTIONS: SelectOption[] = [
   { value: 'branch',        label: 'Branch' },
   { value: 'other',         label: 'Other' },
 ];
+
+// ── User — Person type ──────────────────────────────────────────────
+
+export type PersonType = 'staff' | 'employee' | 'student' | 'parent';
+
+export const PERSON_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'staff',    label: 'Staff' },
+  { value: 'employee', label: 'Employee' },
+  { value: 'student',  label: 'Student' },
+  { value: 'parent',   label: 'Parent' },
+];
+
+export const PERSON_TYPE_BADGES: Record<PersonType, BadgeStyle> = {
+  staff:    { label: 'Staff',    class: BADGE_CLASS.blue },
+  employee: { label: 'Employee', class: BADGE_CLASS.green },
+  student:  { label: 'Student',  class: BADGE_CLASS.purple },
+  parent:   { label: 'Parent',   class: BADGE_CLASS.orange },
+};
+
+export const personTypeLabel = (type: string): string =>
+  PERSON_TYPE_OPTIONS.find(o => o.value === type)?.label ?? type;
+
+// ── Employee — Gender ───────────────────────────────────────────────
+
+export type Gender = 'male' | 'female' | 'other';
+
+export const GENDER_OPTIONS: SelectOption[] = [
+  { value: 'male',   label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other',  label: 'Other' },
+];
+
+// ── Employee — Blood group ──────────────────────────────────────────
+
+export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'O+' | 'O-' | 'AB+' | 'AB-';
+
+export const BLOOD_GROUP_OPTIONS: SelectOption[] = [
+  { value: 'A+',  label: 'A+' },
+  { value: 'A-',  label: 'A-' },
+  { value: 'B+',  label: 'B+' },
+  { value: 'B-',  label: 'B-' },
+  { value: 'O+',  label: 'O+' },
+  { value: 'O-',  label: 'O-' },
+  { value: 'AB+', label: 'AB+' },
+  { value: 'AB-', label: 'AB-' },
+];
+
+// ── Employee — Marital status ───────────────────────────────────────
+
+export type MaritalStatus = 'single' | 'married' | 'divorced' | 'widowed';
+
+export const MARITAL_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'single',   label: 'Single' },
+  { value: 'married',  label: 'Married' },
+  { value: 'divorced', label: 'Divorced' },
+  { value: 'widowed',  label: 'Widowed' },
+];
+
+// ── Employee — Religion ─────────────────────────────────────────────
+
+export type Religion = 'hindu' | 'muslim' | 'christian' | 'sikh' | 'buddhist' | 'jain' | 'other';
+
+export const RELIGION_OPTIONS: SelectOption[] = [
+  { value: 'hindu',     label: 'Hindu' },
+  { value: 'muslim',    label: 'Muslim' },
+  { value: 'christian', label: 'Christian' },
+  { value: 'sikh',      label: 'Sikh' },
+  { value: 'buddhist',  label: 'Buddhist' },
+  { value: 'jain',      label: 'Jain' },
+  { value: 'other',     label: 'Other' },
+];
+
+// ── Employee — Community ────────────────────────────────────────────
+
+export type Community = 'general' | 'obc' | 'sc' | 'st' | 'other';
+
+export const COMMUNITY_OPTIONS: SelectOption[] = [
+  { value: 'general', label: 'General' },
+  { value: 'obc',     label: 'OBC' },
+  { value: 'sc',      label: 'SC' },
+  { value: 'st',      label: 'ST' },
+  { value: 'other',   label: 'Other' },
+];
+
+// ── Qualification — Degree ──────────────────────────────────────────
+
+export type DegreeLevel = 'school' | 'diploma' | 'ug' | 'pg' | 'doctorate' | 'professional' | 'other';
+
+export const DEGREE_OPTIONS: SelectOption[] = [
+  // School
+  { value: '10th',       label: '10th (SSLC / Matriculation)' },
+  { value: '12th',       label: '12th (HSC / Intermediate)' },
+  // Diploma
+  { value: 'diploma',    label: 'Diploma' },
+  { value: 'pgdiploma',  label: 'Post Graduate Diploma' },
+  // Under Graduate
+  { value: 'ba',         label: 'B.A — Bachelor of Arts' },
+  { value: 'bsc',        label: 'B.Sc — Bachelor of Science' },
+  { value: 'bcom',       label: 'B.Com — Bachelor of Commerce' },
+  { value: 'bca',        label: 'BCA — Bachelor of Computer Applications' },
+  { value: 'bba',        label: 'BBA — Bachelor of Business Administration' },
+  { value: 'be',         label: 'B.E — Bachelor of Engineering' },
+  { value: 'btech',      label: 'B.Tech — Bachelor of Technology' },
+  { value: 'bed',        label: 'B.Ed — Bachelor of Education' },
+  { value: 'bpharm',     label: 'B.Pharm — Bachelor of Pharmacy' },
+  { value: 'barch',      label: 'B.Arch — Bachelor of Architecture' },
+  { value: 'bsw',        label: 'B.S.W — Bachelor of Social Work' },
+  { value: 'blib',       label: 'B.Lib — Bachelor of Library Science' },
+  // Post Graduate
+  { value: 'ma',         label: 'M.A — Master of Arts' },
+  { value: 'msc',        label: 'M.Sc — Master of Science' },
+  { value: 'mcom',       label: 'M.Com — Master of Commerce' },
+  { value: 'mca',        label: 'MCA — Master of Computer Applications' },
+  { value: 'mba',        label: 'MBA — Master of Business Administration' },
+  { value: 'me',         label: 'M.E — Master of Engineering' },
+  { value: 'mtech',      label: 'M.Tech — Master of Technology' },
+  { value: 'med',        label: 'M.Ed — Master of Education' },
+  { value: 'mpharm',     label: 'M.Pharm — Master of Pharmacy' },
+  { value: 'mphil',      label: 'M.Phil — Master of Philosophy' },
+  { value: 'msw',        label: 'M.S.W — Master of Social Work' },
+  { value: 'mlib',       label: 'M.Lib — Master of Library Science' },
+  // Doctorate
+  { value: 'phd',        label: 'Ph.D — Doctor of Philosophy' },
+  { value: 'dsc',        label: 'D.Sc — Doctor of Science' },
+  // Professional
+  { value: 'mbbs',       label: 'MBBS — Bachelor of Medicine and Surgery' },
+  { value: 'llb',        label: 'LL.B — Bachelor of Laws' },
+  { value: 'llm',        label: 'LL.M — Master of Laws' },
+  { value: 'ca',         label: 'CA — Chartered Accountant' },
+  { value: 'icwa',       label: 'ICWA / CMA — Cost & Management Accountant' },
+  { value: 'cs',         label: 'CS — Company Secretary' },
+  // Other
+  { value: 'other',      label: 'Other' },
+];
+
+// ── Bank account type ───────────────────────────────────────────────
+
+export type BankAccountType = 'savings' | 'current' | 'salary' | 'other';
+
+export const BANK_ACCOUNT_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'savings', label: 'Savings' },
+  { value: 'current', label: 'Current' },
+  { value: 'salary',  label: 'Salary' },
+  { value: 'other',   label: 'Other' },
+];
+
+export const BANK_ACCOUNT_TYPE_BADGES: Record<BankAccountType, BadgeStyle> = {
+  savings: { label: 'Savings', class: BADGE_CLASS.green },
+  current: { label: 'Current', class: BADGE_CLASS.blue },
+  salary:  { label: 'Salary',  class: BADGE_CLASS.purple },
+  other:   { label: 'Other',   class: BADGE_CLASS.muted },
+};
+
+// ── Document type category ──────────────────────────────────────────
+
+export type DocumentTypeCategory =
+  | 'KYC'
+  | 'EDUCATIONAL'
+  | 'EMPLOYMENT'
+  | 'STATUTORY'
+  | 'MEDICAL'
+  | 'OTHER';
+
+export const DOCUMENT_TYPE_CATEGORY_OPTIONS: SelectOption[] = [
+  { value: 'KYC',         label: 'KYC / Identity' },
+  { value: 'EDUCATIONAL', label: 'Educational' },
+  { value: 'EMPLOYMENT',  label: 'Employment' },
+  { value: 'STATUTORY',   label: 'Statutory / Compliance' },
+  { value: 'MEDICAL',     label: 'Medical' },
+  { value: 'OTHER',       label: 'Other' },
+];
+
+export const DOCUMENT_TYPE_CATEGORY_BADGES: Record<DocumentTypeCategory, BadgeStyle> = {
+  KYC:         { label: 'KYC / Identity',        class: BADGE_CLASS.blue },
+  EDUCATIONAL: { label: 'Educational',            class: BADGE_CLASS.purple },
+  EMPLOYMENT:  { label: 'Employment',             class: BADGE_CLASS.green },
+  STATUTORY:   { label: 'Statutory / Compliance', class: BADGE_CLASS.orange },
+  MEDICAL:     { label: 'Medical',                class: BADGE_CLASS.red },
+  OTHER:       { label: 'Other',                  class: BADGE_CLASS.muted },
+};

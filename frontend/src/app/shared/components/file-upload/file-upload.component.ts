@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { Observable } from 'rxjs';
@@ -66,13 +66,44 @@ export interface UploadedFile {
           </div>
           <!-- Text hint -->
           <div>
-            <button type="button" (click)="fileInput.click()" class="text-primary cursor-pointer text-xs font-medium hover:underline">
-              {{ previewSrc ? 'Change' : 'Upload' }}
-            </button>
-            @if (previewSrc) {
-              <button type="button" (click)="onRemove($event)" class="text-red-500 ml-2 cursor-pointer text-xs font-medium hover:underline">
-                Remove
+            @if (allowCamera) {
+              <!-- Camera mode: two icon buttons side by side -->
+              <div class="flex items-center gap-2">
+                <button type="button" (click)="fileInput.click()"
+                  class="border-muted/40 text-muted-foreground hover:border-primary hover:text-primary flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
+                  title="Upload from device">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                  </svg>
+                </button>
+                <button type="button" (click)="openCamera()"
+                  class="border-muted/40 text-muted-foreground hover:border-primary hover:text-primary flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
+                  title="Take photo">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+                  </svg>
+                </button>
+                @if (previewSrc) {
+                  <button type="button" (click)="onRemove($event)"
+                    class="border-red-200 text-red-400 hover:border-red-400 hover:text-red-600 flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
+                    title="Remove">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                }
+              </div>
+            } @else {
+              <!-- Standard mode: text links -->
+              <button type="button" (click)="fileInput.click()" class="text-primary cursor-pointer text-xs font-medium hover:underline">
+                {{ previewSrc ? 'Change' : 'Upload' }}
               </button>
+              @if (previewSrc) {
+                <button type="button" (click)="onRemove($event)" class="text-red-500 ml-2 cursor-pointer text-xs font-medium hover:underline">
+                  Remove
+                </button>
+              }
             }
             <p class="text-muted-foreground/60 mt-0.5 text-[10px]">{{ acceptHint }}, max {{ maxSize }}MB</p>
           </div>
@@ -181,10 +212,43 @@ export interface UploadedFile {
           </div>
         </div>
       }
+
+      <!-- Camera modal -->
+      @if (showCamera) {
+        <div class="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 p-4" (click)="closeCamera()">
+          <div class="bg-background w-full max-w-sm rounded-xl p-4 shadow-2xl" (click)="$event.stopPropagation()">
+            <div class="mb-3 flex items-center justify-between">
+              <span class="text-foreground text-sm font-semibold">Take Photo</span>
+              <button type="button" (click)="closeCamera()" class="text-muted-foreground hover:text-foreground">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            @if (cameraError) {
+              <p class="mb-3 rounded-md bg-red-50 p-2 text-xs text-red-600">{{ cameraError }}</p>
+            }
+            <div class="relative overflow-hidden rounded-lg bg-black" style="aspect-ratio: 1">
+              <video #videoEl autoplay playsinline muted class="h-full w-full object-cover" style="transform: scaleX(-1)"></video>
+            </div>
+            <canvas #canvasEl class="hidden"></canvas>
+            <div class="mt-3 flex justify-center gap-3">
+              <button type="button" (click)="capturePhoto()"
+                class="bg-primary text-primary-foreground flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium hover:opacity-90">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+                </svg>
+                Capture
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
 })
-export class FileUploadComponent implements OnChanges {
+export class FileUploadComponent implements OnChanges, OnDestroy {
   @Input() entityType = '';
   @Input() entityId = '';
   @Input() fileType = 'document';
@@ -194,9 +258,13 @@ export class FileUploadComponent implements OnChanges {
   @Input() label = '';
   @Input() displayStyle: 'avatar' | 'photo' | 'dropzone' = 'dropzone';
   @Input() initialFile: UploadedFile | null = null;
+  @Input() allowCamera = false;
 
   @Output() fileUploaded = new EventEmitter<UploadedFile>();
   @Output() fileRemoved = new EventEmitter<string>();
+
+  @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
+  @ViewChild('canvasEl') canvasEl!: ElementRef<HTMLCanvasElement>;
 
   // Avatar: 100px circle, Photo: 100px wide x 120px tall (passport ratio)
   get sizeStyle(): string { return this.displayStyle === 'avatar' ? '100px' : '100px'; }
@@ -209,7 +277,10 @@ export class FileUploadComponent implements OnChanges {
   showPreview = false;
   dragOver = false;
   errorMessage = '';
+  showCamera = false;
+  cameraError = '';
   private initialFileProvided = false;
+  private cameraStream: MediaStream | null = null;
 
   private apiUrl = environment.apiUrl;
 
@@ -305,6 +376,70 @@ export class FileUploadComponent implements OnChanges {
     } else {
       this.removePending();
     }
+  }
+
+  openCamera(): void {
+    this.cameraError = '';
+    this.showCamera = true;
+    this.cdr.detectChanges();
+    setTimeout(() => this.startStream(), 50);
+  }
+
+  private startStream(): void {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then(stream => {
+        this.cameraStream = stream;
+        const video = this.videoEl?.nativeElement;
+        if (video) {
+          video.srcObject = stream;
+        }
+        this.cdr.detectChanges();
+      })
+      .catch(() => {
+        this.cameraError = 'Camera access denied or not available.';
+        this.cdr.detectChanges();
+      });
+  }
+
+  capturePhoto(): void {
+    const video = this.videoEl?.nativeElement;
+    const canvas = this.canvasEl?.nativeElement;
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Mirror the capture to match the mirrored video preview
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0);
+
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      this.stopStream();
+      this.showCamera = false;
+      this.handleFile(file);
+      this.cdr.detectChanges();
+    }, 'image/jpeg', 0.92);
+  }
+
+  closeCamera(): void {
+    this.stopStream();
+    this.showCamera = false;
+    this.cameraError = '';
+    this.cdr.detectChanges();
+  }
+
+  private stopStream(): void {
+    this.cameraStream?.getTracks().forEach(t => t.stop());
+    this.cameraStream = null;
+  }
+
+  ngOnDestroy(): void {
+    this.stopStream();
   }
 
   private handleFile(file: File): void {

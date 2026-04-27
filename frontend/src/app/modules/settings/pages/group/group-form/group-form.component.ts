@@ -7,6 +7,7 @@ import { LoaderComponent } from '../../../../../shared/components/loader/loader.
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
 import { API } from '../../../../../core/api/endpoints';
+import { PERSON_TYPE_OPTIONS } from '../../../../../core/constants/enums';
 
 interface PermissionType {
   id: string;
@@ -39,16 +40,18 @@ export class GroupFormComponent extends FormPageBase {
   listRoute = '/settings/group';
   resourcePath = API.groups.base;
 
+  readonly personTypeOptions = PERSON_TYPE_OPTIONS;
   permissionTypes: PermissionType[] = [];
   menuTree: MenuTree[] = [];
   matrixLoading = false;
 
   protected buildForm(): FormGroup {
     return this.fb.group({
-      name: ['', Validators.required],
-      code: ['', Validators.required],
+      name:        ['', Validators.required],
+      code:        ['', Validators.required],
+      person_type: ['staff', Validators.required],
       description: [''],
-      is_active: [true],
+      is_active:   [true],
     });
   }
 

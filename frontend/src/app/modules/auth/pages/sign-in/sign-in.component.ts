@@ -6,7 +6,6 @@ import { finalize } from 'rxjs';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { AuthService } from '../../../../core/services/auth.service';
-import { ToastService } from '../../../../shared/services/toast/toast.service';
 
 @Component({
   selector: 'app-sign-in',
@@ -25,7 +24,6 @@ export class SignInComponent implements OnInit {
     private readonly _formBuilder: FormBuilder,
     private readonly _router: Router,
     private readonly _authService: AuthService,
-    private readonly _toastService: ToastService,
     private readonly _cdr: ChangeDetectorRef,
   ) {}
 
@@ -52,7 +50,7 @@ export class SignInComponent implements OnInit {
     this.submitted = true;
     this.errorMessage = '';
 
-    if (this.form.invalid) {
+    if (this.form.invalid || this.loading) {
       return;
     }
 
@@ -70,9 +68,7 @@ export class SignInComponent implements OnInit {
             this._router.navigate(['/']);
           },
           error: (err) => {
-            const message = err.error?.message || 'Login failed. Please try again.';
-            this.errorMessage = message;
-            this._toastService.error(message);
+            this.errorMessage = err.error?.message || 'Login failed. Please try again.';
           },
         });
     });

@@ -33,7 +33,7 @@ async function getConversations(userId) {
   const result = await db.query(`
     SELECT c.id, c.type, c.created_at,
       u.id AS other_user_id, u.full_name AS other_user_name, u.username AS other_username,
-      pf.id AS other_user_profile_file_id,
+      COALESCE(pf.id, ef.id) AS other_user_profile_file_id,
       lm.content AS last_message, lm.created_at AS last_message_at, lm.sender_id AS last_message_sender,
       (
         SELECT COUNT(*) FROM settings.messages m
@@ -48,6 +48,11 @@ async function getConversations(userId) {
       WHERE f.entity_type = 'user' AND f.entity_id = u.id AND f.file_type = 'profile_image' AND f.deleted_at IS NULL
       ORDER BY f.created_at DESC LIMIT 1
     ) pf ON true
+    LEFT JOIN LATERAL (
+      SELECT f.id FROM settings.files f
+      WHERE f.entity_type = 'employee' AND f.entity_id = u.person_id AND f.file_type = 'photo' AND f.deleted_at IS NULL
+      ORDER BY f.created_at DESC LIMIT 1
+    ) ef ON u.person_type = 'employee' AND u.person_id IS NOT NULL
     LEFT JOIN LATERAL (
       SELECT content, created_at, sender_id FROM settings.messages
       WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1
@@ -143,13 +148,18 @@ async function getTotalUnreadCount(userId) {
 // Get all users (for starting new conversations)
 async function getUsers(currentUserId) {
   const result = await db.query(
-    `SELECT u.id, u.full_name, u.username, pf.id AS profile_file_id
+    `SELECT u.id, u.full_name, u.username, COALESCE(pf.id, ef.id) AS profile_file_id
      FROM settings.users u
      LEFT JOIN LATERAL (
        SELECT f.id FROM settings.files f
        WHERE f.entity_type = 'user' AND f.entity_id = u.id AND f.file_type = 'profile_image' AND f.deleted_at IS NULL
        ORDER BY f.created_at DESC LIMIT 1
      ) pf ON true
+     LEFT JOIN LATERAL (
+       SELECT f.id FROM settings.files f
+       WHERE f.entity_type = 'employee' AND f.entity_id = u.person_id AND f.file_type = 'photo' AND f.deleted_at IS NULL
+       ORDER BY f.created_at DESC LIMIT 1
+     ) ef ON u.person_type = 'employee' AND u.person_id IS NOT NULL
      WHERE u.id != $1 AND u.is_active = true AND u.deleted_at IS NULL
      ORDER BY u.full_name ASC`,
     [currentUserId]

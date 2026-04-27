@@ -15,6 +15,26 @@ function mapUser(user) {
   };
 }
 
+async function syncEmployeeEmail(personId, email) {
+  if (!personId || !email) return;
+  const db = require('../../../config/database');
+  // Only update if the employee currently has no email — never overwrite an existing one
+  await db.query(
+    `UPDATE settings.employee_info SET email = $1, updated_at = NOW() WHERE id = $2 AND (email IS NULL OR email = '') AND deleted_at IS NULL`,
+    [email, personId]
+  );
+}
+
+async function assertPersonNotLinked(personId, excludeUserId = null) {
+  const db = require('../../../config/database');
+  let q = 'SELECT id FROM settings.users WHERE person_id = $1 AND deleted_at IS NULL';
+  const params = [personId];
+  if (excludeUserId) { q += ' AND id != $2'; params.push(excludeUserId); }
+  const result = await db.query(q, params);
+  if (result.rows.length > 0) return { error: 'conflict', message: 'This person is already linked to another user account' };
+  return null;
+}
+
 async function getAll(query, viewOwnUserId) {
   const result = await userRepo.findAll(query, viewOwnUserId);
   result.data = (result.data || []).map(mapUser);
@@ -40,7 +60,7 @@ async function getById(id) {
 }
 
 async function create(body, userId) {
-  const { username, password: pwd, full_name, email, phone, group_id, is_active } = body;
+  const { username, password: pwd, full_name, email, phone, group_id, is_active, person_type, person_id } = body;
 
   if (!username || !pwd || !full_name) {
     return { error: 'badRequest', message: 'Username, password, and full name are required' };
@@ -49,12 +69,21 @@ async function create(body, userId) {
   const existing = await userRepo.findByUsernameActive(username);
   if (existing) return { error: 'conflict', message: 'Username already exists' };
 
+  if (person_id) {
+    const linkErr = await assertPersonNotLinked(person_id);
+    if (linkErr) return linkErr;
+  }
+
   const hashedPassword = await password.hash(pwd);
-  const user = await userRepo.create({ username, hashedPassword, full_name, email, phone_code: body.phone_code, phone, group_id, is_active }, userId);
+  const user = await userRepo.create({ username, hashedPassword, full_name, email, phone_code: body.phone_code, phone, group_id, person_type: person_type || 'staff', person_id: person_id || null, is_active }, userId);
 
   if (body.location_ids && body.location_ids.length > 0) {
     const defaultLocId = body.default_location_id || body.location_ids[0];
     await userRepo.saveUserLocations(user.id, body.location_ids, defaultLocId, userId);
+  }
+
+  if (person_type === 'employee' && person_id && email) {
+    await syncEmployeeEmail(person_id, email);
   }
 
   return getById(user.id);
@@ -75,6 +104,11 @@ async function update(id, body, userId) {
 
   const hashedPassword = body.password ? await password.hash(body.password) : null;
 
+  if (body.person_id && body.person_id !== rawCurrent.person_id) {
+    const linkErr = await assertPersonNotLinked(body.person_id, id);
+    if (linkErr) return linkErr;
+  }
+
   const user = await userRepo.update(id, {
     username: body.username,
     hashedPassword,
@@ -83,6 +117,8 @@ async function update(id, body, userId) {
     phone_code: body.phone_code,
     phone: body.phone,
     group_id: body.group_id,
+    person_type: body.person_type,
+    person_id: body.person_id,
     is_active: body.is_active,
   }, rawCurrent, userId, version.data);
 
@@ -93,6 +129,12 @@ async function update(id, body, userId) {
     const locIds = body.location_ids || [];
     const defaultLocId = body.default_location_id || (locIds.length > 0 ? locIds[0] : null);
     await userRepo.saveUserLocations(id, locIds, defaultLocId, userId);
+  }
+
+  const effectivePersonId = body.person_id ?? rawCurrent.person_id;
+  const effectivePersonType = body.person_type ?? rawCurrent.person_type;
+  if (effectivePersonType === 'employee' && effectivePersonId && body.email) {
+    await syncEmployeeEmail(effectivePersonId, body.email);
   }
 
   return getById(id);

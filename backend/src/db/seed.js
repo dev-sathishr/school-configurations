@@ -137,7 +137,8 @@ async function seed() {
       { key: 'DASHBOARD', name: 'Dashboard', display_name: 'Dashboard', description: 'Quick overview of school activity and key stats',       icon: 'assets/icons/heroicons/outline/chart-pie.svg', route_path: '/dashboard', display_order: 1 },
       { key: 'ACADEMIC',  name: 'Academic',  display_name: 'Academic',  description: 'Manage your school academic configuration',             icon: 'assets/icons/heroicons/outline/bookmark.svg',  route_path: '/academic',   display_order: 2 },
       { key: 'EMPLOYEE',  name: 'Employee',  display_name: 'Employee',  description: 'Manage employee setup and master data',                 icon: 'assets/icons/heroicons/outline/users.svg',     route_path: '/employee',   display_order: 3 },
-      { key: 'SETTINGS',  name: 'Settings',  display_name: 'Settings',  description: 'Manage your school system configuration',               icon: 'assets/icons/heroicons/outline/cog.svg',       route_path: '/settings',   display_order: 4 },
+      { key: 'MASTER',    name: 'Master',    display_name: 'Master',    description: 'Configure sequences, codes and system-level masters',   icon: 'assets/icons/heroicons/outline/adjustments-horizontal.svg', route_path: '/master', display_order: 4 },
+      { key: 'SETTINGS',  name: 'Settings',  display_name: 'Settings',  description: 'Manage your school system configuration',               icon: 'assets/icons/heroicons/outline/cog.svg',       route_path: '/settings',   display_order: 5 },
     ];
 
     const menuIds = {};
@@ -157,12 +158,13 @@ async function seed() {
     // DASHBOARD menu in group_modules; no per-module permissions are needed.
     const modules = [
       // Academic modules
-      { key: 'CLASSES',             name: 'Classes',         display_name: 'Classes',         icon: 'assets/icons/heroicons/outline/table-cells.svg',       route_path: '/academic/class',            display_order: 1, enforce_edit_lock: false, description: 'Manage classes, sections and academic levels' },
+      { key: 'CLASSES',             name: 'Classes',         display_name: 'Class Master',    icon: 'assets/icons/heroicons/outline/table-cells.svg',       route_path: '/academic/class',            display_order: 1, enforce_edit_lock: false, description: 'Manage classes and sections with academic levels' },
       { key: 'CLASS_LEVELS',        name: 'Class Level',     display_name: 'Class Level',     icon: 'assets/icons/heroicons/outline/table-cells.svg',       route_path: '/academic/class',            display_order: 2, enforce_edit_lock: false, description: 'Define class sections and capacity per location' },
       // Employee modules
       { key: 'EMPLOYEE_CATEGORIES', name: 'Employee Master', display_name: 'Employee Categories', icon: 'assets/icons/heroicons/outline/users.svg',             route_path: '/employee/employee-master',  display_order: 1, enforce_edit_lock: false, description: 'Manage employee categories, groups and designations' },
       { key: 'EMPLOYEE_GROUPS',     name: 'Employee Groups', display_name: 'Employee Groups', icon: 'assets/icons/heroicons/outline/users.svg',             route_path: '/employee/employee-master',  display_order: 2, enforce_edit_lock: false, description: 'Organise employees into functional groups' },
       { key: 'DESIGNATIONS',        name: 'Designations',    display_name: 'Designations',    icon: 'assets/icons/heroicons/outline/cube.svg',              route_path: '/employee/employee-master',  display_order: 3, enforce_edit_lock: false, description: 'Define job roles and designations for staff' },
+      { key: 'EMPLOYEE_INFO',       name: 'Employee Info',   display_name: 'Employee Info',   icon: 'assets/icons/heroicons/outline/user-circle.svg',      route_path: '/employee/employee-info',    display_order: 4, enforce_edit_lock: false, description: 'Manage employee personal, contact and address details' },
       // Academic Years is a calendar master used as *config* by admins; it
       // lives under SETTINGS, not ACADEMIC, so route_path + menu_module
       // point there. display_order picks up where the settings modules end.
@@ -176,6 +178,10 @@ async function seed() {
       { key: 'GROUPS',              name: 'Groups',          display_name: 'Groups',          icon: 'assets/icons/heroicons/outline/users.svg',             route_path: '/settings/group',            display_order: 6, enforce_edit_lock: false, description: 'Manage user groups, menu access and permissions' },
       { key: 'PERMISSIONS',         name: 'Permissions',     display_name: 'Permissions',     icon: 'assets/icons/heroicons/outline/shield-check.svg',      route_path: '/settings/permission',       display_order: 7, enforce_edit_lock: false, description: 'Manage permission types like View, Create, Edit and Delete' },
       { key: 'SESSIONS',            name: 'Sessions',        display_name: 'Sessions',        icon: 'assets/icons/heroicons/outline/shield-exclamation.svg', route_path: '/settings/session',         display_order: 8, enforce_edit_lock: false, description: 'Monitor active sessions, login history and activity' },
+      // Master modules
+      { key: 'SEQUENCE_CODES',    name: 'Sequence Codes',    display_name: 'Sequence Master',   icon: 'assets/icons/heroicons/outline/adjustments-horizontal.svg',     route_path: '/master/sequence',       display_order: 1, enforce_edit_lock: false, description: 'Configure sequence codes and controls for auto-numbering' },
+      { key: 'SEQUENCE_CONTROLS', name: 'Sequence Controls', display_name: 'Sequence Controls', icon: 'assets/icons/heroicons/outline/adjustments-horizontal.svg',     route_path: '/master/sequence',       display_order: 2, enforce_edit_lock: false, description: 'Configure prefix, suffix, counter and limit per location and sequence type' },
+      { key: 'DOCUMENT_TYPES',    name: 'Document Types',    display_name: 'Document Types',    icon: 'assets/icons/heroicons/outline/folder.svg',                      route_path: '/master/document-types', display_order: 3, enforce_edit_lock: false, description: 'Manage document type categories used for employee document uploads' },
     ];
 
     const moduleIds = {};
@@ -200,6 +206,7 @@ async function seed() {
       { menu: 'EMPLOYEE', module: 'EMPLOYEE_CATEGORIES', display_order: 1 },
       { menu: 'EMPLOYEE', module: 'EMPLOYEE_GROUPS', display_order: 2 },
       { menu: 'EMPLOYEE', module: 'DESIGNATIONS', display_order: 3 },
+      { menu: 'EMPLOYEE', module: 'EMPLOYEE_INFO', display_order: 4 },
       // Settings modules
       { menu: 'SETTINGS', module: 'ORGANIZATIONS', display_order: 1 },
       { menu: 'SETTINGS', module: 'LOCATIONS', display_order: 2 },
@@ -210,6 +217,10 @@ async function seed() {
       { menu: 'SETTINGS', module: 'PERMISSIONS', display_order: 7 },
       { menu: 'SETTINGS', module: 'SESSIONS', display_order: 8 },
       { menu: 'SETTINGS', module: 'ACADEMIC_YEARS', display_order: 9 },
+      // Master modules
+      { menu: 'MASTER', module: 'SEQUENCE_CODES',    display_order: 1 },
+      { menu: 'MASTER', module: 'SEQUENCE_CONTROLS', display_order: 2 },
+      { menu: 'MASTER', module: 'DOCUMENT_TYPES',    display_order: 3 },
     ];
 
     let mmInserted = 0;
@@ -228,21 +239,22 @@ async function seed() {
 
     // Seed Groups
     const groups = [
-      { name: 'Super Admin', code: 'SUPER_ADMIN', description: 'Full system access with all permissions' },
-      { name: 'Admin', code: 'ADMIN', description: 'Administrative access to settings and management' },
-      { name: 'Principal', code: 'PRINCIPAL', description: 'School principal with academic and admin access' },
-      { name: 'Teacher', code: 'TEACHER', description: 'Teaching staff with academic access' },
-      { name: 'Accountant', code: 'ACCOUNTANT', description: 'Finance and accounts access' },
-      { name: 'Student', code: 'STUDENT', description: 'Student portal access' },
-      { name: 'Parent', code: 'PARENT', description: 'Parent portal access' },
+      { name: 'Super Admin', code: 'SUPER_ADMIN', person_type: 'staff',    description: 'Full system access with all permissions' },
+      { name: 'Admin',       code: 'ADMIN',       person_type: 'staff',    description: 'Administrative access to settings and management' },
+      { name: 'Principal',   code: 'PRINCIPAL',   person_type: 'employee', description: 'School principal with academic and admin access' },
+      { name: 'Teacher',     code: 'TEACHER',     person_type: 'employee', description: 'Teaching staff with academic access' },
+      { name: 'Accountant',  code: 'ACCOUNTANT',  person_type: 'employee', description: 'Finance and accounts access' },
+      { name: 'Student',     code: 'STUDENT',     person_type: 'student',  description: 'Student portal access' },
+      { name: 'Parent',      code: 'PARENT',      person_type: 'parent',   description: 'Parent portal access' },
     ];
 
     const groupIds = {};
     for (const group of groups) {
       const result = await client.query(
-        `INSERT INTO settings.groups (name, code, description, is_active, created_by, updated_by)
-         VALUES ($1, $2, $3, true, $4, $5) RETURNING id`,
-        [group.name, group.code, group.description, adminId, adminId]
+        `INSERT INTO settings.groups (name, code, person_type, description, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, true, $5, $6)
+         ON CONFLICT DO NOTHING RETURNING id`,
+        [group.name, group.code, group.person_type || 'staff', group.description, adminId, adminId]
       );
       groupIds[group.code] = result.rows[0].id;
     }
@@ -289,7 +301,7 @@ async function seed() {
 
     // Seed Group Modules (which menus each group can access)
     const groupModuleMappings = [
-      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'ACADEMIC', 'EMPLOYEE', 'SETTINGS'] },
+      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'ACADEMIC', 'EMPLOYEE', 'MASTER', 'SETTINGS'] },
       { group: 'PRINCIPAL', menus: ['DASHBOARD'] },
       { group: 'TEACHER', menus: ['DASHBOARD'] },
       { group: 'ACCOUNTANT', menus: ['DASHBOARD'] },
@@ -343,6 +355,94 @@ async function seed() {
     }
     console.log(`Group Permissions seeded (${gpInserted} assignments)`);
 
+    // Seed Employee Categories, Groups and Designations
+    const employeeCategories = [
+      { name: 'Teaching Staff',     code: 'TEACHING',     description: 'Academic and instructional staff' },
+      { name: 'Non-Teaching Staff', code: 'NON_TEACHING', description: 'Administrative and support staff' },
+    ];
+
+    const empCategoryIds = {};
+    for (const cat of employeeCategories) {
+      const existing = await client.query(
+        `SELECT id FROM settings.employee_categories WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        [cat.code]
+      );
+      if (existing.rows.length > 0) {
+        empCategoryIds[cat.code] = existing.rows[0].id;
+        console.log(`  Employee category already exists: ${cat.name}`);
+        continue;
+      }
+      const result = await client.query(
+        `INSERT INTO settings.employee_categories (name, code, description, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, true, $4, $5) RETURNING id`,
+        [cat.name, cat.code, cat.description, adminId, adminId]
+      );
+      empCategoryIds[cat.code] = result.rows[0].id;
+    }
+    console.log(`Employee Categories seeded (${Object.keys(empCategoryIds).length} total)`);
+
+    const employeeGroups = [
+      { name: 'Primary Teachers',       code: 'PRIMARY_TEACHERS',   category: 'TEACHING',     description: 'Teachers for primary grades' },
+      { name: 'Secondary Teachers',     code: 'SECONDARY_TEACHERS', category: 'TEACHING',     description: 'Teachers for secondary grades' },
+      { name: 'Administration',         code: 'ADMINISTRATION',     category: 'NON_TEACHING', description: 'Office and admin staff' },
+      { name: 'Support & Maintenance',  code: 'SUPPORT',            category: 'NON_TEACHING', description: 'Housekeeping, security and maintenance' },
+    ];
+
+    const empGroupIds = {};
+    for (const grp of employeeGroups) {
+      const existing = await client.query(
+        `SELECT id FROM settings.employee_groups WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        [grp.code]
+      );
+      if (existing.rows.length > 0) {
+        empGroupIds[grp.code] = existing.rows[0].id;
+        console.log(`  Employee group already exists: ${grp.name}`);
+        continue;
+      }
+      const result = await client.query(
+        `INSERT INTO settings.employee_groups (name, code, description, employee_category_id, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, true, $5, $6) RETURNING id`,
+        [grp.name, grp.code, grp.description, empCategoryIds[grp.category], adminId, adminId]
+      );
+      empGroupIds[grp.code] = result.rows[0].id;
+    }
+    console.log(`Employee Groups seeded (${Object.keys(empGroupIds).length} total)`);
+
+    const designations = [
+      { name: 'Principal',             code: 'PRINCIPAL',          group: 'ADMINISTRATION',     description: 'Head of the school' },
+      { name: 'Vice Principal',        code: 'VICE_PRINCIPAL',     group: 'ADMINISTRATION',     description: 'Deputy head of the school' },
+      { name: 'Head of Department',    code: 'HOD',                group: 'SECONDARY_TEACHERS', description: 'Department lead teacher' },
+      { name: 'Senior Teacher',        code: 'SR_TEACHER',         group: 'SECONDARY_TEACHERS', description: 'Experienced secondary teacher' },
+      { name: 'Teacher',               code: 'TEACHER',            group: 'SECONDARY_TEACHERS', description: 'Secondary grade teacher' },
+      { name: 'Primary Teacher',       code: 'PRIMARY_TEACHER',    group: 'PRIMARY_TEACHERS',   description: 'Primary grade teacher' },
+      { name: 'Assistant Teacher',     code: 'ASST_TEACHER',       group: 'PRIMARY_TEACHERS',   description: 'Assistant to primary teachers' },
+      { name: 'Office Administrator',  code: 'OFFICE_ADMIN',       group: 'ADMINISTRATION',     description: 'Manages office operations' },
+      { name: 'Accountant',            code: 'ACCOUNTANT',         group: 'ADMINISTRATION',     description: 'Handles financial records' },
+      { name: 'Lab Assistant',         code: 'LAB_ASST',           group: 'SUPPORT',            description: 'Assists in science/computer labs' },
+      { name: 'Librarian',             code: 'LIBRARIAN',          group: 'SUPPORT',            description: 'Manages school library' },
+      { name: 'Security Guard',        code: 'SECURITY',           group: 'SUPPORT',            description: 'Campus security personnel' },
+      { name: 'Housekeeping Staff',    code: 'HOUSEKEEPING',       group: 'SUPPORT',            description: 'Cleaning and maintenance staff' },
+    ];
+
+    let desigInserted = 0;
+    for (const desig of designations) {
+      const existing = await client.query(
+        `SELECT id FROM settings.designations WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        [desig.code]
+      );
+      if (existing.rows.length > 0) {
+        console.log(`  Designation already exists: ${desig.name}`);
+        continue;
+      }
+      await client.query(
+        `INSERT INTO settings.designations (name, code, description, employee_group_id, is_active, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, true, $5, $6)`,
+        [desig.name, desig.code, desig.description, empGroupIds[desig.group], adminId, adminId]
+      );
+      desigInserted++;
+    }
+    console.log(`Designations seeded (${desigInserted} inserted, ${designations.length - desigInserted} already existed)`);
+
     // Seed Locations
     const orgResult = await client.query("SELECT id FROM settings.organizations WHERE name = 'Shaanthi Matriculation School'");
     const orgId = orgResult.rows[0]?.id;
@@ -394,7 +494,107 @@ async function seed() {
         }
       }
       console.log(`User Locations seeded (${ulInserted} mappings)`);
+
+      // Seed Sequence Codes (master list)
+      const sequenceCodes = [
+        { code: 'EMPLOYEE', name: 'Employee Code Sequence' },
+      ];
+      const seqCodeIds = {};
+      for (const sc of sequenceCodes) {
+        const existing = await client.query(
+          `SELECT id FROM settings.sequence_codes WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+          [sc.code]
+        );
+        if (existing.rows.length > 0) {
+          seqCodeIds[sc.code] = existing.rows[0].id;
+          continue;
+        }
+        const result = await client.query(
+          `INSERT INTO settings.sequence_codes (code, name, is_active, created_by, updated_by)
+           VALUES ($1, $2, true, $3, $4) RETURNING id`,
+          [sc.code, sc.name, adminId, adminId]
+        );
+        seqCodeIds[sc.code] = result.rows[0].id;
+      }
+
+      // Seed Sequence Controls — one per location, prefix includes the location code
+      // e.g. MAIN-EMP-, EAST-EMP-, SPORT-EMP-  (admin can edit via Master > Sequence Controls)
+      let scInserted = 0;
+      for (const locCode of Object.keys(locationIds)) {
+        const locId = locationIds[locCode];
+        const seqCodeId = seqCodeIds['EMPLOYEE'];
+        const existing = await client.query(
+          `SELECT id FROM settings.sequence_controls WHERE sequence_code_id = $1 AND location_id = $2`,
+          [seqCodeId, locId]
+        );
+        if (existing.rows.length > 0) continue;
+        const prefix = `${locCode}-EMP-`;
+        await client.query(
+          `INSERT INTO settings.sequence_controls
+             (sequence_code_id, location_id, prefix, suffix, last_no, max_no, digit_length, is_active, created_by, updated_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)`,
+          [seqCodeId, locId, prefix, '', 0, 9999, 3, adminId, adminId]
+        );
+        scInserted++;
+      }
+      console.log(`Sequence Controls seeded (${scInserted} inserted)`);
     }
+
+    // Seed Document Types master data
+    const documentTypes = [
+      // KYC / Identity — with validation patterns
+      { code: 'AADHAAR',         name: 'Aadhaar Card',                  category: 'KYC',        document_no_label: 'Aadhaar Number',  validation_pattern: '^[0-9]{12}$' },
+      { code: 'PAN',             name: 'PAN Card',                       category: 'KYC',        document_no_label: 'PAN Number',      validation_pattern: '^[A-Z]{5}[0-9]{4}[A-Z]{1}$' },
+      { code: 'PASSPORT',        name: 'Passport',                       category: 'KYC',        document_no_label: 'Passport Number', validation_pattern: '^[A-Z][0-9]{7}$' },
+      { code: 'VOTER_ID',        name: 'Voter ID Card',                  category: 'KYC',        document_no_label: 'Voter ID',        validation_pattern: '^[A-Z]{3}[0-9]{7}$' },
+      { code: 'DRIVING_LICENCE', name: 'Driving Licence',                category: 'KYC',        document_no_label: 'DL Number',       validation_pattern: null },
+      // Educational
+      { code: 'MARKSHEET_10',    name: '10th Marksheet',                 category: 'EDUCATIONAL', document_no_label: null, validation_pattern: null },
+      { code: 'MARKSHEET_12',    name: '12th Marksheet',                 category: 'EDUCATIONAL', document_no_label: null, validation_pattern: null },
+      { code: 'DEGREE_CERT',     name: 'Degree Certificate',             category: 'EDUCATIONAL', document_no_label: null, validation_pattern: null },
+      { code: 'TRANSFER_CERT',   name: 'Transfer Certificate',           category: 'EDUCATIONAL', document_no_label: null, validation_pattern: null },
+      { code: 'CONDUCT_CERT',    name: 'Conduct Certificate',            category: 'EDUCATIONAL', document_no_label: null, validation_pattern: null },
+      { code: 'PROFESSIONAL_CERT', name: 'Professional Certificate',     category: 'EDUCATIONAL', document_no_label: null, validation_pattern: null },
+      // Employment
+      { code: 'OFFER_LETTER',    name: 'Offer Letter',                   category: 'EMPLOYMENT',  document_no_label: null, validation_pattern: null },
+      { code: 'APPOINTMENT_ORDER', name: 'Appointment Order',            category: 'EMPLOYMENT',  document_no_label: null, validation_pattern: null },
+      { code: 'EXP_CERT',        name: 'Experience Certificate',         category: 'EMPLOYMENT',  document_no_label: null, validation_pattern: null },
+      { code: 'RELIEVING_LETTER', name: 'Relieving Letter',              category: 'EMPLOYMENT',  document_no_label: null, validation_pattern: null },
+      { code: 'SALARY_SLIP',     name: 'Salary Slip',                    category: 'EMPLOYMENT',  document_no_label: null, validation_pattern: null },
+      // Statutory
+      { code: 'EPF_FORM11',      name: 'EPF Form 11 (Declaration)',      category: 'STATUTORY',   document_no_label: null, validation_pattern: null },
+      { code: 'ESI_FORM',        name: 'ESI Declaration Form',           category: 'STATUTORY',   document_no_label: null, validation_pattern: null },
+      { code: 'NOMINATION_FORM', name: 'Nomination Form',                category: 'STATUTORY',   document_no_label: null, validation_pattern: null },
+      // Medical
+      { code: 'MEDICAL_FITNESS', name: 'Medical Fitness Certificate',    category: 'MEDICAL',     document_no_label: null, validation_pattern: null },
+      { code: 'DISABILITY_CERT', name: 'Disability Certificate',         category: 'MEDICAL',     document_no_label: null, validation_pattern: null },
+      // Other
+      { code: 'OTHER_DOC',       name: 'Other Document',                 category: 'OTHER',       document_no_label: null, validation_pattern: null },
+    ];
+
+    let dtInserted = 0;
+    for (const dt of documentTypes) {
+      const existing = await client.query(
+        `SELECT id FROM settings.document_types WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        [dt.code]
+      );
+      if (existing.rows.length > 0) {
+        // Update validation fields even for existing rows so patterns are applied on re-seed
+        await client.query(
+          `UPDATE settings.document_types SET document_no_label = $1, validation_pattern = $2
+           WHERE LOWER(code) = LOWER($3) AND deleted_at IS NULL`,
+          [dt.document_no_label, dt.validation_pattern, dt.code]
+        );
+        continue;
+      }
+      await client.query(
+        `INSERT INTO settings.document_types (code, name, category, is_active, document_no_label, validation_pattern, created_by, updated_by)
+         VALUES ($1, $2, $3, true, $4, $5, $6, $7)`,
+        [dt.code, dt.name, dt.category, dt.document_no_label, dt.validation_pattern, adminId, adminId]
+      );
+      dtInserted++;
+    }
+    console.log(`Document Types seeded (${dtInserted} inserted, ${documentTypes.length - dtInserted} already existed)`);
 
   } catch (err) {
     console.error('Seed failed:', err);

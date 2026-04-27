@@ -39,6 +39,8 @@ export class AuthInterceptor implements HttpInterceptor {
         }
 
         if (error.status === 403) {
+          const isAuthEndpoint = req.url.includes('/auth/logout') || req.url.includes('/auth/login');
+          if (isAuthEndpoint) return throwError(() => error);
           const message = error.error?.message || 'You do not have permission to perform this action';
           if (!this.handlingForbidden) {
             this.handlingForbidden = true;

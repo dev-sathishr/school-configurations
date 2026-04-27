@@ -19,6 +19,8 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted" placeholder="e.g. Admin Group" />
           <app-form-field [formGroup]="form" controlName="code" label="Code" [required]="true" [submitted]="submitted" placeholder="e.g. ADMIN_GROUP" />
+          <app-form-field [formGroup]="form" controlName="person_type" label="Person Type" fieldType="select"
+            [options]="personTypeOptions" [required]="true" [submitted]="submitted" />
         </div>
       </div>
 

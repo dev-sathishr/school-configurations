@@ -1,0 +1,376 @@
+<div class="mx-auto max-w-4xl">
+  <div class="mb-6">
+    <app-breadcrumb></app-breadcrumb>
+  </div>
+
+  @if (errorMessage) {
+    <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <app-loader size="large" text="Loading employee..." />
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+
+        <!-- Tab bar -->
+        <div class="border-border flex border-b">
+          <button type="button"
+            (click)="setTab('personal')"
+            class="px-5 py-2.5 text-xs font-semibold transition-colors"
+            [class.text-primary]="activeTab() === 'personal'"
+            [class.border-b-2]="activeTab() === 'personal'"
+            [class.border-primary]="activeTab() === 'personal'"
+            [class.text-muted-foreground]="activeTab() !== 'personal'">
+            Personal Info
+          </button>
+          <button type="button"
+            (click)="setTab('contact')"
+            class="px-5 py-2.5 text-xs font-semibold transition-colors flex items-center gap-1.5"
+            [class.text-primary]="activeTab() === 'contact'"
+            [class.border-b-2]="activeTab() === 'contact'"
+            [class.border-primary]="activeTab() === 'contact'"
+            [class.text-muted-foreground]="activeTab() !== 'contact'"
+            [class.opacity-50]="!viewMode && !isPersonalValid"
+            [title]="!viewMode && !isPersonalValid ? 'Complete Personal Info first' : ''">
+            Contact Info
+            @if (!viewMode && !isPersonalValid) {
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            }
+          </button>
+          @if (editMode || viewMode) {
+            <button type="button"
+              (click)="setTab('payroll')"
+              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              [class.text-primary]="activeTab() === 'payroll'"
+              [class.border-b-2]="activeTab() === 'payroll'"
+              [class.border-primary]="activeTab() === 'payroll'"
+              [class.text-muted-foreground]="activeTab() !== 'payroll'">
+              Payroll
+            </button>
+            <button type="button"
+              (click)="setTab('bank')"
+              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              [class.text-primary]="activeTab() === 'bank'"
+              [class.border-b-2]="activeTab() === 'bank'"
+              [class.border-primary]="activeTab() === 'bank'"
+              [class.text-muted-foreground]="activeTab() !== 'bank'">
+              Bank Accounts
+            </button>
+            <button type="button"
+              (click)="setTab('qualification')"
+              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              [class.text-primary]="activeTab() === 'qualification'"
+              [class.border-b-2]="activeTab() === 'qualification'"
+              [class.border-primary]="activeTab() === 'qualification'"
+              [class.text-muted-foreground]="activeTab() !== 'qualification'">
+              Qualifications
+            </button>
+            <button type="button"
+              (click)="setTab('experience')"
+              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              [class.text-primary]="activeTab() === 'experience'"
+              [class.border-b-2]="activeTab() === 'experience'"
+              [class.border-primary]="activeTab() === 'experience'"
+              [class.text-muted-foreground]="activeTab() !== 'experience'">
+              Experience
+            </button>
+            <button type="button"
+              (click)="setTab('document')"
+              class="px-5 py-2.5 text-xs font-semibold transition-colors"
+              [class.text-primary]="activeTab() === 'document'"
+              [class.border-b-2]="activeTab() === 'document'"
+              [class.border-primary]="activeTab() === 'document'"
+              [class.text-muted-foreground]="activeTab() !== 'document'">
+              Documents
+            </button>
+          }
+        </div>
+
+      <fieldset [disabled]="viewMode" class="space-y-6">
+
+        <!-- ── Tab 1: Personal Info ────────────────────────────────── -->
+        <!-- [hidden] instead of @if so the photo upload component is never destroyed,
+             preserving any pending file the user selected before switching tabs. -->
+        <div [hidden]="activeTab() !== 'personal'" class="space-y-6">
+
+          <!-- Photo + Identity -->
+          <div class="bg-background border-muted/30 rounded-lg border p-5">
+            <h4 class="text-foreground mb-4 text-sm font-semibold">Identity</h4>
+            <div class="flex flex-col items-center gap-5 md:flex-row md:items-start">
+              <div class="shrink-0">
+                <app-file-upload #photoUpload
+                  entityType="employee" [entityId]="editId"
+                  fileType="photo" accept="image/*" [maxSize]="2"
+                  displayStyle="photo" label="Photo" [initialFile]="photo" [allowCamera]="true">
+                </app-file-upload>
+              </div>
+              <div class="grid w-full flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="md:col-span-2">
+                  <app-location-field
+                    [formGroup]="form"
+                    [submitted]="submitted"
+                    [recordLocation]="recordLocation()">
+                  </app-location-field>
+                </div>
+                <app-form-field [formGroup]="form" controlName="employee_name" label="Employee Name"
+                  [required]="true" [submitted]="submitted" placeholder="As per Aadhaar"
+                  [minLength]="2" [maxLength]="200" [uppercase]="true" />
+                <app-form-field [formGroup]="form" controlName="display_name" label="Display Name"
+                  placeholder="Short name shown in UI" [maxLength]="200" [uppercase]="true" />
+                @if (editMode || viewMode) {
+                  <app-form-field [formGroup]="form" controlName="employee_code" label="Employee Code"
+                    [required]="true" [submitted]="submitted" placeholder="e.g. EMP-001"
+                    [maxLength]="50" [uppercase]="true" />
+                } @else {
+                  <div>
+                    <label class="text-foreground mb-1.5 block text-xs font-medium">
+                      Employee Code <span class="text-red-500">*</span>
+                    </label>
+                    <div class="border-input bg-muted/30 flex h-9 items-center rounded-md border px-3 gap-2">
+                      @if (codeLoading) {
+                        <div class="border-primary h-3.5 w-3.5 animate-spin rounded-full border-2 border-t-transparent"></div>
+                      }
+                      <span class="text-foreground flex-1 text-sm font-medium tracking-wide">
+                        {{ form.get('employee_code')?.value || '—' }}
+                      </span>
+                      <button type="button" (click)="refreshCode()"
+                        class="text-muted-foreground hover:text-primary transition-colors" title="Regenerate code">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p class="text-muted-foreground/60 mt-0.5 text-[10px]">Auto-generated · click refresh to regenerate</p>
+                  </div>
+                }
+                <app-form-field [formGroup]="form" controlName="designation_id" label="Designation"
+                  fieldType="async-select"
+                  [asyncUrl]="designationApiUrl"
+                  asyncValueKey="id"
+                  asyncLabelKey="name"
+                  placeholder="Select designation"
+                  [required]="true" [submitted]="submitted" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Personal Details -->
+          <div class="bg-background border-muted/30 rounded-lg border p-5">
+            <h4 class="text-foreground mb-4 text-sm font-semibold">Personal Details</h4>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <app-form-field [formGroup]="form" controlName="gender" label="Gender"
+                fieldType="select" [options]="genderOptions" placeholder="Select gender"
+                [required]="true" [submitted]="submitted" />
+              <app-form-field [formGroup]="form" controlName="dob" label="Date of Birth"
+                fieldType="date" [min]="dobMinDate" [max]="dobMaxDate"
+                [required]="true" [submitted]="submitted" />
+              <app-form-field [formGroup]="form" controlName="blood_group" label="Blood Group"
+                fieldType="select" [options]="bloodGroupOptions" placeholder="Select blood group" />
+              <app-form-field [formGroup]="form" controlName="marital_status" label="Marital Status"
+                fieldType="select" [options]="maritalOptions" placeholder="Select status" />
+              <app-form-field [formGroup]="form" controlName="religion" label="Religion"
+                fieldType="select" [options]="religionOptions" placeholder="Select religion" />
+              <app-form-field [formGroup]="form" controlName="community" label="Community"
+                fieldType="select" [options]="communityOptions" placeholder="Select community" />
+            </div>
+          </div>
+
+          <!-- Aadhaar -->
+          <div class="bg-background border-muted/30 rounded-lg border p-5">
+            <h4 class="text-foreground mb-4 text-sm font-semibold">Aadhaar</h4>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <app-form-field [formGroup]="form" controlName="aadhaar_no" label="Aadhaar No"
+                placeholder="12-digit Aadhaar number" [maxLength]="12" [submitted]="submitted" />
+            </div>
+          </div>
+
+          <!-- Status & Notes -->
+          <div class="bg-background border-muted/30 rounded-lg border p-5">
+            <div class="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
+              <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
+              <app-form-field [formGroup]="form" controlName="notes" label="Notes" fieldType="textarea"
+                [rows]="3" placeholder="Any additional notes..." [maxLength]="500" />
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Tab 2: Contact Info ─────────────────────────────────── -->
+        @if (activeTab() === 'contact') {
+
+          <!-- Phone & Email -->
+          <div class="bg-background border-muted/30 rounded-lg border p-5">
+            <h4 class="text-foreground mb-4 text-sm font-semibold">Phone & Email</h4>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <app-form-field [formGroup]="form" controlName="primary_phone" label="Primary Contact"
+                fieldType="phone" placeholder="Phone number" [maxLength]="15" [required]="true" [submitted]="submitted" />
+              <app-form-field [formGroup]="form" controlName="secondary_phone" label="Secondary Contact"
+                fieldType="phone" placeholder="Phone number" [maxLength]="15" />
+              <app-form-field [formGroup]="form" controlName="email" label="Email"
+                fieldType="email" placeholder="e.g. employee@school.com" [maxLength]="100" [submitted]="submitted" />
+            </div>
+          </div>
+
+          <!-- Addresses -->
+          <app-address [addresses]="addresses" (addressesChange)="onAddressesChange($event)" />
+          @if (addressError) {
+            <p class="-mt-4 text-xs text-red-500">{{ addressError }}</p>
+          }
+
+        }
+
+      </fieldset>
+
+      <!-- ── Tab 3: Payroll (edit/view only, outside fieldset so it manages its own state) ── -->
+      @if (activeTab() === 'payroll') {
+        <div class="py-2">
+          <app-employee-payroll-list #payrollList
+            [employeeId]="editId"
+            [readonly]="viewMode"
+            (onAdd)="payrollForm?.openCreate(editId)"
+            (onAddRejoin)="payrollForm?.openRejoin(editId)"
+            (onEdit)="payrollForm?.openEdit(editId, $event)"
+            (onView)="payrollForm?.openView(editId, $event)" />
+          <app-employee-payroll-form #payrollForm
+            (onSaved)="payrollList?.load()" />
+        </div>
+      }
+
+      <!-- ── Tab 4: Bank Accounts (edit/view only) ── -->
+      @if (activeTab() === 'bank') {
+        <div class="py-2">
+          <app-employee-bank-account-list #bankList
+            [employeeId]="editId"
+            [readonly]="viewMode"
+            (onAdd)="bankForm?.openCreate(editId, !bankList.accounts.length)"
+            (onEdit)="bankForm?.openEdit(editId, $event)"
+            (onView)="bankForm?.openView(editId, $event)" />
+          <app-employee-bank-account-form #bankForm
+            (onSaved)="bankList?.load()" />
+        </div>
+      }
+
+      <!-- ── Tab 5: Qualifications (edit/view only) ── -->
+      @if (activeTab() === 'qualification') {
+        <div class="py-2">
+          <app-employee-qualification-list #qualificationList
+            [employeeId]="editId"
+            [readonly]="viewMode"
+            (onAdd)="qualificationForm?.openCreate(editId)"
+            (onEdit)="qualificationForm?.openEdit(editId, $event)"
+            (onView)="qualificationForm?.openView(editId, $event)" />
+          <app-employee-qualification-form #qualificationForm
+            (onSaved)="qualificationList?.load()" />
+        </div>
+      }
+
+      <!-- ── Tab 6: Experience (edit/view only) ── -->
+      @if (activeTab() === 'experience') {
+        <div class="py-2">
+          <app-employee-experience-list #experienceList
+            [employeeId]="editId"
+            [readonly]="viewMode"
+            (onAdd)="experienceForm?.openCreate(editId)"
+            (onEdit)="experienceForm?.openEdit(editId, $event)"
+            (onView)="experienceForm?.openView(editId, $event)" />
+          <app-employee-experience-form #experienceForm
+            (onSaved)="experienceList?.load()" />
+        </div>
+      }
+
+      <!-- ── Tab 7: Documents (edit/view only) ── -->
+      @if (activeTab() === 'document') {
+        <div class="py-2">
+          <app-employee-document-list #documentList
+            [employeeId]="editId"
+            [readonly]="viewMode"
+            (onAdd)="documentForm?.openCreate(editId)"
+            (onEdit)="documentForm?.openEdit(editId, $event)"
+            (onView)="documentForm?.openView(editId, $event)" />
+          <app-employee-document-form #documentForm
+            (onSaved)="documentList?.load()" />
+        </div>
+      }
+
+      <!-- Actions -->
+      @if (activeTab() !== 'payroll' && activeTab() !== 'bank' && activeTab() !== 'qualification' && activeTab() !== 'experience' && activeTab() !== 'document') {
+        <div class="flex justify-end gap-3">
+          @if (viewMode) {
+            <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
+              Back
+            </app-button>
+            @if (ps.canEdit('EMPLOYEE_INFO')) {
+              <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">
+                Edit
+              </app-button>
+            }
+          } @else if (activeTab() === 'personal') {
+            <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
+              Cancel
+            </app-button>
+            <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="setTab('contact')">
+              Next
+            </app-button>
+          } @else {
+            <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="setTab('personal')">
+              Back
+            </app-button>
+            <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
+              {{ editMode ? 'Update' : 'Create' }}
+            </app-button>
+          }
+        </div>
+      }
+    </form>
+  }
+</div>
+
+<!-- ── Employee Created Success Dialog ── -->
+<app-modal [visible]="showCreatedDialog" title="Employee Created" size="small" [closeOnBackdrop]="false" [showClose]="false">
+  <div class="space-y-4 text-center py-2">
+    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </div>
+    <div>
+      <p class="text-foreground text-sm font-semibold">Employee created successfully!</p>
+      <p class="text-muted-foreground mt-1 text-xs">Would you like to add payroll, bank accounts, qualifications, experience or documents?</p>
+    </div>
+    <div class="grid grid-cols-2 gap-2 pt-1">
+      <button type="button" (click)="goToEmployee('payroll')"
+        class="border-muted/40 hover:bg-muted/30 rounded-lg border p-3 text-left transition-colors">
+        <p class="text-foreground text-xs font-semibold">Payroll</p>
+        <p class="text-muted-foreground text-[11px]">Joining & salary details</p>
+      </button>
+      <button type="button" (click)="goToEmployee('bank')"
+        class="border-muted/40 hover:bg-muted/30 rounded-lg border p-3 text-left transition-colors">
+        <p class="text-foreground text-xs font-semibold">Bank Account</p>
+        <p class="text-muted-foreground text-[11px]">Add bank details</p>
+      </button>
+      <button type="button" (click)="goToEmployee('qualification')"
+        class="border-muted/40 hover:bg-muted/30 rounded-lg border p-3 text-left transition-colors">
+        <p class="text-foreground text-xs font-semibold">Qualifications</p>
+        <p class="text-muted-foreground text-[11px]">Degrees & certificates</p>
+      </button>
+      <button type="button" (click)="goToEmployee('experience')"
+        class="border-muted/40 hover:bg-muted/30 rounded-lg border p-3 text-left transition-colors">
+        <p class="text-foreground text-xs font-semibold">Experience</p>
+        <p class="text-muted-foreground text-[11px]">Employment history</p>
+      </button>
+      <button type="button" (click)="goToEmployee('document')"
+        class="border-muted/40 hover:bg-muted/30 rounded-lg border p-3 text-left transition-colors">
+        <p class="text-foreground text-xs font-semibold">Documents</p>
+        <p class="text-muted-foreground text-[11px]">KYC & certificates</p>
+      </button>
+    </div>
+  </div>
+
+  <div modal-footer class="flex justify-end">
+    <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="goToList()">
+      Go to List
+    </app-button>
+  </div>
+</app-modal>

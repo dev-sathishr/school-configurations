@@ -116,6 +116,59 @@ export const API = {
     deleteMultiple: '/designations/delete-multiple',
     import: '/designations/import',
   },
+  employees: {
+    base: '/employees',
+    detail: (id: string) => `/employees/${id}`,
+    nextCode: '/employees/next-code',
+    dropdown: '/employees/dropdown',
+    linkable: '/employees/linkable',
+    deleteMultiple: '/employees/delete-multiple',
+    import: '/employees/import',
+  },
+  employeePayroll: {
+    base: (employeeId: string) => `/employees/${employeeId}/payroll`,
+    detail: (employeeId: string, id: string) => `/employees/${employeeId}/payroll/${id}`,
+    rejoin: (employeeId: string) => `/employees/${employeeId}/payroll/rejoin`,
+  },
+  employeeBankAccounts: {
+    base: (employeeId: string) => `/employees/${employeeId}/bank-accounts`,
+    activate: (employeeId: string, id: string) => `/employees/${employeeId}/bank-accounts/${id}/activate`,
+    detail: (employeeId: string, id: string) => `/employees/${employeeId}/bank-accounts/${id}`,
+  },
+  employeeQualifications: {
+    base:   (employeeId: string) => `/employees/${employeeId}/qualifications`,
+    detail: (employeeId: string, id: string) => `/employees/${employeeId}/qualifications/${id}`,
+  },
+  employeeExperience: {
+    base:   (employeeId: string) => `/employees/${employeeId}/experience`,
+    detail: (employeeId: string, id: string) => `/employees/${employeeId}/experience/${id}`,
+  },
+  employeeDocuments: {
+    base:   (employeeId: string) => `/employees/${employeeId}/documents`,
+    detail: (employeeId: string, id: string) => `/employees/${employeeId}/documents/${id}`,
+  },
+  ifsc: {
+    lookup: (code: string) => `/ifsc/${code}`,
+  },
+  // ── Master ────────────────────────────────────────────────────────
+  sequenceCodes: {
+    base: '/sequence-codes',
+    detail: (id: string) => `/sequence-codes/${id}`,
+    dropdown: '/sequence-codes/dropdown',
+    deleteMultiple: '/sequence-codes/delete-multiple',
+  },
+  sequenceControls: {
+    base: '/sequence-controls',
+    detail: (id: string) => `/sequence-controls/${id}`,
+    deleteMultiple: '/sequence-controls/delete-multiple',
+  },
+  documentTypes: {
+    base: '/document-types',
+    detail: (id: string) => `/document-types/${id}`,
+    dropdown: '/document-types/dropdown',
+    deleteMultiple: '/document-types/delete-multiple',
+  },
+
   // ── Academic ──────────────────────────────────────────────────────
   classes: {
     base: '/classes',

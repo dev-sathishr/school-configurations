@@ -1,0 +1,92 @@
+<app-modal [visible]="showModal" [title]="title" size="medium" (onClose)="closeModal()">
+  @if (loading) {
+    <app-loader size="small" text="Loading..." />
+  } @else {
+    <form [formGroup]="form">
+      <fieldset [disabled]="viewMode" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <app-form-field
+          [formGroup]="form"
+          controlName="code"
+          label="Code"
+          [required]="true"
+          [submitted]="submitted"
+          placeholder="e.g. AADHAAR"
+          [minLength]="3"
+          [maxLength]="20"
+          [uppercase]="true" />
+
+        <app-form-field
+          [formGroup]="form"
+          controlName="name"
+          label="Name"
+          [required]="true"
+          [submitted]="submitted"
+          placeholder="e.g. Aadhaar Card"
+          [minLength]="3"
+          [maxLength]="100" />
+
+        <div class="md:col-span-2">
+          <app-form-field
+            [formGroup]="form"
+            controlName="category"
+            label="Category"
+            fieldType="select"
+            [required]="true"
+            [submitted]="submitted"
+            [options]="categoryOptions"
+            placeholder="Select category" />
+        </div>
+
+        <app-form-field
+          [formGroup]="form"
+          controlName="document_no_label"
+          label="Document Number Label"
+          placeholder="e.g. Aadhaar Number, PAN Number"
+          [maxLength]="100" />
+
+        <app-form-field
+          [formGroup]="form"
+          controlName="validation_pattern"
+          label="Validation Pattern (Regex)"
+          placeholder="e.g. ^[0-9]{12}$"
+          [maxLength]="500" />
+
+        <div class="md:col-span-2">
+          <app-form-field
+            [formGroup]="form"
+            controlName="notes"
+            label="Notes"
+            fieldType="textarea"
+            [rows]="2"
+            placeholder="Optional description or usage notes"
+            [maxLength]="500" />
+        </div>
+
+        <div class="md:col-span-2">
+          <app-form-field
+            [formGroup]="form"
+            controlName="is_active"
+            label="Active"
+            fieldType="checkbox" />
+        </div>
+      </fieldset>
+    </form>
+  }
+
+  <div modal-footer class="flex justify-end gap-3">
+    <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="closeModal()">
+      {{ viewMode ? 'Close' : 'Cancel' }}
+    </app-button>
+    @if (viewMode) {
+      @if (ps.canEdit(moduleCode)) {
+        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">
+          Edit
+        </app-button>
+      }
+    } @else {
+      <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" [loading]="saving" (buttonClick)="submit()">
+        {{ mode === 'edit' ? 'Update' : 'Create' }}
+      </app-button>
+    }
+  </div>
+</app-modal>

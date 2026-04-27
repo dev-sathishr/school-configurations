@@ -7,6 +7,7 @@ export interface DropdownOption {
   value: string;
   label: string;
   icon?: string;
+  extra?: string;
 }
 
 @Component({
@@ -39,6 +40,8 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
   @Input() asyncUrl = '';
   @Input() asyncValueKey = 'id';
   @Input() asyncLabelKey = 'name';
+  @Input() asyncExtraKey = '';       // optional extra field to capture from raw item
+  @Output() extraChange = new EventEmitter<string>(); // emits the extra field value on selection
 
   // Events
   @Output() closed = new EventEmitter<void>();
@@ -53,7 +56,7 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
   @Input() showCount = true;
 
   @ViewChild('listContainer') listContainer!: ElementRef<HTMLDivElement>;
-  @ViewChild('triggerEl') triggerEl!: ElementRef<HTMLDivElement>;
+  @ViewChild('triggerEl') triggerEl!: ElementRef<HTMLElement>;
   @ViewChild('dropdownPanel') dropdownPanel!: ElementRef<HTMLDivElement>;
 
   isOpen = false;
@@ -121,6 +124,14 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['initialLabel']) {
       this._selectedLabel = this.initialLabel;
+    }
+    if (changes['asyncUrl'] && !changes['asyncUrl'].firstChange) {
+      this.asyncOptions = [];
+      this.asyncPage = 1;
+      this.asyncTotalCount = 0;
+      this.asyncTotalPages = 1;
+      this._selectedLabel = '';
+      this.search = '';
     }
   }
 
@@ -270,6 +281,7 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
     } else {
       this.value = opt.value;
       this.valueChange.emit(opt.value);
+      if (this.asyncExtraKey && opt.extra !== undefined) this.extraChange.emit(opt.extra);
       if (this.isAsync) this._selectedLabel = opt.label;
       this.isOpen = false;
     }
@@ -308,6 +320,7 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
         const newOpts = (res.data || []).map((item: any) => ({
           value: item[this.asyncValueKey],
           label: item[this.asyncLabelKey],
+          ...(this.asyncExtraKey ? { extra: item[this.asyncExtraKey] } : {}),
         }));
         this.asyncOptions = page === 1 ? newOpts : [...this.asyncOptions, ...newOpts];
         this.asyncTotalCount = res.pagination?.total_count || newOpts.length;

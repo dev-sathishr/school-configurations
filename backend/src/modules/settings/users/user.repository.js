@@ -1,16 +1,18 @@
 const db = require('../../../config/database');
 const { paginate } = require('../../../shared/helpers/pagination.helper');
 
-const SELECT_FIELDS = `u.id, u.username, u.full_name, u.email, u.phone_code, u.phone, u.group_id, u.is_active,
+const SELECT_FIELDS = `u.id, u.username, u.full_name, u.email, u.phone_code, u.phone, u.group_id,
+  u.person_type, u.person_id, u.is_active,
   u.last_login, u.created_by, u.updated_by, u.created_at, u.updated_at,
   g.name AS group_name, g.code AS group_code,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
-  pf.id AS profile_file_id`;
+  COALESCE(pf.id, ef.id) AS profile_file_id`;
 
 const JOINS = `LEFT JOIN settings.groups g ON u.group_id = g.id
   LEFT JOIN settings.users cb ON u.created_by = cb.id
   LEFT JOIN settings.users ub ON u.updated_by = ub.id
-  LEFT JOIN LATERAL (SELECT f.id FROM settings.files f WHERE f.entity_type = 'user' AND f.entity_id = u.id AND f.file_type = 'profile_image' AND f.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 1) pf ON true`;
+  LEFT JOIN LATERAL (SELECT f.id FROM settings.files f WHERE f.entity_type = 'user' AND f.entity_id = u.id AND f.file_type = 'profile_image' AND f.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 1) pf ON true
+  LEFT JOIN LATERAL (SELECT f.id FROM settings.files f WHERE f.entity_type = 'employee' AND f.entity_id = u.person_id AND f.file_type = 'photo' AND f.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 1) ef ON u.person_type = 'employee' AND u.person_id IS NOT NULL`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({
@@ -55,13 +57,16 @@ async function findByUsernameActive(username) {
 
 async function create(data, userId) {
   const result = await db.query(`
-    INSERT INTO settings.users (username, password, full_name, email, phone_code, phone, group_id, is_active, created_by, updated_by)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    RETURNING id, username, full_name, email, phone_code, phone, group_id, is_active, created_at
+    INSERT INTO settings.users (username, password, full_name, email, phone_code, phone, group_id, person_type, person_id, is_active, created_by, updated_by)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    RETURNING id
   `, [
     data.username, data.hashedPassword, data.full_name,
     data.email || null, data.phone_code || '+91', data.phone || null,
-    data.group_id || null, data.is_active !== undefined ? data.is_active : true,
+    data.group_id || null,
+    data.person_type || 'staff',
+    data.person_id || null,
+    data.is_active !== undefined ? data.is_active : true,
     userId, userId,
   ]);
   return result.rows[0];
@@ -71,10 +76,11 @@ async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
     UPDATE settings.users SET
       username = $1, password = $2, full_name = $3, email = $4, phone_code = $5, phone = $6,
-      group_id = $7, is_active = $8, updated_by = $9, updated_at = NOW()
-    WHERE id = $10
-      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $11::timestamptz)
-    RETURNING id, username, full_name, email, phone_code, phone, group_id, is_active, updated_at
+      group_id = $7, person_type = $8, person_id = $9, is_active = $10,
+      updated_by = $11, updated_at = NOW()
+    WHERE id = $12
+      AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $13::timestamptz)
+    RETURNING id, updated_at
   `, [
     data.username || current.username,
     data.hashedPassword || current.password,
@@ -83,6 +89,8 @@ async function update(id, data, current, userId, expectedUpdatedAt) {
     data.phone_code || current.phone_code || '+91',
     data.phone !== undefined ? (data.phone || null) : current.phone,
     data.group_id !== undefined ? (data.group_id || null) : current.group_id,
+    data.person_type || current.person_type || 'staff',
+    data.person_id !== undefined ? (data.person_id || null) : current.person_id,
     data.is_active !== undefined ? data.is_active : current.is_active,
     userId, id, expectedUpdatedAt,
   ]);
@@ -107,9 +115,13 @@ async function updateLastLogin(id) {
 async function findProfileById(id) {
   const result = await db.query(
     `SELECT u.id, u.username, u.full_name, u.email, u.phone, u.group_id, u.is_active, u.last_login, u.created_at,
-       g.name AS group_name, g.code AS group_code
+       u.person_type, u.person_id,
+       g.name AS group_name, g.code AS group_code,
+       COALESCE(pf.id, ef.id) AS profile_file_id
      FROM settings.users u
      LEFT JOIN settings.groups g ON u.group_id = g.id
+     LEFT JOIN LATERAL (SELECT f.id FROM settings.files f WHERE f.entity_type = 'user' AND f.entity_id = u.id AND f.file_type = 'profile_image' AND f.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 1) pf ON true
+     LEFT JOIN LATERAL (SELECT f.id FROM settings.files f WHERE f.entity_type = 'employee' AND f.entity_id = u.person_id AND f.file_type = 'photo' AND f.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 1) ef ON u.person_type = 'employee' AND u.person_id IS NOT NULL
      WHERE u.id = $1`,
     [id]
   );

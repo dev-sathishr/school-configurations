@@ -52,6 +52,8 @@ async function migrate() {
 
     // Add phone_code to users if missing
     await client.query(`ALTER TABLE settings.users ADD COLUMN IF NOT EXISTS phone_code VARCHAR(10) DEFAULT '+91'`).catch(() => {});
+    await client.query(`ALTER TABLE settings.users ADD COLUMN IF NOT EXISTS person_type VARCHAR(20) DEFAULT 'staff'`).catch(() => {});
+    await client.query(`ALTER TABLE settings.users ADD COLUMN IF NOT EXISTS person_id UUID`).catch(() => {});
 
     // Drop legacy role column and enum if they exist
     await client.query('ALTER TABLE settings.users DROP COLUMN IF EXISTS role').catch(() => {});
@@ -292,6 +294,8 @@ async function migrate() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_group_code_unique ON settings.groups (LOWER(code)) WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_group_code_unique already exists'));
 
+    await client.query(`ALTER TABLE settings.groups ADD COLUMN IF NOT EXISTS person_type VARCHAR(20) DEFAULT 'staff'`).catch(() => {});
+
     // Add group_id FK to users table (maps user to a group instead of enum role)
     await client.query(`
       ALTER TABLE settings.users ADD COLUMN IF NOT EXISTS group_id UUID REFERENCES settings.groups(id);
@@ -431,6 +435,119 @@ async function migrate() {
         ON settings.designations (employee_group_id)
         WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_designations_group already exists'));
+
+    // Employee info table — main employee record with personal + contact fields
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.employee_info (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        location_id UUID REFERENCES settings.locations(id),
+        designation_id UUID REFERENCES settings.designations(id),
+        employee_name VARCHAR(200) NOT NULL,
+        display_name VARCHAR(200),
+        employee_code VARCHAR(50) NOT NULL,
+        gender VARCHAR(20),
+        dob DATE,
+        blood_group VARCHAR(10),
+        marital_status VARCHAR(30),
+        religion VARCHAR(50),
+        community VARCHAR(50),
+        aadhaar_no VARCHAR(12),
+        primary_contact_code VARCHAR(10) DEFAULT '+91',
+        primary_contact_no VARCHAR(20),
+        secondary_contact_code VARCHAR(10) DEFAULT '+91',
+        secondary_contact_no VARCHAR(20),
+        email VARCHAR(100),
+        is_active BOOLEAN DEFAULT true,
+        notes TEXT,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_employee_info_code_location_unique
+        ON settings.employee_info (location_id, LOWER(employee_code))
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_employee_info_code_location_unique already exists'));
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_employee_info_location
+        ON settings.employee_info (location_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_employee_info_location already exists'));
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_employee_info_designation
+        ON settings.employee_info (designation_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_employee_info_designation already exists'));
+
+    // Sequence codes — master list of named sequences (e.g. EMPLOYEE)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.sequence_codes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        code VARCHAR(50) UNIQUE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    // Document types master — categorised list of document types used when employees upload documents
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.document_types (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        code VARCHAR(20) UNIQUE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        category VARCHAR(20) NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        notes VARCHAR(500),
+        document_no_label VARCHAR(100),
+        validation_pattern VARCHAR(500),
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    // Add document_no_label and validation_pattern columns if upgrading an existing table
+    await client.query(`ALTER TABLE settings.document_types ADD COLUMN IF NOT EXISTS document_no_label VARCHAR(100)`);
+    await client.query(`ALTER TABLE settings.document_types ADD COLUMN IF NOT EXISTS validation_pattern VARCHAR(500)`);
+
+    // Sequence controls — per-location config: prefix, suffix, counter, max
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.sequence_controls (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        sequence_code_id UUID NOT NULL REFERENCES settings.sequence_codes(id),
+        location_id UUID NOT NULL REFERENCES settings.locations(id),
+        prefix VARCHAR(20) DEFAULT '',
+        suffix VARCHAR(20) DEFAULT '',
+        last_no BIGINT NOT NULL DEFAULT 0,
+        max_no BIGINT NOT NULL DEFAULT 9999,
+        digit_length INT NOT NULL DEFAULT 3,
+        is_active BOOLEAN DEFAULT true,
+        notes TEXT,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ,
+        CONSTRAINT uq_sequence_control_code_location UNIQUE (sequence_code_id, location_id)
+      );
+    `);
 
     // Group permissions table (group + module + permission type mapping)
     await client.query(`
@@ -860,6 +977,187 @@ async function migrate() {
       VALUES ('session_retention_days', '90')
       ON CONFLICT (key) DO NOTHING;
     `);
+
+    // ── Employee Payroll ──────────────────────────────────────────────────────
+    // One row per employment period. An employee who resigns and rejoins gets a
+    // new row. is_current = true marks the active period (enforced by partial
+    // unique index). relieving_date / relieving_reason are null while employed.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.employee_payroll (
+        id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        employee_id         UUID NOT NULL REFERENCES settings.employee_info(id),
+        joining_date        DATE NOT NULL,
+        relieving_date      DATE,
+        relieving_reason    VARCHAR(200),
+        probation_end_date  DATE,
+        wage_type           VARCHAR(20) DEFAULT 'monthly',
+        basic_salary        NUMERIC(12,2),
+        day_wages           NUMERIC(10,2),
+        biometric_id        VARCHAR(50),
+        epf_applicable      BOOLEAN DEFAULT false,
+        epf_uan_no          VARCHAR(50),
+        pf_no               VARCHAR(50),
+        esi_applicable      BOOLEAN DEFAULT false,
+        esi_no              VARCHAR(50),
+        pan_no              VARCHAR(20),
+        bank_name           VARCHAR(100),
+        bank_account_no     VARCHAR(50),
+        bank_ifsc           VARCHAR(20),
+        is_current          BOOLEAN DEFAULT true,
+        notes               TEXT,
+        created_by          UUID REFERENCES settings.users(id),
+        updated_by          UUID REFERENCES settings.users(id),
+        created_at          TIMESTAMPTZ DEFAULT NOW(),
+        updated_at          TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by          UUID REFERENCES settings.users(id),
+        deleted_at          TIMESTAMPTZ
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_employee_payroll_employee
+        ON settings.employee_payroll (employee_id) WHERE deleted_at IS NULL;
+    `).catch(() => {});
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_employee_payroll_current
+        ON settings.employee_payroll (employee_id)
+        WHERE is_current = true AND deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_employee_payroll_current already exists'));
+
+    // Drop bank columns from payroll — bank accounts are now a separate polymorphic table
+    await client.query(`ALTER TABLE settings.employee_payroll DROP COLUMN IF EXISTS bank_name`).catch(() => {});
+    await client.query(`ALTER TABLE settings.employee_payroll DROP COLUMN IF EXISTS bank_account_no`).catch(() => {});
+    await client.query(`ALTER TABLE settings.employee_payroll DROP COLUMN IF EXISTS bank_ifsc`).catch(() => {});
+
+    // Bank account type enum
+    await client.query(`
+      CREATE TYPE settings.bank_account_type AS ENUM (
+        'savings', 'current', 'salary', 'other'
+      );
+    `).catch(() => console.log('Enum bank_account_type already exists, skipping...'));
+
+    // Bank accounts — core account data (reusable across all modules)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.bank_accounts (
+        id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        bank_name       VARCHAR(100) NOT NULL,
+        account_no      VARCHAR(50)  NOT NULL,
+        ifsc_code       VARCHAR(20),
+        branch_name     VARCHAR(100),
+        account_holder  VARCHAR(200),
+        account_type    settings.bank_account_type DEFAULT 'savings',
+        created_by      UUID REFERENCES settings.users(id),
+        updated_by      UUID REFERENCES settings.users(id),
+        created_at      TIMESTAMPTZ DEFAULT NOW(),
+        updated_at      TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by      UUID REFERENCES settings.users(id),
+        deleted_at      TIMESTAMPTZ
+      );
+    `);
+
+    // Bank account mappings — polymorphic link to any entity
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.bank_account_mappings (
+        id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        bank_account_id   UUID NOT NULL REFERENCES settings.bank_accounts(id),
+        entity_type       VARCHAR(50) NOT NULL,
+        entity_id         UUID NOT NULL,
+        is_active         BOOLEAN DEFAULT true,
+        created_by        UUID REFERENCES settings.users(id),
+        created_at        TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by        UUID REFERENCES settings.users(id),
+        deleted_at        TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_bank_account_mappings_entity
+        ON settings.bank_account_mappings (entity_type, entity_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => {});
+
+    // Only one active account per entity at a time
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_bank_account_mappings_active
+        ON settings.bank_account_mappings (entity_type, entity_id)
+        WHERE is_active = true AND deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_bank_account_mappings_active already exists'));
+
+    // ── Employee Qualifications ────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.employee_qualifications (
+        id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        employee_id       UUID NOT NULL REFERENCES settings.employee_info(id),
+        degree            VARCHAR(50)  NOT NULL,
+        field_of_study    VARCHAR(200),
+        institution       VARCHAR(300) NOT NULL,
+        board_university  VARCHAR(300),
+        year_of_passing   SMALLINT,
+        grade             VARCHAR(50),
+        notes             VARCHAR(500),
+        created_by        UUID REFERENCES settings.users(id),
+        updated_by        UUID REFERENCES settings.users(id),
+        created_at        TIMESTAMPTZ DEFAULT NOW(),
+        updated_at        TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by        UUID REFERENCES settings.users(id),
+        deleted_at        TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_employee_qualifications_employee
+        ON settings.employee_qualifications (employee_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => {});
+
+    // ── Employee Experience ────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.employee_experience (
+        id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        employee_id       UUID NOT NULL REFERENCES settings.employee_info(id),
+        organization      VARCHAR(300) NOT NULL,
+        designation       VARCHAR(200),
+        from_date         DATE NOT NULL,
+        to_date           DATE,
+        is_current        BOOLEAN DEFAULT false,
+        notes             VARCHAR(500),
+        created_by        UUID REFERENCES settings.users(id),
+        updated_by        UUID REFERENCES settings.users(id),
+        created_at        TIMESTAMPTZ DEFAULT NOW(),
+        updated_at        TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by        UUID REFERENCES settings.users(id),
+        deleted_at        TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_employee_experience_employee
+        ON settings.employee_experience (employee_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => {});
+
+    // ── Employee Documents ─────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.employee_documents (
+        id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        employee_id       UUID NOT NULL REFERENCES settings.employee_info(id),
+        document_type_id  UUID NOT NULL REFERENCES settings.document_types(id),
+        document_no       VARCHAR(100),
+        expiry_date       DATE,
+        notes             VARCHAR(500),
+        created_by        UUID REFERENCES settings.users(id),
+        updated_by        UUID REFERENCES settings.users(id),
+        created_at        TIMESTAMPTZ DEFAULT NOW(),
+        updated_at        TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by        UUID REFERENCES settings.users(id),
+        deleted_at        TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_employee_documents_employee
+        ON settings.employee_documents (employee_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => {});
 
     console.log('Migration completed successfully');
   } catch (err) {

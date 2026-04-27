@@ -166,7 +166,7 @@ async function findDropdown({ page, size, search }) {
   );
 
   return {
-    data: result.rows.map(r => ({ id: r.id, name: r.code ? `${r.name} (${r.code})` : r.name })),
+    data: result.rows.map(r => ({ id: r.id, name: r.code ? `${r.name} (${r.code})` : r.name, code: r.code || '' })),
     pagination: { page, size, total_count: totalCount, total_pages: Math.ceil(totalCount / size) },
   };
 }

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { SelectDropdownComponent } from '../select-dropdown/select-dropdown.component';
@@ -32,11 +32,16 @@ export class FormFieldComponent {
   @Input() uppercase = false;
   @Input() lowercase = false;
   @Input() digitsOnly = false;
+  @Input() min: string | null = null;
+  @Input() max: string | null = null;
+  @Input() autocomplete: string | null = null;
 
   // Async select
   @Input() asyncUrl = '';
   @Input() asyncValueKey = 'id';
   @Input() asyncLabelKey = 'name';
+  @Input() asyncExtraKey = '';
+  @Output() extraChange = new EventEmitter<string>();
   @Input() initialLabel = '';
 
   get control() { return this.formGroup.get(this.controlName); }
@@ -63,6 +68,8 @@ export class FormFieldComponent {
     }
     if (errors['max']) return `${this.label} cannot exceed ${errors['max'].max}`;
     if (errors['min']) return `${this.label} must be at least ${errors['min'].min}`;
+    if (errors['dobMin']) return 'Employee must be at least 18 years old';
+    if (errors['dobMax']) return 'Date of birth is too far in the past';
     return '';
   }
 

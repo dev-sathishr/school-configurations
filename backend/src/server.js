@@ -32,6 +32,17 @@ const academicYearRoutes = require('./modules/academic/academic-years/academic-y
 const employeeCategoryRoutes = require('./modules/employee/employee-categories/employee-category.routes');
 const employeeGroupRoutes = require('./modules/employee/employee-groups/employee-group.routes');
 const designationRoutes = require('./modules/employee/designations/designation.routes');
+const employeeRoutes = require('./modules/employee/employees/employee.routes');
+const employeePayrollRoutes = require('./modules/employee/employee-payroll/employee-payroll.routes');
+const { router: employeeBankAccountRoutes, ifscRouter } = require('./modules/employee/employee-bank-accounts/employee-bank-accounts.routes');
+const employeeQualificationRoutes = require('./modules/employee/employee-qualifications/employee-qualifications.routes');
+const employeeExperienceRoutes = require('./modules/employee/employee-experience/employee-experience.routes');
+
+// Master
+const sequenceCodeRoutes = require('./modules/master/sequence-codes/sequence-code.routes');
+const sequenceControlRoutes = require('./modules/master/sequence-controls/sequence-control.routes');
+const documentTypeRoutes = require('./modules/master/document-types/document-type.routes');
+const employeeDocumentRoutes = require('./modules/employee/employee-documents/employee-document.routes');
 
 const { lookupPincode } = require('./shared/helpers/pincode.helper');
 const { authenticate } = require('./shared/middleware/auth.middleware');
@@ -67,6 +78,16 @@ app.use('/api/v1/academic-years', academicYearRoutes);
 app.use('/api/v1/employee-categories', employeeCategoryRoutes);
 app.use('/api/v1/employee-groups', employeeGroupRoutes);
 app.use('/api/v1/designations', designationRoutes);
+app.use('/api/v1/employees', employeeRoutes);
+app.use('/api/v1/employees/:employeeId/payroll', employeePayrollRoutes);
+app.use('/api/v1/employees/:employeeId/bank-accounts', employeeBankAccountRoutes);
+app.use('/api/v1/employees/:employeeId/qualifications', employeeQualificationRoutes);
+app.use('/api/v1/employees/:employeeId/experience', employeeExperienceRoutes);
+app.use('/api/v1/employees/:employeeId/documents', employeeDocumentRoutes);
+app.use('/api/v1/ifsc', ifscRouter);
+app.use('/api/v1/sequence-codes', sequenceCodeRoutes);
+app.use('/api/v1/sequence-controls', sequenceControlRoutes);
+app.use('/api/v1/document-types', documentTypeRoutes);
 
 // Shared
 app.get('/api/v1/pincode/:pincode', authenticate, lookupPincode);

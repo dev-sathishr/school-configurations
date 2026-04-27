@@ -33,6 +33,13 @@ const routes: Routes = [
     loadChildren: () => import('../employee/employee.module').then((m) => m.EmployeeModule),
   },
   {
+    path: 'master',
+    component: LayoutComponent,
+    canActivate: [MenuAccessGuard],
+    data: { menuCode: 'MASTER' },
+    loadChildren: () => import('../master/master.module').then((m) => m.MasterModule),
+  },
+  {
     path: 'settings',
     component: LayoutComponent,
     canActivate: [MenuAccessGuard],

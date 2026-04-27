@@ -6,7 +6,7 @@ import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
 import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
 import { API } from '../../../../../core/api/endpoints';
-import { STATUS_BADGES, statusLabel } from '../../../../../core/constants/enums';
+import { STATUS_BADGES, statusLabel, PERSON_TYPE_BADGES, personTypeLabel } from '../../../../../core/constants/enums';
 
 @Component({
   selector: 'app-user-list',
@@ -24,19 +24,21 @@ export class UserListComponent extends BaseListComponent {
     { key: 'u.email', label: 'Email', sortable: true, searchable: true },
     { key: 'u.phone', label: 'Phone', sortable: true, searchable: true },
     { key: 'g.name', label: 'Group', sortable: true },
+    { key: 'u.person_type', label: 'User Type', type: 'badge', badgeMap: PERSON_TYPE_BADGES },
     { key: 'u.is_active', label: 'Status', sortable: true, type: 'badge', badgeMap: STATUS_BADGES },
     { key: 'u.last_login', label: 'Last Login', sortable: true },
   ];
 
   displayKeyMap: Record<string, string> = {
     'u.full_name': 'full_name', 'u.username': 'username', 'u.email': 'email',
-    'u.phone': 'phone', 'g.name': 'group_name', 'u.is_active': 'is_active',
-    'u.last_login': 'last_login',
+    'u.phone': 'phone', 'g.name': 'group_name', 'u.person_type': 'person_type',
+    'u.is_active': 'is_active', 'u.last_login': 'last_login',
     'profile_file_id': 'profile_file_id',
   };
 
   rowTransform = (row: any, mapped: any) => {
     mapped['u.is_active'] = statusLabel(row.is_active);
+    mapped['u.person_type'] = personTypeLabel(row.person_type || 'staff');
     mapped['g.name'] = row.group?.name || '-';
     mapped['u.phone'] = row.phone ? `${row.phone_code || '+91'} ${row.phone}` : '-';
     mapped['u.last_login'] = row.last_login ? new Date(row.last_login).toLocaleDateString('en-IN', {

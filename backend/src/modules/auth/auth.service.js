@@ -1,7 +1,6 @@
 const userRepo = require('../settings/users/user.repository');
 const locationRepo = require('../settings/locations/location.repository');
 const sessionRepo = require('../settings/sessions/session.repository');
-const fileRepo = require('../files/file.repository');
 const notificationRepo = require('../notifications/notification.repository');
 const password = require('../../shared/helpers/password.helper');
 const jwt = require('../../shared/helpers/jwt.helper');
@@ -68,7 +67,7 @@ async function login(username, pwd, context = {}) {
     group_code: user.group_code || '',
     session_id: session.id,
   };
-  const profileFile = await fileRepo.findOneByEntity('user', user.id, 'profile_image');
+  const profile = await userRepo.findProfileById(user.id);
 
   return {
     data: {
@@ -83,7 +82,7 @@ async function login(username, pwd, context = {}) {
         group_code: user.group_code || '',
         group_name: user.group_name || '',
         last_login: user.last_login,
-        profile_file_id: profileFile?.id || null,
+        profile_file_id: profile?.profile_file_id || null,
       },
     },
     message: 'Login successful',

@@ -1,0 +1,14 @@
+<app-table
+  [apiUrl]="apiUrl"
+  [deleteUrl]="deleteUrl"
+  [columns]="columns"
+  [displayKeyMap]="displayKeyMap"
+  [rowTransform]="rowTransform"
+  [canEdit]="ps.canEdit(moduleCode)"
+  [canDelete]="ps.canDelete(moduleCode)"
+  [canView]="ps.canView(moduleCode)"
+  [canImport]="ps.canImport(moduleCode)"
+  [canExport]="ps.canExport(moduleCode)"
+  (onEdit)="onEditRecord.emit($event)"
+  (onView)="onViewRecord.emit($event)">
+</app-table>
