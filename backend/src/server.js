@@ -28,23 +28,24 @@ const classRoutes = require('./modules/academic/classes/class.routes');
 const classLevelRoutes = require('./modules/academic/class-levels/class-level.routes');
 const academicYearRoutes = require('./modules/academic/academic-years/academic-year.routes');
 
-// Employee
-const employeeCategoryRoutes = require('./modules/employee/employee-categories/employee-category.routes');
-const employeeGroupRoutes = require('./modules/employee/employee-groups/employee-group.routes');
-const designationRoutes = require('./modules/employee/designations/designation.routes');
-const employeeRoutes = require('./modules/employee/employees/employee.routes');
-const employeePayrollRoutes = require('./modules/employee/employee-payroll/employee-payroll.routes');
-const { router: employeeBankAccountRoutes, ifscRouter } = require('./modules/employee/employee-bank-accounts/employee-bank-accounts.routes');
-const employeeQualificationRoutes = require('./modules/employee/employee-qualifications/employee-qualifications.routes');
-const employeeExperienceRoutes = require('./modules/employee/employee-experience/employee-experience.routes');
+// Employee — master data
+const employeeCategoryRoutes = require('./modules/employee/employee-master/employee-categories/employee-category.routes');
+const employeeGroupRoutes = require('./modules/employee/employee-master/employee-groups/employee-group.routes');
+const designationRoutes = require('./modules/employee/employee-master/designations/designation.routes');
+// Employee — employee info & sub-tabs
+const employeeRoutes = require('./modules/employee/employee-info/employees/employee.routes');
+const employeePayrollRoutes = require('./modules/employee/employee-info/employee-payroll/employee-payroll.routes');
+const { router: employeeBankAccountRoutes, ifscRouter } = require('./modules/employee/employee-info/employee-bank-accounts/employee-bank-accounts.routes');
+const employeeQualificationRoutes = require('./modules/employee/employee-info/employee-qualifications/employee-qualifications.routes');
+const employeeExperienceRoutes = require('./modules/employee/employee-info/employee-experience/employee-experience.routes');
+const employeeDocumentRoutes = require('./modules/employee/employee-info/employee-documents/employee-document.routes');
+const employeeRelationRoutes = require('./modules/employee/employee-info/employee-family/relation.routes');
 
 // Master
-const sequenceCodeRoutes = require('./modules/master/sequence-codes/sequence-code.routes');
-const sequenceControlRoutes = require('./modules/master/sequence-controls/sequence-control.routes');
+const sequenceCodeRoutes = require('./modules/master/sequence-master/sequence-codes/sequence-code.routes');
+const sequenceControlRoutes = require('./modules/master/sequence-master/sequence-controls/sequence-control.routes');
 const documentTypeRoutes = require('./modules/master/document-types/document-type.routes');
 const feeCategoryRoutes = require('./modules/master/fee-categories/fee-category.routes');
-const employeeDocumentRoutes = require('./modules/employee/employee-documents/employee-document.routes');
-const employeeRelationRoutes = require('./modules/employee/employee-family/relation.routes');
 
 const { lookupPincode } = require('./shared/helpers/pincode.helper');
 const { authenticate } = require('./shared/middleware/auth.middleware');
