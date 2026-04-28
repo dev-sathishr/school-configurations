@@ -2,10 +2,10 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { PermissionService } from '../../../../core/services/permission.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
-import { SequenceCodeListComponent } from '../sequence-code/sequence-code-list/sequence-code-list.component';
-import { SequenceCodeFormComponent } from '../sequence-code/sequence-code-form/sequence-code-form.component';
-import { SequenceControlListComponent } from '../sequence-control/sequence-control-list/sequence-control-list.component';
-import { SequenceControlFormComponent } from '../sequence-control/sequence-control-form/sequence-control-form.component';
+import { SequenceCodeListComponent } from './sequence-code/sequence-code-list/sequence-code-list.component';
+import { SequenceCodeFormComponent } from './sequence-code/sequence-code-form/sequence-code-form.component';
+import { SequenceControlListComponent } from './sequence-control/sequence-control-list/sequence-control-list.component';
+import { SequenceControlFormComponent } from './sequence-control/sequence-control-form/sequence-control-form.component';
 
 type SequenceTabKey = 'sequence-code' | 'sequence-control';
 

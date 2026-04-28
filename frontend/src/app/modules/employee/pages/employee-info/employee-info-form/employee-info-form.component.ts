@@ -21,18 +21,18 @@ import {
   COMMUNITY_OPTIONS,
 } from '../../../../../core/constants/enums';
 import * as V from '../../../../../shared/validators/common';
-import { EmployeePayrollListComponent } from '../../employee-payroll/employee-payroll-list.component';
-import { EmployeePayrollFormComponent } from '../../employee-payroll/employee-payroll-form.component';
-import { EmployeeBankAccountListComponent } from '../../employee-bank-account/employee-bank-account-list.component';
-import { EmployeeBankAccountFormComponent } from '../../employee-bank-account/employee-bank-account-form.component';
-import { EmployeeQualificationListComponent } from '../../employee-qualification/employee-qualification-list.component';
-import { EmployeeQualificationFormComponent } from '../../employee-qualification/employee-qualification-form.component';
-import { EmployeeExperienceListComponent } from '../../employee-experience/employee-experience-list.component';
-import { EmployeeExperienceFormComponent } from '../../employee-experience/employee-experience-form.component';
-import { EmployeeDocumentListComponent } from '../../employee-document/employee-document-list.component';
-import { EmployeeDocumentFormComponent } from '../../employee-document/employee-document-form.component';
-import { EmployeeRelationListComponent } from '../../employee-family/employee-relation-list.component';
-import { EmployeeRelationFormComponent } from '../../employee-family/employee-relation-form.component';
+import { EmployeePayrollListComponent } from '../employee-payroll/employee-payroll-list.component';
+import { EmployeePayrollFormComponent } from '../employee-payroll/employee-payroll-form.component';
+import { EmployeeBankAccountListComponent } from '../employee-bank-account/employee-bank-account-list.component';
+import { EmployeeBankAccountFormComponent } from '../employee-bank-account/employee-bank-account-form.component';
+import { EmployeeQualificationListComponent } from '../employee-qualification/employee-qualification-list.component';
+import { EmployeeQualificationFormComponent } from '../employee-qualification/employee-qualification-form.component';
+import { EmployeeExperienceListComponent } from '../employee-experience/employee-experience-list.component';
+import { EmployeeExperienceFormComponent } from '../employee-experience/employee-experience-form.component';
+import { EmployeeDocumentListComponent } from '../employee-document/employee-document-list.component';
+import { EmployeeDocumentFormComponent } from '../employee-document/employee-document-form.component';
+import { EmployeeRelationListComponent } from '../employee-family/employee-relation-list.component';
+import { EmployeeRelationFormComponent } from '../employee-family/employee-relation-form.component';
 
 type FormTab = 'personal' | 'contact' | 'payroll' | 'bank' | 'qualification' | 'experience' | 'document' | 'family';
 

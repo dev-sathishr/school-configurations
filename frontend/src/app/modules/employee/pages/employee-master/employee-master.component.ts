@@ -2,12 +2,12 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { PermissionService } from '../../../../core/services/permission.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
-import { DesignationFormComponent } from '../designation/designation-form/designation-form.component';
-import { DesignationListComponent } from '../designation/designation-list/designation-list.component';
-import { EmployeeCategoryFormComponent } from '../employee-category/employee-category-form/employee-category-form.component';
-import { EmployeeCategoryListComponent } from '../employee-category/employee-category-list/employee-category-list.component';
-import { EmployeeGroupFormComponent } from '../employee-group/employee-group-form/employee-group-form.component';
-import { EmployeeGroupListComponent } from '../employee-group/employee-group-list/employee-group-list.component';
+import { DesignationFormComponent } from './designation/designation-form/designation-form.component';
+import { DesignationListComponent } from './designation/designation-list/designation-list.component';
+import { EmployeeCategoryFormComponent } from './employee-category/employee-category-form/employee-category-form.component';
+import { EmployeeCategoryListComponent } from './employee-category/employee-category-list/employee-category-list.component';
+import { EmployeeGroupFormComponent } from './employee-group/employee-group-form/employee-group-form.component';
+import { EmployeeGroupListComponent } from './employee-group/employee-group-list/employee-group-list.component';
 
 type EmployeeMasterTabKey = 'employee-category' | 'employee-group' | 'designation';
 
