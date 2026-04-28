@@ -42,6 +42,7 @@ const employeeExperienceRoutes = require('./modules/employee/employee-experience
 const sequenceCodeRoutes = require('./modules/master/sequence-codes/sequence-code.routes');
 const sequenceControlRoutes = require('./modules/master/sequence-controls/sequence-control.routes');
 const documentTypeRoutes = require('./modules/master/document-types/document-type.routes');
+const feeCategoryRoutes = require('./modules/master/fee-categories/fee-category.routes');
 const employeeDocumentRoutes = require('./modules/employee/employee-documents/employee-document.routes');
 const employeeRelationRoutes = require('./modules/employee/employee-family/relation.routes');
 
@@ -90,6 +91,7 @@ app.use('/api/v1/ifsc', ifscRouter);
 app.use('/api/v1/sequence-codes', sequenceCodeRoutes);
 app.use('/api/v1/sequence-controls', sequenceControlRoutes);
 app.use('/api/v1/document-types', documentTypeRoutes);
+app.use('/api/v1/fee-categories', feeCategoryRoutes);
 
 // Shared
 app.get('/api/v1/pincode/:pincode', authenticate, lookupPincode);

@@ -182,6 +182,7 @@ async function seed() {
       { key: 'SEQUENCE_CODES',    name: 'Sequence Codes',    display_name: 'Sequence Master',   icon: 'assets/icons/heroicons/outline/adjustments-horizontal.svg',     route_path: '/master/sequence',       display_order: 1, enforce_edit_lock: false, description: 'Configure sequence codes and controls for auto-numbering' },
       { key: 'SEQUENCE_CONTROLS', name: 'Sequence Controls', display_name: 'Sequence Controls', icon: 'assets/icons/heroicons/outline/adjustments-horizontal.svg',     route_path: '/master/sequence',       display_order: 2, enforce_edit_lock: false, description: 'Configure prefix, suffix, counter and limit per location and sequence type' },
       { key: 'DOCUMENT_TYPES',    name: 'Document Types',    display_name: 'Document Types',    icon: 'assets/icons/heroicons/outline/folder.svg',                      route_path: '/master/document-types', display_order: 3, enforce_edit_lock: false, description: 'Manage document type categories used for employee document uploads' },
+      { key: 'FEE_CATEGORIES',   name: 'Fee Categories',    display_name: 'Fee Categories',    icon: 'assets/icons/heroicons/outline/table-cells.svg',                 route_path: '/master/fee-categories', display_order: 4, enforce_edit_lock: false, description: 'Manage fee category types used to classify student fee items' },
     ];
 
     const moduleIds = {};
@@ -221,6 +222,7 @@ async function seed() {
       { menu: 'MASTER', module: 'SEQUENCE_CODES',    display_order: 1 },
       { menu: 'MASTER', module: 'SEQUENCE_CONTROLS', display_order: 2 },
       { menu: 'MASTER', module: 'DOCUMENT_TYPES',    display_order: 3 },
+      { menu: 'MASTER', module: 'FEE_CATEGORIES',    display_order: 4 },
     ];
 
     let mmInserted = 0;
@@ -595,6 +597,32 @@ async function seed() {
       dtInserted++;
     }
     console.log(`Document Types seeded (${dtInserted} inserted, ${documentTypes.length - dtInserted} already existed)`);
+
+    // Seed Fee Categories
+    const feeCategories = [
+      { code: 'TUITION',   name: 'Tuition Fee',      description: 'Regular academic tuition charges' },
+      { code: 'TRANSPORT', name: 'Transport Fee',     description: 'School bus and transport charges' },
+      { code: 'EXAM',      name: 'Examination Fee',   description: 'Charges for term and annual examinations' },
+      { code: 'ACTIVITY',  name: 'Activity Fee',      description: 'Sports, arts and co-curricular activity charges' },
+      { code: 'HOSTEL',    name: 'Hostel Fee',        description: 'Boarding and accommodation charges' },
+    ];
+
+    let fcInserted = 0;
+    for (const fc of feeCategories) {
+      const existing = await client.query(
+        `SELECT id FROM settings.fee_categories WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        [fc.code]
+      );
+      if (existing.rows.length === 0) {
+        await client.query(
+          `INSERT INTO settings.fee_categories (code, name, description, is_active, created_by, updated_by)
+           VALUES ($1, $2, $3, true, $4, $5)`,
+          [fc.code, fc.name, fc.description, adminId, adminId]
+        );
+        fcInserted++;
+      }
+    }
+    console.log(`Fee Categories seeded (${fcInserted} inserted, ${feeCategories.length - fcInserted} already existed)`);
 
   } catch (err) {
     console.error('Seed failed:', err);

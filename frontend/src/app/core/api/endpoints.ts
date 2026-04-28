@@ -176,6 +176,12 @@ export const API = {
     dropdown: '/document-types/dropdown',
     deleteMultiple: '/document-types/delete-multiple',
   },
+  feeCategories: {
+    base: '/fee-categories',
+    detail: (id: string) => `/fee-categories/${id}`,
+    dropdown: '/fee-categories/dropdown',
+    deleteMultiple: '/fee-categories/delete-multiple',
+  },
 
   // ── Academic ──────────────────────────────────────────────────────
   classes: {

@@ -4,6 +4,7 @@ import { MasterComponent } from './master.component';
 import { MenuHomeComponent } from '../../shared/components/menu-home/menu-home.component';
 import { SequenceMasterComponent } from './pages/sequence-master/sequence-master.component';
 import { DocumentTypeComponent } from './pages/document-type/document-type.component';
+import { FeeCategoryPageComponent } from './pages/fee-category/fee-category-page.component';
 import { ModuleAccessGuard } from '../../core/guards/module-access.guard';
 
 const routes: Routes = [
@@ -23,6 +24,12 @@ const routes: Routes = [
         component: DocumentTypeComponent,
         canActivate: [ModuleAccessGuard],
         data: { moduleCodes: ['DOCUMENT_TYPES'] },
+      },
+      {
+        path: 'fee-categories',
+        component: FeeCategoryPageComponent,
+        canActivate: [ModuleAccessGuard],
+        data: { moduleCodes: ['FEE_CATEGORIES'] },
       },
     ],
   },

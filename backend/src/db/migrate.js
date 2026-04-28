@@ -526,6 +526,25 @@ async function migrate() {
     await client.query(`ALTER TABLE settings.document_types ADD COLUMN IF NOT EXISTS document_no_label VARCHAR(100)`);
     await client.query(`ALTER TABLE settings.document_types ADD COLUMN IF NOT EXISTS validation_pattern VARCHAR(500)`);
 
+    // Fee categories master — used to classify student fee line items
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.fee_categories (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        code VARCHAR(20) UNIQUE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        description VARCHAR(500),
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fee_categories_code ON settings.fee_categories(code) WHERE deleted_at IS NULL`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fee_categories_active ON settings.fee_categories(is_active) WHERE deleted_at IS NULL`);
+
     // Sequence controls — per-location config: prefix, suffix, counter, max
     await client.query(`
       CREATE TABLE IF NOT EXISTS settings.sequence_controls (
