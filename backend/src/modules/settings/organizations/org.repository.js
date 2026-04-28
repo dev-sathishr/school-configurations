@@ -96,12 +96,17 @@ async function softDeleteMultiple(ids, userId) {
 async function checkUnique(field, value, excludeId = null) {
   let query = `SELECT id FROM settings.organizations WHERE LOWER(${field}) = LOWER($1) AND deleted_at IS NULL`;
   const params = [value.trim()];
-  if (excludeId) {
-    query += ' AND id != $2';
-    params.push(excludeId);
-  }
+  if (excludeId) { query += ' AND id != $2'; params.push(excludeId); }
   const result = await db.query(query, params);
   return result.rows.length > 0;
+}
+
+async function checkUniquePhone(value, excludeId = null) {
+  let query = `SELECT id FROM settings.organizations WHERE (LOWER(primary_contact_no) = LOWER($1) OR LOWER(alternate_contact_no) = LOWER($1)) AND deleted_at IS NULL`;
+  const params = [value];
+  if (excludeId) { query += ' AND id != $2'; params.push(excludeId); }
+  const result = await db.query(query, params);
+  return result.rows[0] || null;
 }
 
 // Allowed field names for findByField. Whitelist guards against SQL injection
@@ -141,4 +146,4 @@ async function findDropdown({ page, size, search }) {
   };
 }
 
-module.exports = { findAll, findById, create, update, softDelete, softDeleteMultiple, checkUnique, findByField, findDropdown };
+module.exports = { findAll, findById, create, update, softDelete, softDeleteMultiple, checkUnique, checkUniquePhone, findByField, findDropdown };

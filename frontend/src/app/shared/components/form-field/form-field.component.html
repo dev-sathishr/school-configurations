@@ -44,7 +44,8 @@
         [label]="label"
         [placeholder]="placeholder"
         [required]="required"
-        [submitted]="submitted" />
+        [submitted]="submitted"
+        [siblingControlName]="siblingControlName" />
     } @else {
       <input [type]="fieldType" [formControlName]="controlName" [placeholder]="placeholder"
         [attr.maxlength]="maxLength"
@@ -56,6 +57,12 @@
         class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
     }
 
+    @if (fieldType !== 'phone' && isPending) {
+      <span class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+        <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+        Checking…
+      </span>
+    }
     @if (fieldType !== 'phone' && hasError && errorMessage) {
       <span class="mt-1 block text-xs text-red-500">{{ errorMessage }}</span>
     }

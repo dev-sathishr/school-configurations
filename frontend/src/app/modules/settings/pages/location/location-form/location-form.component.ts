@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
-import { FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, AsyncValidatorFn, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { Observable, of, timer } from 'rxjs';
+import { switchMap, map, catchError } from 'rxjs/operators';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
@@ -25,15 +27,31 @@ export class LocationFormComponent extends FormPageBase {
 
   locationTypes = LOCATION_TYPE_OPTIONS;
 
+  private uniqueValidator(field: string): AsyncValidatorFn {
+    return (control: AbstractControl): Observable<ValidationErrors | null> => {
+      const value = control.value?.number ?? control.value;
+      if (!value || !String(value).trim()) return of(null);
+      return timer(400).pipe(
+        switchMap(() => {
+          const params: any = { field, value: String(value).trim() };
+          if (this.editId) params.exclude_id = this.editId;
+          return this.cs.getService({ url: API.locations.checkUnique, params });
+        }),
+        map((res: any) => res?.data?.available ? null : { notUnique: res?.data?.message || 'Already registered' }),
+        catchError(() => of(null)),
+      );
+    };
+  }
+
   protected buildForm(): FormGroup {
     return this.fb.group({
       organization_id: ['', Validators.required],
       name: ['', V.NAME],
       code: ['', V.SHORT_CODE],
       type: ['branch', Validators.required],
-      email: ['', V.EMAIL],
-      primary_phone: [{ code: '+91', number: '' }],
-      alternate_phone: [{ code: '+91', number: '' }],
+      email: ['', V.EMAIL, this.uniqueValidator('email')],
+      primary_phone: [{ code: '+91', number: '' }, [], this.uniqueValidator('primary_contact_no')],
+      alternate_phone: [{ code: '+91', number: '' }, [], this.uniqueValidator('alternate_contact_no')],
       is_active: [true],
       notes: ['', V.NOTES],
     });

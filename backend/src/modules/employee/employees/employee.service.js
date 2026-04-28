@@ -95,6 +95,35 @@ function validateEnumFields(body) {
   return errors;
 }
 
+async function checkUnique(field, value, excludeId = null) {
+  const labelMap = {
+    aadhaar_no:           'Aadhaar No',
+    email:                'Email',
+    primary_contact_no:   'Primary contact number',
+    secondary_contact_no: 'Secondary contact number',
+  };
+  if (!labelMap[field]) return { error: 'badRequest', message: 'Invalid field' };
+  if (!value || !value.trim()) return { data: { available: true } };
+  const existing = await employeeRepo.checkUniqueField(field, value.trim(), excludeId);
+  if (existing) return { data: { available: false, message: `${labelMap[field]} is already registered` } };
+  return { data: { available: true } };
+}
+
+async function assertUniqueFields(body, excludeId = null) {
+  const checks = [
+    { field: 'aadhaar_no',           value: body.aadhaar_no },
+    { field: 'email',                value: body.email },
+    { field: 'primary_contact_no',   value: body.primary_contact_no },
+    { field: 'secondary_contact_no', value: body.secondary_contact_no },
+  ];
+  for (const { field, value } of checks) {
+    if (!value || !String(value).trim()) continue;
+    const result = await checkUnique(field, String(value).trim(), excludeId);
+    if (!result.data.available) return { error: 'conflict', message: result.data.message };
+  }
+  return null;
+}
+
 async function create(body, userId) {
   // Validate everything except employee_code — it's system-generated
   const rulesWithoutCode = { ...EMPLOYEE_RULES };
@@ -110,6 +139,9 @@ async function create(body, userId) {
   const scope = await getUserLocationScope(userId);
   const scopeError = assertLocationAllowed(scope, body.location_id);
   if (scopeError) return scopeError;
+
+  const uniqueError = await assertUniqueFields(body);
+  if (uniqueError) return uniqueError;
 
   // Atomically claim the next code — safe under concurrent requests
   const generated = await generateNextCode('EMPLOYEE', body.location_id);
@@ -139,6 +171,9 @@ async function update(id, body, userId) {
   const newLocationId = body.location_id || current.location_id;
   const locationError = assertLocationAllowed(scope, newLocationId);
   if (locationError) return locationError;
+
+  const uniqueError = await assertUniqueFields(body, id);
+  if (uniqueError) return uniqueError;
 
   const newCode = body.employee_code || current.employee_code;
   if (
@@ -208,4 +243,4 @@ async function getLinkableDropdown(query) {
   });
 }
 
-module.exports = { getAll, getById, getNextCode, getDropdown, getLinkableDropdown, create, update, remove, removeMultiple };
+module.exports = { getAll, getById, getNextCode, getDropdown, getLinkableDropdown, create, update, remove, removeMultiple, checkUnique };

@@ -179,6 +179,24 @@ async function update(id, data, current, userId, expectedUpdatedAt) {
   return result.rows[0] || null;
 }
 
+async function checkUniqueField(field, value, excludeId = null) {
+  const allowed = ['aadhaar_no', 'email', 'primary_contact_no', 'secondary_contact_no'];
+  if (!allowed.includes(field)) throw new Error('Invalid field');
+
+  // Phone numbers must be unique across BOTH contact columns, not just the one being saved.
+  const phoneFields = ['primary_contact_no', 'secondary_contact_no'];
+  const isPhone = phoneFields.includes(field);
+  const whereValue = isPhone
+    ? `(LOWER(primary_contact_no) = LOWER($1) OR LOWER(secondary_contact_no) = LOWER($1))`
+    : `LOWER(${field}) = LOWER($1)`;
+
+  let query = `SELECT id FROM ${TABLE} WHERE ${whereValue} AND deleted_at IS NULL`;
+  const params = [value];
+  if (excludeId) { query += ' AND id != $2'; params.push(excludeId); }
+  const result = await db.query(query, params);
+  return result.rows[0] || null;
+}
+
 async function softDelete(id, userId) {
   return repoHelper.softDelete({ table: TABLE, id, userId });
 }
@@ -236,6 +254,7 @@ module.exports = {
   findAll,
   findById,
   findByCodeAndLocation,
+  checkUniqueField,
   getDropdown,
   getLinkableDropdown,
   create,

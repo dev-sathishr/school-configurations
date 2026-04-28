@@ -182,7 +182,7 @@
             <h4 class="text-foreground mb-4 text-sm font-semibold">Aadhaar</h4>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <app-form-field [formGroup]="form" controlName="aadhaar_no" label="Aadhaar No"
-                placeholder="12-digit Aadhaar number" [maxLength]="12" [submitted]="submitted" />
+                placeholder="12-digit Aadhaar number" [maxLength]="12" [submitted]="submitted" [digitsOnly]="true" />
             </div>
           </div>
 
@@ -205,9 +205,11 @@
             <h4 class="text-foreground mb-4 text-sm font-semibold">Phone & Email</h4>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
               <app-form-field [formGroup]="form" controlName="primary_phone" label="Primary Contact"
-                fieldType="phone" placeholder="Phone number" [maxLength]="15" [required]="true" [submitted]="submitted" />
+                fieldType="phone" placeholder="Phone number" [maxLength]="15" [required]="true" [submitted]="submitted"
+                siblingControlName="secondary_phone" />
               <app-form-field [formGroup]="form" controlName="secondary_phone" label="Secondary Contact"
-                fieldType="phone" placeholder="Phone number" [maxLength]="15" />
+                fieldType="phone" placeholder="Phone number" [maxLength]="15"
+                siblingControlName="primary_phone" />
               <app-form-field [formGroup]="form" controlName="email" label="Email"
                 fieldType="email" placeholder="e.g. employee@school.com" [maxLength]="100" [submitted]="submitted" />
             </div>

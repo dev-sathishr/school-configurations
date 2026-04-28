@@ -61,6 +61,10 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   sending = signal(false);
   currentUserId = '';
   onlineUserIds = signal<Set<string>>(new Set());
+  peerIsTyping = signal(false);
+
+  private typingTimeout?: ReturnType<typeof setTimeout>;
+  private typingSendTimeout?: ReturnType<typeof setTimeout>;
 
   filteredConversations = computed(() => {
     const q = this.searchQuery().toLowerCase();
@@ -107,6 +111,8 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.eventSource?.close();
+    clearTimeout(this.typingTimeout);
+    clearTimeout(this.typingSendTimeout);
   }
 
   @HostListener('document:click', ['$event'])
@@ -194,6 +200,7 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
   // --- Chat view ---
 
   goBack(): void {
+    this.clearPeerTyping();
     this.view.set('list');
     this.loadConversations();
   }
@@ -209,6 +216,8 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
 
   sendMessage(): void {
     if (!this.newMessage.trim() || this.sending()) return;
+    clearTimeout(this.typingSendTimeout);
+    this.typingSendTimeout = undefined;
     this.sending.set(true);
     this.cs.postService({
       url: API.chat.messages(this.activeConversationId),
@@ -224,11 +233,24 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
     });
   }
 
+  private clearPeerTyping(): void {
+    clearTimeout(this.typingTimeout);
+    this.typingTimeout = undefined;
+    this.peerIsTyping.set(false);
+  }
+
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       this.sendMessage();
     }
+  }
+
+  onInputChange(): void {
+    // Debounce: send typing event at most once every 2s while user is typing
+    if (this.typingSendTimeout) return;
+    this.cs.postService({ url: API.chat.typing(this.activeConversationId), payload: {} }).subscribe();
+    this.typingSendTimeout = setTimeout(() => { this.typingSendTimeout = undefined; }, 2000);
   }
 
   private scrollToBottom(): void {
@@ -286,6 +308,17 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
           // Update conversation list if open
           if (this.isOpen() && this.view() === 'list') {
             this.loadConversations();
+          }
+        });
+      });
+
+      this.eventSource.addEventListener('typing', (event: any) => {
+        const data = JSON.parse(event.data);
+        this.ngZone.run(() => {
+          if (this.isOpen() && this.view() === 'chat' && data.conversation_id === this.activeConversationId) {
+            this.peerIsTyping.set(true);
+            clearTimeout(this.typingTimeout);
+            this.typingTimeout = setTimeout(() => this.peerIsTyping.set(false), 3000);
           }
         });
       });

@@ -48,4 +48,11 @@ async function importRows(req, resp) {
   return res.success(resp, result, `${result.success_count} organization(s) imported, ${result.error_count} failed`);
 }
 
-module.exports = wrap({ getAll, getById, create, update, remove, removeMultiple, getDropdown, importRows });
+async function checkUnique(req, resp) {
+  const { field, value, exclude_id } = req.query;
+  const result = await orgService.checkUnique(field, value, exclude_id || null);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { data: result.data });
+}
+
+module.exports = wrap({ getAll, getById, create, update, remove, removeMultiple, getDropdown, importRows, checkUnique });

@@ -35,9 +35,10 @@
         <h4 class="text-foreground mb-4 text-sm font-semibold">Contact Details</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <app-form-field [formGroup]="form" controlName="primary_phone" label="Primary Contact" fieldType="phone"
-            placeholder="Phone number" [maxLength]="15" [required]="true" [submitted]="submitted" />
+            placeholder="Phone number" [maxLength]="15" [required]="true" [submitted]="submitted"
+            siblingControlName="alternate_phone" />
           <app-form-field [formGroup]="form" controlName="alternate_phone" label="Alternate Contact" fieldType="phone"
-            placeholder="Phone number" [maxLength]="15" />
+            placeholder="Phone number" [maxLength]="15" siblingControlName="primary_phone" />
         </div>
       </div>
 

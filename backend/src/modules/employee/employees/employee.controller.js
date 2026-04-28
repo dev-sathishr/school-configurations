@@ -53,4 +53,11 @@ async function getLinkableDropdown(req, resp) {
   return res.success(resp, result);
 }
 
-module.exports = wrap({ getAll, getById, getNextCode, getDropdown, getLinkableDropdown, create, update, remove, removeMultiple });
+async function checkUnique(req, resp) {
+  const { field, value, exclude_id } = req.query;
+  const result = await employeeService.checkUnique(field, value, exclude_id || null);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { data: result.data });
+}
+
+module.exports = wrap({ getAll, getById, getNextCode, getDropdown, getLinkableDropdown, create, update, remove, removeMultiple, checkUnique });

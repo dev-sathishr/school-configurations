@@ -76,4 +76,24 @@ async function getUnreadCount(req, resp) {
   return res.success(resp, { unread_total });
 }
 
-module.exports = wrap({ getConversations, getMessages, sendMessage, startConversation, markAsRead, getUsers, getUnreadCount });
+async function typing(req, resp) {
+  const { conversationId } = req.params;
+
+  const isMember = await chatRepo.isMember(conversationId, req.user.id);
+  if (!isMember) return res.forbidden(resp, 'Not a member of this conversation');
+
+  const members = await chatRepo.getConversationMembers(conversationId);
+  for (const memberId of members) {
+    if (memberId !== req.user.id) {
+      sse.sendToUser(memberId, 'typing', {
+        conversation_id: conversationId,
+        user_id: req.user.id,
+        user_name: req.user.username,
+      });
+    }
+  }
+
+  return res.success(resp, {});
+}
+
+module.exports = wrap({ getConversations, getMessages, sendMessage, startConversation, markAsRead, getUsers, getUnreadCount, typing });

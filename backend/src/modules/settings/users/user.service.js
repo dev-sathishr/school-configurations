@@ -193,4 +193,13 @@ async function importRows(rows, userId) {
   });
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple, importRows };
+async function checkUnique(field, value, excludeId = null) {
+  const labelMap = { email: 'Email', phone: 'Phone number' };
+  if (!labelMap[field]) return { error: 'badRequest', message: 'Invalid field' };
+  if (!value || !value.trim()) return { data: { available: true } };
+  const existing = await userRepo.checkUniqueField(field, value.trim(), excludeId);
+  if (existing) return { data: { available: false, message: `${labelMap[field]} is already registered` } };
+  return { data: { available: true } };
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, importRows, checkUnique };

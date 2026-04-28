@@ -1,5 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
-import { FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, AsyncValidatorFn, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { Observable, of, timer } from 'rxjs';
+import { switchMap, map, catchError } from 'rxjs/operators';
 import { TitleCasePipe } from '@angular/common';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
@@ -34,6 +36,22 @@ export class UserFormComponent extends FormPageBase {
   locationsLoading = false;
   locationError = '';
 
+  private uniqueValidator(field: string): AsyncValidatorFn {
+    return (control: AbstractControl): Observable<ValidationErrors | null> => {
+      const value = control.value?.number ?? control.value;
+      if (!value || !String(value).trim()) return of(null);
+      return timer(400).pipe(
+        switchMap(() => {
+          const params: any = { field, value: String(value).trim() };
+          if (this.editId) params.exclude_id = this.editId;
+          return this.cs.getService({ url: API.users.checkUnique, params });
+        }),
+        map((res: any) => res?.data?.available ? null : { notUnique: res?.data?.message || 'Already registered' }),
+        catchError(() => of(null)),
+      );
+    };
+  }
+
   protected buildForm(): FormGroup {
     return this.fb.group({
       person_type: ['staff', Validators.required],
@@ -41,8 +59,8 @@ export class UserFormComponent extends FormPageBase {
       username:    ['', Validators.required],
       password:    [''],
       full_name:   ['', Validators.required],
-      email:       ['', [Validators.required, Validators.email]],
-      phone:       [{ code: '+91', number: '' }],
+      email:       ['', [Validators.required, Validators.email], this.uniqueValidator('email')],
+      phone:       [{ code: '+91', number: '' }, [], this.uniqueValidator('phone')],
       group_id:    ['', Validators.required],
       is_active:   [true],
     });

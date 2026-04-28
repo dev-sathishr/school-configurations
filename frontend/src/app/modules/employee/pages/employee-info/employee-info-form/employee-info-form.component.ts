@@ -1,5 +1,7 @@
 import { Component, inject, signal, ViewChild } from '@angular/core';
-import { FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, AsyncValidatorFn, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { Observable, of, timer } from 'rxjs';
+import { switchMap, map, catchError } from 'rxjs/operators';
 import { ModalComponent } from '../../../../../shared/components/modal/modal.component';
 import { AddressComponent, Address } from '../../../../../shared/components/address/address.component';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
@@ -104,6 +106,23 @@ export class EmployeeInfoFormComponent extends FormPageBase {
     return d.toISOString().slice(0, 10);
   }
 
+  private uniqueValidator(field: string): AsyncValidatorFn {
+    return (control: AbstractControl): Observable<ValidationErrors | null> => {
+      const value = control.value?.number ?? control.value;
+      if (!value || !String(value).trim()) return of(null);
+      if (field === 'aadhaar_no' && String(value).trim().length !== 12) return of(null);
+      return timer(400).pipe(
+        switchMap(() => {
+          const params: any = { field, value: String(value).trim() };
+          if (this.editId) params.exclude_id = this.editId;
+          return this.cs.getService({ url: API.employees.checkUnique, params });
+        }),
+        map((res: any) => res?.data?.available ? null : { notUnique: res?.data?.message || `${field} already exists` }),
+        catchError(() => of(null)),
+      );
+    };
+  }
+
   private dobRangeValidator() {
     return (control: import('@angular/forms').AbstractControl) => {
       const val = control.value;
@@ -179,12 +198,12 @@ export class EmployeeInfoFormComponent extends FormPageBase {
       marital_status:  [''],
       religion:        [''],
       community:       [''],
-      aadhaar_no:      ['', V.maxLength(12)],
+      aadhaar_no:      ['', V.maxLength(12), this.uniqueValidator('aadhaar_no')],
       is_active:       [true],
       notes:           ['', V.NOTES],
-      primary_phone:   [{ code: '+91', number: '' }],
-      secondary_phone: [{ code: '+91', number: '' }],
-      email:           ['', V.EMAIL],
+      primary_phone:   [{ code: '+91', number: '' }, [], this.uniqueValidator('primary_contact_no')],
+      secondary_phone: [{ code: '+91', number: '' }, [], this.uniqueValidator('secondary_contact_no')],
+      email:           ['', V.EMAIL, this.uniqueValidator('email')],
     });
 
     // Mirror employee_name → display_name while user hasn't set a custom value.
@@ -231,10 +250,11 @@ export class EmployeeInfoFormComponent extends FormPageBase {
   }
 
   protected override beforeSubmit(): boolean {
-    if (!this.isPersonalValid) {
+    if (this.hasPersonalErrors) {
       this.personalFields.forEach(f => this.form.get(f)?.markAsTouched());
+      this.form.get('aadhaar_no')?.markAsTouched();
       this.activeTab.set('personal');
-      this.cs.showToastr({ type: 'error', message: 'Please fix the errors', description: 'Fill all required fields in Personal Info before submitting' });
+      this.cs.showToastr({ type: 'error', message: 'Please fix the errors', description: 'Fix all errors in Personal Info before submitting' });
       return false;
     }
 
@@ -327,15 +347,21 @@ export class EmployeeInfoFormComponent extends FormPageBase {
     return this.personalFields.every(f => this.form.get(f)?.valid);
   }
 
+  private get hasPersonalErrors(): boolean {
+    const allPersonalFields = [...this.personalFields, 'aadhaar_no'];
+    return allPersonalFields.some(f => this.form.get(f)?.invalid);
+  }
+
   setTab(tab: FormTab): void {
     if (tab === 'payroll' || tab === 'bank' || tab === 'qualification' || tab === 'experience' || tab === 'document') {
       this.activeTab.set(tab);
       return;
     }
-    if (!this.viewMode && tab === 'contact' && !this.isPersonalValid) {
+    if (!this.viewMode && tab === 'contact' && this.hasPersonalErrors) {
       this.personalFields.forEach(f => this.form.get(f)?.markAsTouched());
+      this.form.get('aadhaar_no')?.markAsTouched();
       this.submitted = true;
-      this.cs.showToastr({ type: 'error', message: 'Complete Personal Info first', description: 'Fill all required fields in Personal Info before proceeding' });
+      this.cs.showToastr({ type: 'error', message: 'Complete Personal Info first', description: 'Fix all errors in Personal Info before proceeding' });
       return;
     }
     this.activeTab.set(tab);

@@ -150,4 +150,14 @@ async function saveUserLocations(userId, locationIds, defaultLocationId, created
   }
 }
 
-module.exports = { findAll, findById, findByUsername, findByUsernameActive, create, update, softDelete, softDeleteMultiple, updateLastLogin, findProfileById, getUserLocations, saveUserLocations };
+async function checkUniqueField(field, value, excludeId = null) {
+  const allowed = ['email', 'phone'];
+  if (!allowed.includes(field)) throw new Error('Invalid field');
+  let query = `SELECT id FROM settings.users WHERE LOWER(${field}) = LOWER($1) AND deleted_at IS NULL`;
+  const params = [value];
+  if (excludeId) { query += ' AND id != $2'; params.push(excludeId); }
+  const result = await db.query(query, params);
+  return result.rows[0] || null;
+}
+
+module.exports = { findAll, findById, findByUsername, findByUsernameActive, create, update, softDelete, softDeleteMultiple, updateLastLogin, findProfileById, getUserLocations, saveUserLocations, checkUniqueField };

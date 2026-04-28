@@ -166,4 +166,22 @@ async function importRows(rows, userId) {
   });
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown, importRows };
+async function checkUnique(field, value, excludeId = null) {
+  const labelMap = { email: 'Email', primary_contact_no: 'Contact number', alternate_contact_no: 'Alternate contact number' };
+  if (!labelMap[field]) return { error: 'badRequest', message: 'Invalid field' };
+  if (!value || !value.trim()) return { data: { available: true } };
+
+  // Phone numbers must be unique across both contact columns
+  const isPhone = field === 'primary_contact_no' || field === 'alternate_contact_no';
+  if (isPhone) {
+    const p = await orgRepo.checkUniquePhone(value.trim(), excludeId);
+    if (p) return { data: { available: false, message: 'Contact number is already registered' } };
+    return { data: { available: true } };
+  }
+
+  const exists = await orgRepo.checkUnique(field, value.trim(), excludeId);
+  if (exists) return { data: { available: false, message: `${labelMap[field]} is already registered` } };
+  return { data: { available: true } };
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, getDropdown, importRows, checkUnique };

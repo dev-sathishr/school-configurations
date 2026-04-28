@@ -134,6 +134,14 @@ async function checkUnique(field, value, excludeId = null, extraConditions = {})
   return result.rows.length > 0;
 }
 
+async function checkUniquePhone(value, excludeId = null) {
+  let query = `SELECT id FROM settings.locations WHERE (LOWER(primary_contact_no) = LOWER($1) OR LOWER(alternate_contact_no) = LOWER($1)) AND deleted_at IS NULL`;
+  const params = [value];
+  if (excludeId) { query += ' AND id != $2'; params.push(excludeId); }
+  const result = await db.query(query, params);
+  return result.rows[0] || null;
+}
+
 async function findAllActive() {
   const result = await db.query(
     `SELECT id, name, code FROM settings.locations
@@ -171,4 +179,4 @@ async function findDropdown({ page, size, search }) {
   };
 }
 
-module.exports = { findAll, findAllActive, findById, findByField, create, update, softDelete, softDeleteMultiple, checkUnique, findDropdown };
+module.exports = { findAll, findAllActive, findById, findByField, create, update, softDelete, softDeleteMultiple, checkUnique, checkUniquePhone, findDropdown };

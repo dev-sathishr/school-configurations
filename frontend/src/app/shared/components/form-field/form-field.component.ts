@@ -36,6 +36,8 @@ export class FormFieldComponent {
   @Input() max: string | null = null;
   @Input() autocomplete: string | null = null;
 
+  @Input() siblingControlName = '';
+
   // Async select
   @Input() asyncUrl = '';
   @Input() asyncValueKey = 'id';
@@ -47,7 +49,9 @@ export class FormFieldComponent {
   get control() { return this.formGroup.get(this.controlName); }
 
   get hasError(): boolean {
-    return !!this.control?.errors && (this.submitted || !!this.control?.touched);
+    if (!this.control?.errors) return false;
+    if (this.control.errors['notUnique']) return true;
+    return this.submitted || !!this.control.touched;
   }
 
   get fieldId(): string { return `field_${this.controlName}`; }
@@ -70,7 +74,12 @@ export class FormFieldComponent {
     if (errors['min']) return `${this.label} must be at least ${errors['min'].min}`;
     if (errors['dobMin']) return 'Employee must be at least 18 years old';
     if (errors['dobMax']) return 'Date of birth is too far in the past';
+    if (errors['notUnique']) return typeof errors['notUnique'] === 'string' ? errors['notUnique'] : 'Already registered';
     return '';
+  }
+
+  get isPending(): boolean {
+    return this.control?.status === 'PENDING';
   }
 
   // Select bridge

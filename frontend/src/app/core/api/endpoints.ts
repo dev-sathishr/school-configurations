@@ -31,6 +31,7 @@ export const API = {
     detail: (id: string) => `/users/${id}`,
     deleteMultiple: '/users/delete-multiple',
     import: '/users/import',
+    checkUnique: '/users/check-unique',
   },
   groups: {
     base: '/groups',
@@ -87,6 +88,7 @@ export const API = {
     dropdown: '/organizations/dropdown',
     deleteMultiple: '/organizations/delete-multiple',
     import: '/organizations/import',
+    checkUnique: '/organizations/check-unique',
   },
   locations: {
     base: '/locations',
@@ -94,6 +96,7 @@ export const API = {
     dropdown: '/locations/dropdown',
     deleteMultiple: '/locations/delete-multiple',
     import: '/locations/import',
+    checkUnique: '/locations/check-unique',
   },
   employeeCategories: {
     base: '/employee-categories',
@@ -120,6 +123,7 @@ export const API = {
     base: '/employees',
     detail: (id: string) => `/employees/${id}`,
     nextCode: '/employees/next-code',
+    checkUnique: '/employees/check-unique',
     dropdown: '/employees/dropdown',
     linkable: '/employees/linkable',
     deleteMultiple: '/employees/delete-multiple',
@@ -224,6 +228,7 @@ export const API = {
     messages: (conversationId: string) => `/chat/conversations/${conversationId}/messages`,
     startConversation: '/chat/conversations',
     markRead: (conversationId: string) => `/chat/conversations/${conversationId}/read`,
+    typing: (conversationId: string) => `/chat/conversations/${conversationId}/typing`,
   },
 
   // ── Files ─────────────────────────────────────────────────────────

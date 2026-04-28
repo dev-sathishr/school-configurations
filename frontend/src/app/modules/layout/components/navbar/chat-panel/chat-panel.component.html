@@ -141,9 +141,11 @@
           <div class="min-w-0 flex-1">
             <p class="text-foreground truncate text-sm font-semibold">{{ activeChatName() }}</p>
             <p class="text-[10px]"
-              [class.text-green-600]="isOnline(activeChatUserId())"
-              [class.text-muted-foreground]="!isOnline(activeChatUserId())">
-              {{ isOnline(activeChatUserId()) ? 'Online' : 'Offline' }}
+              [class.text-green-600]="isOnline(activeChatUserId()) && !peerIsTyping()"
+              [class.text-primary]="peerIsTyping()"
+              [class.text-muted-foreground]="!isOnline(activeChatUserId()) && !peerIsTyping()">
+              @if (peerIsTyping()) { typing… }
+              @else { {{ isOnline(activeChatUserId()) ? 'Online' : 'Offline' }} }
             </p>
           </div>
           <div class="flex-1"></div>
@@ -181,12 +183,27 @@
           }
         </div>
 
+        <!-- Typing indicator -->
+        @if (peerIsTyping()) {
+          <div class="px-4 pb-1 pt-0">
+            <div class="flex items-center gap-1.5">
+              <div class="flex gap-0.5">
+                <span class="bg-muted-foreground/40 h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:0ms]"></span>
+                <span class="bg-muted-foreground/40 h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:150ms]"></span>
+                <span class="bg-muted-foreground/40 h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:300ms]"></span>
+              </div>
+              <span class="text-muted-foreground text-[10px]">{{ activeChatName() }} is typing…</span>
+            </div>
+          </div>
+        }
+
         <!-- Message input -->
         <div class="border-border border-t px-3 py-2">
           <div class="flex items-end gap-2">
             <textarea
               [(ngModel)]="newMessage"
               (keydown)="onKeyDown($event)"
+              (input)="onInputChange()"
               placeholder="Type a message..."
               rows="1"
               class="text-foreground placeholder:text-muted-foreground bg-muted/30 max-h-20 min-h-[36px] flex-1 resize-none rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"></textarea>

@@ -6,6 +6,7 @@ const {
   getNextCode,
   getDropdown,
   getLinkableDropdown,
+  checkUnique,
   create,
   update,
   remove,
@@ -16,6 +17,7 @@ const { authenticate, authorizeModule, checkModuleView } = require('../../../sha
 router.use(authenticate);
 
 router.get('/next-code', getNextCode);
+router.get('/check-unique', checkUnique);
 router.get('/dropdown', getDropdown);
 router.get('/linkable', getLinkableDropdown);
 router.get('/', checkModuleView('EMPLOYEE_INFO'), getAll);

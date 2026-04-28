@@ -1,5 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
-import { FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, AsyncValidatorFn, FormGroup, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
+import { Observable, of, timer } from 'rxjs';
+import { switchMap, map, catchError } from 'rxjs/operators';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormFieldComponent } from '../../../../../shared/components/form-field/form-field.component';
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
@@ -25,13 +27,29 @@ export class OrganizationFormComponent extends FormPageBase {
   addresses: Address[] = [];
   logo: UploadedFile | null = null;
 
+  private uniqueValidator(field: string): AsyncValidatorFn {
+    return (control: AbstractControl): Observable<ValidationErrors | null> => {
+      const value = control.value?.number ?? control.value;
+      if (!value || !String(value).trim()) return of(null);
+      return timer(400).pipe(
+        switchMap(() => {
+          const params: any = { field, value: String(value).trim() };
+          if (this.editId) params.exclude_id = this.editId;
+          return this.cs.getService({ url: API.organizations.checkUnique, params });
+        }),
+        map((res: any) => res?.data?.available ? null : { notUnique: res?.data?.message || 'Already registered' }),
+        catchError(() => of(null)),
+      );
+    };
+  }
+
   protected buildForm(): FormGroup {
-    return this.fb.group({
+    const form = this.fb.group({
       name: ['', V.NAME],
       reg_no: ['', V.maxLength(50)],
-      email: ['', V.EMAIL],
-      primary_phone: [{ code: '+91', number: '' }],
-      alternate_phone: [{ code: '+91', number: '' }],
+      email: ['', V.EMAIL, this.uniqueValidator('email')],
+      primary_phone: [{ code: '+91', number: '' }, [], this.uniqueValidator('primary_contact_no')],
+      alternate_phone: [{ code: '+91', number: '' }, [], this.uniqueValidator('alternate_contact_no')],
       website: ['', V.URL],
       social_facebook: ['', V.URL],
       social_instagram: ['', V.URL],
@@ -41,6 +59,7 @@ export class OrganizationFormComponent extends FormPageBase {
       is_active: [true],
       notes: ['', V.NOTES],
     });
+    return form;
   }
 
   protected override onRecordLoaded(d: any): void {

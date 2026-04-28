@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { getAll, getById, create, update, remove, removeMultiple, getDropdown, importRows } = require('./org.controller');
+const { getAll, getById, create, update, remove, removeMultiple, getDropdown, importRows, checkUnique } = require('./org.controller');
 const { authenticate, authorizeModule, checkModuleView, checkRecordOwnership } = require('../../../shared/middleware/auth.middleware');
 
 router.use(authenticate);
 
 router.get('/dropdown', getDropdown);
+router.get('/check-unique', checkUnique);
 router.get('/', checkModuleView('ORGANIZATIONS'), getAll);
 router.get('/:id', checkRecordOwnership('settings.organizations', 'ORGANIZATIONS'), getById);
 router.post('/', authorizeModule('ORGANIZATIONS', 'CREATE'), create);

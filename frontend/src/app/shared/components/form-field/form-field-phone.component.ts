@@ -55,6 +55,15 @@ interface CountryCode {
     @if (phoneError) {
       <span class="mt-1 block text-xs text-red-500">{{ phoneError }}</span>
     }
+    @if (!phoneError && control?.status === 'PENDING') {
+      <span class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+        <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+        Checking…
+      </span>
+    }
+    @if (!phoneError && control?.errors?.['notUnique']) {
+      <span class="mt-1 block text-xs text-red-500">{{ control?.errors?.['notUnique'] }}</span>
+    }
   `,
 })
 export class FormFieldPhoneComponent implements OnInit, OnChanges {
@@ -64,6 +73,7 @@ export class FormFieldPhoneComponent implements OnInit, OnChanges {
   @Input() placeholder = '';
   @Input() required = false;
   @Input() submitted = false;
+  @Input() siblingControlName = '';
 
   phoneNumber = '';
   selectedCode = '+91';
@@ -114,6 +124,13 @@ export class FormFieldPhoneComponent implements OnInit, OnChanges {
       }
       this.validate();
     });
+
+    // When the sibling changes, re-run our own validate so phoneSame clears/sets.
+    if (this.siblingControlName) {
+      this.formGroup.get(this.siblingControlName)?.valueChanges.subscribe(() => {
+        this.validate();
+      });
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -192,11 +209,31 @@ export class FormFieldPhoneComponent implements OnInit, OnChanges {
       }
     }
 
+    // Cross-field: check against sibling control's number (computed fresh every time)
+    let phoneSameError: { phoneSame: string } | null = null;
+    if (this.siblingControlName && this.phoneNumber) {
+      const siblingVal = this.formGroup.get(this.siblingControlName)?.value?.number?.trim();
+      if (siblingVal && siblingVal === this.phoneNumber.trim()) {
+        phoneSameError = { phoneSame: 'Must be different from the other contact number' };
+        if (!controlError) displayError = 'Must be different from the other contact number';
+      }
+    }
+
     this.phoneError = displayError;
-    // Only write errors when they actually changed, otherwise
-    // `setErrors` re-triggers valueChanges → infinite loop.
-    if (this.control && JSON.stringify(this.control.errors || null) !== JSON.stringify(controlError)) {
-      this.control.setErrors(controlError);
+    // Merge with async errors (notUnique) — phoneSame is computed fresh above, never read from existing.
+    const existingAsync = {
+      ...(this.control?.errors?.['notUnique'] ? { notUnique: this.control.errors['notUnique'] } : {}),
+      ...(phoneSameError || {}),
+    };
+    const hasExistingAsync = Object.keys(existingAsync).length > 0;
+    const merged = controlError || hasExistingAsync
+      ? { ...(controlError || {}), ...existingAsync }
+      : null;
+    // Defer setErrors to avoid ExpressionChangedAfterItHasBeenCheckedError —
+    // mutating control state during a valueChanges callback happens mid change-detection.
+    // Only write when value actually changed to avoid re-triggering valueChanges.
+    if (this.control && JSON.stringify(this.control.errors || null) !== JSON.stringify(merged)) {
+      setTimeout(() => this.control?.setErrors(merged));
     }
   }
 }
