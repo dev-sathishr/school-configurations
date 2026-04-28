@@ -151,6 +151,10 @@ export const API = {
     base:   (employeeId: string) => `/employees/${employeeId}/documents`,
     detail: (employeeId: string, id: string) => `/employees/${employeeId}/documents/${id}`,
   },
+  employeeFamilyInfo: {
+    base:   (employeeId: string) => `/employees/${employeeId}/family`,
+    detail: (employeeId: string, id: string) => `/employees/${employeeId}/family/${id}`,
+  },
   ifsc: {
     lookup: (code: string) => `/ifsc/${code}`,
   },

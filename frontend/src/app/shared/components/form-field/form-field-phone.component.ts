@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormGroup, FormsModule } from '@angular/forms';
 import { SelectDropdownComponent, DropdownOption } from '../select-dropdown/select-dropdown.component';
@@ -55,14 +55,14 @@ interface CountryCode {
     @if (phoneError) {
       <span class="mt-1 block text-xs text-red-500">{{ phoneError }}</span>
     }
-    @if (!phoneError && control?.status === 'PENDING') {
+    @if (!phoneError && isPending) {
       <span class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
         <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
         Checking…
       </span>
     }
-    @if (!phoneError && control?.errors?.['notUnique']) {
-      <span class="mt-1 block text-xs text-red-500">{{ control?.errors?.['notUnique'] }}</span>
+    @if (!phoneError && notUniqueError) {
+      <span class="mt-1 block text-xs text-red-500">{{ notUniqueError }}</span>
     }
   `,
 })
@@ -78,6 +78,11 @@ export class FormFieldPhoneComponent implements OnInit, OnChanges {
   phoneNumber = '';
   selectedCode = '+91';
   phoneError = '';
+  maxLen = 15;
+  isPending = false;
+  notUniqueError = '';
+
+  private cdr = inject(ChangeDetectorRef);
 
   private readonly countries: CountryCode[] = [
     { code: 'IN', dial: '+91', flag: '🇮🇳', name: 'India', minLen: 10, maxLen: 10 },
@@ -120,9 +125,17 @@ export class FormFieldPhoneComponent implements OnInit, OnChanges {
         if (nextNumber !== this.phoneNumber || nextCode !== this.selectedCode) {
           this.phoneNumber = nextNumber;
           this.selectedCode = nextCode;
+          this.maxLen = this.countries.find(c => c.dial === nextCode)?.maxLen || 15;
+          this.cdr.markForCheck();
         }
       }
       this.validate();
+    });
+
+    this.control?.statusChanges.subscribe((status) => {
+      this.isPending = status === 'PENDING';
+      this.notUniqueError = this.control?.errors?.['notUnique'] || '';
+      this.cdr.markForCheck();
     });
 
     // When the sibling changes, re-run our own validate so phoneSame clears/sets.
@@ -149,14 +162,11 @@ export class FormFieldPhoneComponent implements OnInit, OnChanges {
     return this.countries.find((c) => c.dial === this.selectedCode);
   }
 
-  get maxLen(): number {
-    return this.selectedCountry?.maxLen || 15;
-  }
-
   onCountrySelect(dial: string): void {
     const country = this.countries.find((c) => c.dial === dial);
     if (!country) return;
     this.selectedCode = country.dial;
+    this.maxLen = country.maxLen;
     // Trim the number down if the newly picked country caps shorter.
     if (this.phoneNumber.length > country.maxLen) {
       this.phoneNumber = this.phoneNumber.slice(0, country.maxLen);
@@ -184,6 +194,7 @@ export class FormFieldPhoneComponent implements OnInit, OnChanges {
     if (val && typeof val === 'object') {
       this.selectedCode = val.code || '+91';
       this.phoneNumber = val.number || '';
+      this.maxLen = this.countries.find(c => c.dial === this.selectedCode)?.maxLen || 15;
     }
   }
 

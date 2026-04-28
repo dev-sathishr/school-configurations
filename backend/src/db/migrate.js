@@ -1159,6 +1159,78 @@ async function migrate() {
         WHERE deleted_at IS NULL;
     `).catch(() => {});
 
+    // ── Relations (shared, polymorphic — used by employee, student, etc.) ──
+    // relation_type enum
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE settings.relation_type AS ENUM (
+          'father','mother','spouse','son','daughter',
+          'brother','sister','guardian','legal_guardian',
+          'grandfather','grandmother','grandson','granddaughter',
+          'uncle','aunt','nephew','niece',
+          'stepfather','stepmother','stepson','stepdaughter',
+          'father_in_law','mother_in_law','other'
+        );
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    // relations — the family member's personal details (shared across all owner types)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.relations (
+        id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name                  VARCHAR(200) NOT NULL,
+        dob                   DATE,
+        gender                VARCHAR(20),
+        aadhaar_no            VARCHAR(12),
+        contact_code          VARCHAR(10) DEFAULT '+91',
+        contact_no            VARCHAR(20),
+        email                 VARCHAR(100),
+        occupation            VARCHAR(200),
+        qualification         VARCHAR(100),
+        annual_income         NUMERIC(15,2),
+        notes                 VARCHAR(500),
+        created_by            UUID REFERENCES settings.users(id),
+        updated_by            UUID REFERENCES settings.users(id),
+        created_at            TIMESTAMPTZ DEFAULT NOW(),
+        updated_at            TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by            UUID REFERENCES settings.users(id),
+        deleted_at            TIMESTAMPTZ
+      );
+    `);
+
+    // relation_mappings — polymorphic link: any entity (employee/student/...) ↔ relation
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings.relation_mappings (
+        id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        relation_id           UUID NOT NULL REFERENCES settings.relations(id),
+        entity_type           VARCHAR(50) NOT NULL,
+        entity_id             UUID NOT NULL,
+        relation_type         settings.relation_type NOT NULL,
+        is_emergency_contact  BOOLEAN DEFAULT false,
+        created_by            UUID REFERENCES settings.users(id),
+        updated_by            UUID REFERENCES settings.users(id),
+        created_at            TIMESTAMPTZ DEFAULT NOW(),
+        updated_at            TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by            UUID REFERENCES settings.users(id),
+        deleted_at            TIMESTAMPTZ
+      );
+    `);
+
+    // One relation_type per entity (except 'other' which allows multiples — enforced in app)
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_relation_mappings_entity
+        ON settings.relation_mappings (entity_type, entity_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => {});
+
+    // Only one emergency contact per entity
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_relation_mappings_emergency
+        ON settings.relation_mappings (entity_type, entity_id)
+        WHERE is_emergency_contact = true AND deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_relation_mappings_emergency already exists'));
+
     console.log('Migration completed successfully');
   } catch (err) {
     console.error('Migration failed:', err);

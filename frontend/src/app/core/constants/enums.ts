@@ -306,3 +306,40 @@ export const DOCUMENT_TYPE_CATEGORY_BADGES: Record<DocumentTypeCategory, BadgeSt
   MEDICAL:     { label: 'Medical',                class: BADGE_CLASS.red },
   OTHER:       { label: 'Other',                  class: BADGE_CLASS.muted },
 };
+
+// ── Relation type (family info) ─────────────────────────────────────
+
+export type RelationType =
+  | 'father' | 'mother' | 'spouse' | 'son' | 'daughter'
+  | 'brother' | 'sister' | 'guardian' | 'legal_guardian'
+  | 'grandfather' | 'grandmother' | 'grandson' | 'granddaughter'
+  | 'uncle' | 'aunt' | 'nephew' | 'niece'
+  | 'stepfather' | 'stepmother' | 'stepson' | 'stepdaughter'
+  | 'father_in_law' | 'mother_in_law' | 'other';
+
+export const RELATION_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'father',         label: 'Father' },
+  { value: 'mother',         label: 'Mother' },
+  { value: 'spouse',         label: 'Spouse' },
+  { value: 'son',            label: 'Son' },
+  { value: 'daughter',       label: 'Daughter' },
+  { value: 'brother',        label: 'Brother' },
+  { value: 'sister',         label: 'Sister' },
+  { value: 'guardian',       label: 'Guardian' },
+  { value: 'legal_guardian', label: 'Legal Guardian' },
+  { value: 'grandfather',    label: 'Grandfather' },
+  { value: 'grandmother',    label: 'Grandmother' },
+  { value: 'grandson',       label: 'Grandson' },
+  { value: 'granddaughter',  label: 'Granddaughter' },
+  { value: 'uncle',          label: 'Uncle' },
+  { value: 'aunt',           label: 'Aunt' },
+  { value: 'nephew',         label: 'Nephew' },
+  { value: 'niece',          label: 'Niece' },
+  { value: 'stepfather',     label: 'Stepfather' },
+  { value: 'stepmother',     label: 'Stepmother' },
+  { value: 'stepson',        label: 'Stepson' },
+  { value: 'stepdaughter',   label: 'Stepdaughter' },
+  { value: 'father_in_law',  label: 'Father-in-Law' },
+  { value: 'mother_in_law',  label: 'Mother-in-Law' },
+  { value: 'other',          label: 'Other' },
+];
