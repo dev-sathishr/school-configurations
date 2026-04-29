@@ -32,6 +32,7 @@ export class FormFieldComponent {
   @Input() uppercase = false;
   @Input() lowercase = false;
   @Input() digitsOnly = false;
+  @Input() lettersOnly = false;
   @Input() min: string | null = null;
   @Input() max: string | null = null;
   @Input() autocomplete: string | null = null;
@@ -106,5 +107,10 @@ export class FormFieldComponent {
   toDigits(): void {
     const val = this.control?.value;
     if (val) this.control?.setValue(val.replace(/\D/g, ''), { emitEvent: false });
+  }
+
+  toLetters(): void {
+    const val = this.control?.value;
+    if (val) this.control?.setValue(val.replace(/[^a-zA-Z\s'\-\.]/g, ''), { emitEvent: false });
   }
 }

@@ -1,5 +1,5 @@
 <!-- Address List -->
-<div class="bg-background border-muted/30 rounded-lg border p-5">
+<div class="bg-background rounded-lg border p-5" [class.border-red-400]="errorMessage" [class.border-muted/30]="!errorMessage">
   <div class="mb-4 flex items-center justify-between">
     <h4 class="text-foreground text-sm font-semibold">Addresses</h4>
     <app-button impact="light" tone="primary" shape="rounded" size="small" type="button" (buttonClick)="openAdd()">
@@ -46,6 +46,10 @@
     </div>
   } @else {
     <p class="text-muted-foreground py-6 text-center text-xs">No addresses added. Click "+ Add Address" to add one.</p>
+  }
+
+  @if (errorMessage) {
+    <p class="mt-2 text-xs text-red-500">{{ errorMessage }}</p>
   }
 </div>
 

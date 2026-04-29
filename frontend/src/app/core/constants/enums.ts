@@ -317,6 +317,36 @@ export type RelationType =
   | 'stepfather' | 'stepmother' | 'stepson' | 'stepdaughter'
   | 'father_in_law' | 'mother_in_law' | 'other';
 
+// ── Student Profile ────────────────────────────────────────────────────────
+
+export type ProfileStatus = 'enquiry' | 'admitted' | 'enrolled' | 'withdrawn' | 'alumni';
+
+export const PROFILE_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'enquiry',   label: 'Enquiry' },
+  { value: 'admitted',  label: 'Admitted' },
+  { value: 'enrolled',  label: 'Enrolled' },
+  { value: 'withdrawn', label: 'Withdrawn' },
+  { value: 'alumni',    label: 'Alumni' },
+];
+
+export const PROFILE_STATUS_BADGES: Record<string, { label: string; class: string }> = {
+  enquiry:   { label: 'Enquiry',   class: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400' },
+  admitted:  { label: 'Admitted',  class: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
+  enrolled:  { label: 'Enrolled',  class: 'bg-green-500/10 text-green-700 dark:text-green-400' },
+  withdrawn: { label: 'Withdrawn', class: 'bg-red-500/10 text-red-700 dark:text-red-400' },
+  alumni:    { label: 'Alumni',    class: 'bg-purple-500/10 text-purple-700 dark:text-purple-400' },
+};
+
+export type GenderType = 'male' | 'female' | 'other';
+
+export const GENDER_LABELS: Record<string, string> = {
+  male: 'Male', female: 'Female', other: 'Other',
+};
+
+export type BloodGroupType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'unknown';
+
+// ── Relation Types ─────────────────────────────────────────────────────────
+
 export const RELATION_TYPE_OPTIONS: SelectOption[] = [
   { value: 'father',         label: 'Father' },
   { value: 'mother',         label: 'Mother' },

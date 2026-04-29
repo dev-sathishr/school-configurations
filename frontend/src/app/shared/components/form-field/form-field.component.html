@@ -53,7 +53,7 @@
         [attr.max]="max"
         [attr.autocomplete]="autocomplete"
         [ngClass]="{ 'border-red-500!': hasError, 'uppercase!': uppercase, 'lowercase!': lowercase }"
-        (input)="digitsOnly ? toDigits() : uppercase ? toUppercase() : lowercase ? toLowercase() : null"
+        (input)="digitsOnly ? toDigits() : lettersOnly ? toLetters() : uppercase ? toUppercase() : lowercase ? toLowercase() : null"
         class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none" />
     }
 

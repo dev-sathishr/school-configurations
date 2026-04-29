@@ -28,6 +28,7 @@ export interface Address {
 })
 export class AddressComponent implements AfterViewInit, OnDestroy {
   @Input() addresses: Address[] = [];
+  @Input() errorMessage = '';
   @Output() addressesChange = new EventEmitter<Address[]>();
 
   @ViewChild('mapContainer') mapContainer!: ElementRef<HTMLDivElement>;

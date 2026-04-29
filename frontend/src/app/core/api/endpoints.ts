@@ -155,6 +155,10 @@ export const API = {
     base:   (employeeId: string) => `/employees/${employeeId}/family`,
     detail: (employeeId: string, id: string) => `/employees/${employeeId}/family/${id}`,
   },
+  studentFamilyInfo: {
+    base:   (profileId: string) => `/student-profiles/${profileId}/family`,
+    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/family/${id}`,
+  },
   ifsc: {
     lookup: (code: string) => `/ifsc/${code}`,
   },
@@ -228,6 +232,13 @@ export const API = {
     markRead: (id: string) => `/notifications/${id}/read`,
     markAllRead: '/notifications/read-all',
     stream: '/notifications/stream',
+  },
+
+  // ── Student ───────────────────────────────────────────────────────
+  studentProfiles: {
+    base: '/student-profiles',
+    detail: (id: string) => `/student-profiles/${id}`,
+    deleteMultiple: '/student-profiles/delete-multiple',
   },
 
   // ── Chat ─────────────────────────────────────────────────────────

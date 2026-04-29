@@ -1,0 +1,183 @@
+<div class="mx-auto max-w-5xl">
+
+  <!-- Header -->
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <app-breadcrumb></app-breadcrumb>
+    <app-button impact="light" tone="light" shape="rounded" size="medium" (buttonClick)="back()">
+      Back to List
+    </app-button>
+  </div>
+
+  @if (loading()) {
+    <app-loader size="large" text="Loading student profile..." />
+  } @else if (profile()) {
+
+    <!-- Profile Header Card -->
+    <div class="bg-background border-muted/30 mb-4 rounded-lg border p-5">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3">
+            <h2 class="text-foreground text-xl font-semibold">{{ profile().full_name }}</h2>
+            <span class="rounded-full px-2.5 py-0.5 text-xs font-medium" [class]="statusBadge.class">
+              {{ statusBadge.label }}
+            </span>
+          </div>
+          <p class="text-muted-foreground mt-1 text-sm">
+            {{ profile().profile_no }}
+            @if (profile().primary_contact_no) {
+              &nbsp;·&nbsp; {{ profile().primary_contact_code }} {{ profile().primary_contact_no }}
+            }
+          </p>
+        </div>
+        <app-button impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="editProfile()">
+          Edit Profile
+        </app-button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="border-border mb-4 flex border-b">
+      @for (tab of tabs; track tab.key) {
+        <button
+          type="button"
+          (click)="setTab(tab.key)"
+          class="px-5 py-2.5 text-xs font-semibold transition-colors"
+          [class.text-primary]="activeTab() === tab.key"
+          [class.border-b-2]="activeTab() === tab.key"
+          [class.border-primary]="activeTab() === tab.key"
+          [class.text-muted-foreground]="activeTab() !== tab.key">
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    <!-- Tab Content -->
+    @if (activeTab() === 'profile') {
+      <div class="bg-background border-muted/30 rounded-lg border p-5 space-y-6">
+
+        <!-- Personal Info -->
+        <div>
+          <h4 class="text-foreground mb-3 text-sm font-semibold">Personal Information</h4>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3">
+            <div>
+              <p class="text-muted-foreground text-xs">First Name</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().first_name || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Last Name</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().last_name || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Date of Birth</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().dob || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Gender</p>
+              <p class="text-foreground text-sm font-medium capitalize">{{ profile().gender || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Blood Group</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().blood_group === 'unknown' ? '—' : (profile().blood_group || '—') }}</p>
+            </div>
+          </div>
+        </div>
+
+        <hr class="border-muted/30">
+
+        <!-- Contact -->
+        <div>
+          <h4 class="text-foreground mb-3 text-sm font-semibold">Contact Details</h4>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3">
+            <div>
+              <p class="text-muted-foreground text-xs">Mobile</p>
+              <p class="text-foreground text-sm font-medium">
+                {{ profile().primary_contact_no ? (profile().primary_contact_code + ' ' + profile().primary_contact_no) : '—' }}
+              </p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Email</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().email || '—' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <hr class="border-muted/30">
+
+        <!-- Identity & Background -->
+        <div>
+          <h4 class="text-foreground mb-3 text-sm font-semibold">Identity & Background</h4>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3">
+            <div>
+              <p class="text-muted-foreground text-xs">Aadhaar No</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().aadhaar_no || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Nationality</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().nationality || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Birth Place</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().birth_place || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Mother Tongue</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().mother_tongue || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Religion</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().religion || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Community</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().community || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-muted-foreground text-xs">Caste</p>
+              <p class="text-foreground text-sm font-medium">{{ profile().caste || '—' }}</p>
+            </div>
+          </div>
+        </div>
+
+        @if (profile().notes) {
+          <hr class="border-muted/30">
+          <div>
+            <p class="text-muted-foreground text-xs">Notes</p>
+            <p class="text-foreground mt-1 text-sm">{{ profile().notes }}</p>
+          </div>
+        }
+
+      </div>
+
+      <!-- Family Info -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Family Information</h4>
+        <app-relation-list
+          #familyList
+          [apiBaseUrl]="familyApiBaseUrl"
+          moduleCode="ADMISSION_MANAGEMENT"
+          [readonly]="!ps.canEdit('ADMISSION_MANAGEMENT')"
+          (onAdd)="familyForm?.openCreate(familyApiBaseUrl)"
+          (onEdit)="familyForm?.openEdit(familyApiBaseUrl, $event)"
+          (onView)="familyForm?.openView(familyApiBaseUrl, $event)"
+          (onDelete)="familyForm?.openDelete($event)" />
+        <app-relation-form
+          #familyForm
+          (onSaved)="familyList?.load()"
+          (onDeleted)="familyList?.load()" />
+      </div>
+    }
+
+    @if (activeTab() === 'enquiry') {
+      <div class="bg-background border-muted/30 rounded-lg border p-10 text-center">
+        <p class="text-muted-foreground text-sm">Enquiry — coming soon</p>
+      </div>
+    }
+
+    @if (activeTab() === 'admission') {
+      <div class="bg-background border-muted/30 rounded-lg border p-10 text-center">
+        <p class="text-muted-foreground text-sm">Admission — coming soon</p>
+      </div>
+    }
+
+  }
+</div>

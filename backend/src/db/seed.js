@@ -107,6 +107,8 @@ async function seed() {
     await client.query('DELETE FROM settings.group_modules');
     await client.query('DELETE FROM settings.menu_modules');
     await client.query('DELETE FROM settings.permissions');
+    // Null out group_id on all users before deleting groups (FK constraint)
+    await client.query('UPDATE settings.users SET group_id = NULL');
     await client.query('DELETE FROM settings.groups');
     await client.query('DELETE FROM settings.menus');
     await client.query('DELETE FROM settings.modules');
@@ -137,8 +139,9 @@ async function seed() {
       { key: 'DASHBOARD', name: 'Dashboard', display_name: 'Dashboard', description: 'Quick overview of school activity and key stats',       icon: 'assets/icons/heroicons/outline/chart-pie.svg', route_path: '/dashboard', display_order: 1 },
       { key: 'ACADEMIC',  name: 'Academic',  display_name: 'Academic',  description: 'Manage your school academic configuration',             icon: 'assets/icons/heroicons/outline/bookmark.svg',  route_path: '/academic',   display_order: 2 },
       { key: 'EMPLOYEE',  name: 'Employee',  display_name: 'Employee',  description: 'Manage employee setup and master data',                 icon: 'assets/icons/heroicons/outline/users.svg',     route_path: '/employee',   display_order: 3 },
-      { key: 'MASTER',    name: 'Master',    display_name: 'Master',    description: 'Configure sequences, codes and system-level masters',   icon: 'assets/icons/heroicons/outline/adjustments-horizontal.svg', route_path: '/master', display_order: 4 },
-      { key: 'SETTINGS',  name: 'Settings',  display_name: 'Settings',  description: 'Manage your school system configuration',               icon: 'assets/icons/heroicons/outline/cog.svg',       route_path: '/settings',   display_order: 5 },
+      { key: 'STUDENT',   name: 'Student',   display_name: 'Student',   description: 'Manage student admissions and enrollment',              icon: 'assets/icons/heroicons/outline/user-circle.svg', route_path: '/student', display_order: 4 },
+      { key: 'MASTER',    name: 'Master',    display_name: 'Master',    description: 'Configure sequences, codes and system-level masters',   icon: 'assets/icons/heroicons/outline/adjustments-horizontal.svg', route_path: '/master', display_order: 5 },
+      { key: 'SETTINGS',  name: 'Settings',  display_name: 'Settings',  description: 'Manage your school system configuration',               icon: 'assets/icons/heroicons/outline/cog.svg',       route_path: '/settings',   display_order: 6 },
     ];
 
     const menuIds = {};
@@ -183,6 +186,8 @@ async function seed() {
       { key: 'SEQUENCE_CONTROLS', name: 'Sequence Controls', display_name: 'Sequence Controls', icon: 'assets/icons/heroicons/outline/adjustments-horizontal.svg',     route_path: '/master/sequence',       display_order: 2, enforce_edit_lock: false, description: 'Configure prefix, suffix, counter and limit per location and sequence type' },
       { key: 'DOCUMENT_TYPES',    name: 'Document Types',    display_name: 'Document Types',    icon: 'assets/icons/heroicons/outline/folder.svg',                      route_path: '/master/document-types', display_order: 3, enforce_edit_lock: false, description: 'Manage document type categories used for employee document uploads' },
       { key: 'FEE_CATEGORIES',   name: 'Fee Categories',    display_name: 'Fee Categories',    icon: 'assets/icons/heroicons/outline/table-cells.svg',                 route_path: '/master/fee-categories', display_order: 4, enforce_edit_lock: false, description: 'Manage fee category types used to classify student fee items' },
+      // Student modules
+      { key: 'ADMISSION_MANAGEMENT', name: 'Admission Management', display_name: 'Admission Management', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/student/admission', display_order: 1, enforce_edit_lock: false, description: 'Manage student profiles, enquiries, admissions and enrollment' },
     ];
 
     const moduleIds = {};
@@ -223,6 +228,8 @@ async function seed() {
       { menu: 'MASTER', module: 'SEQUENCE_CONTROLS', display_order: 2 },
       { menu: 'MASTER', module: 'DOCUMENT_TYPES',    display_order: 3 },
       { menu: 'MASTER', module: 'FEE_CATEGORIES',    display_order: 4 },
+      // Student modules
+      { menu: 'STUDENT', module: 'ADMISSION_MANAGEMENT', display_order: 1 },
     ];
 
     let mmInserted = 0;
@@ -303,7 +310,7 @@ async function seed() {
 
     // Seed Group Modules (which menus each group can access)
     const groupModuleMappings = [
-      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'ACADEMIC', 'EMPLOYEE', 'MASTER', 'SETTINGS'] },
+      { group: 'SUPER_ADMIN', menus: ['DASHBOARD', 'ACADEMIC', 'EMPLOYEE', 'STUDENT', 'MASTER', 'SETTINGS'] },
       { group: 'PRINCIPAL', menus: ['DASHBOARD'] },
       { group: 'TEACHER', menus: ['DASHBOARD'] },
       { group: 'ACCOUNTANT', menus: ['DASHBOARD'] },
@@ -450,8 +457,9 @@ async function seed() {
     const orgId = orgResult.rows[0]?.id;
 
     if (orgId) {
-      // Clear old locations (re-seed)
+      // Clear old locations (re-seed) — must delete dependents first
       await client.query('DELETE FROM settings.user_locations');
+      await client.query('DELETE FROM settings.sequence_controls WHERE location_id IN (SELECT id FROM settings.locations WHERE organization_id = $1)', [orgId]);
       await client.query('DELETE FROM settings.locations WHERE organization_id = $1', [orgId]);
 
       const locations = [
@@ -500,6 +508,7 @@ async function seed() {
       // Seed Sequence Codes (master list)
       const sequenceCodes = [
         { code: 'EMPLOYEE', name: 'Employee Code Sequence' },
+        { code: 'STUDENT_PROFILE', name: 'Student Profile Number Sequence' },
       ];
       const seqCodeIds = {};
       for (const sc of sequenceCodes) {
@@ -522,22 +531,27 @@ async function seed() {
       // Seed Sequence Controls — one per location, prefix includes the location code
       // e.g. MAIN-EMP-, EAST-EMP-, SPORT-EMP-  (admin can edit via Master > Sequence Controls)
       let scInserted = 0;
+      const seqControlDefs = [
+        { code: 'EMPLOYEE',        prefixFn: (loc) => `${loc}-EMP-`,  digits: 3, max: 9999 },
+        { code: 'STUDENT_PROFILE', prefixFn: (loc) => `${loc}-STU-`,  digits: 4, max: 9999 },
+      ];
       for (const locCode of Object.keys(locationIds)) {
         const locId = locationIds[locCode];
-        const seqCodeId = seqCodeIds['EMPLOYEE'];
-        const existing = await client.query(
-          `SELECT id FROM settings.sequence_controls WHERE sequence_code_id = $1 AND location_id = $2`,
-          [seqCodeId, locId]
-        );
-        if (existing.rows.length > 0) continue;
-        const prefix = `${locCode}-EMP-`;
-        await client.query(
-          `INSERT INTO settings.sequence_controls
-             (sequence_code_id, location_id, prefix, suffix, last_no, max_no, digit_length, is_active, created_by, updated_by)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)`,
-          [seqCodeId, locId, prefix, '', 0, 9999, 3, adminId, adminId]
-        );
-        scInserted++;
+        for (const def of seqControlDefs) {
+          if (!seqCodeIds[def.code]) continue;
+          const existing = await client.query(
+            `SELECT id FROM settings.sequence_controls WHERE sequence_code_id = $1 AND location_id = $2`,
+            [seqCodeIds[def.code], locId]
+          );
+          if (existing.rows.length > 0) continue;
+          await client.query(
+            `INSERT INTO settings.sequence_controls
+               (sequence_code_id, location_id, prefix, suffix, last_no, max_no, digit_length, is_active, created_by, updated_by)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)`,
+            [seqCodeIds[def.code], locId, def.prefixFn(locCode), '', 0, def.max, def.digits, adminId, adminId]
+          );
+          scInserted++;
+        }
       }
       console.log(`Sequence Controls seeded (${scInserted} inserted)`);
     }

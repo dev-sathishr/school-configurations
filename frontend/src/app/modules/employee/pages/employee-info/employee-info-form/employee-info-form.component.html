@@ -308,14 +308,15 @@
       <!-- ── Tab 8: Family Info (edit/view only) ── -->
       @if (activeTab() === 'family') {
         <div class="py-2">
-          <app-employee-relation-list #familyList
-            [employeeId]="editId"
+          <app-relation-list #familyList
+            [apiBaseUrl]="'/employees/' + editId + '/family'"
+            moduleCode="EMPLOYEE_INFO"
             [readonly]="viewMode"
-            (onAdd)="familyForm?.openCreate(editId)"
-            (onEdit)="familyForm?.openEdit(editId, $event)"
-            (onView)="familyForm?.openView(editId, $event)"
+            (onAdd)="familyForm?.openCreate('/employees/' + editId + '/family')"
+            (onEdit)="familyForm?.openEdit('/employees/' + editId + '/family', $event)"
+            (onView)="familyForm?.openView('/employees/' + editId + '/family', $event)"
             (onDelete)="familyForm?.openDelete($event)" />
-          <app-employee-relation-form #familyForm
+          <app-relation-form #familyForm
             (onSaved)="familyList?.load()"
             (onDeleted)="familyList?.load()" />
         </div>

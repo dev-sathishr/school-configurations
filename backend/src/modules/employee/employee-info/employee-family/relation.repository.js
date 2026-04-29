@@ -1,6 +1,5 @@
 const db = require('../../../../config/database');
 
-const ENTITY_TYPE    = 'employee';
 const MAPPING_TABLE  = 'settings.relation_mappings';
 const RELATION_TABLE = 'settings.relations';
 
@@ -30,17 +29,20 @@ const JOINS = `
   JOIN ${RELATION_TABLE} r ON r.id = m.relation_id AND r.deleted_at IS NULL
 `;
 
-async function findAllByEmployee(employeeId) {
+async function findAllByEntity(entityType, entityId) {
   const result = await db.query(
     `SELECT ${SELECT_FIELDS}
      FROM ${MAPPING_TABLE} m
      ${JOINS}
      WHERE m.entity_type = $1 AND m.entity_id = $2 AND m.deleted_at IS NULL
      ORDER BY m.created_at ASC`,
-    [ENTITY_TYPE, employeeId]
+    [entityType, entityId]
   );
   return result.rows;
 }
+
+// Backward-compat alias
+const findAllByEmployee = (employeeId) => findAllByEntity('employee', employeeId);
 
 async function findById(id) {
   const result = await db.query(
@@ -53,8 +55,8 @@ async function findById(id) {
   return result.rows[0] || null;
 }
 
-async function findByType(employeeId, relationType, excludeId) {
-  const params = [ENTITY_TYPE, employeeId, relationType];
+async function findByType(entityType, entityId, relationType, excludeId) {
+  const params = [entityType, entityId, relationType];
   let sql = `SELECT m.id FROM ${MAPPING_TABLE} m
              WHERE m.entity_type = $1 AND m.entity_id = $2
                AND m.relation_type = $3 AND m.deleted_at IS NULL`;
@@ -66,7 +68,7 @@ async function findByType(employeeId, relationType, excludeId) {
   return result.rows[0] || null;
 }
 
-async function create(employeeId, data, userId) {
+async function create(entityType, entityId, data, userId) {
   const rel = await db.query(
     `INSERT INTO ${RELATION_TABLE}
        (name, dob, gender, aadhaar_no, contact_code, contact_no,
@@ -95,8 +97,8 @@ async function create(employeeId, data, userId) {
      VALUES ($1,$2,$3,$4,$5,$6,$6) RETURNING id, relation_id`,
     [
       rel.rows[0].id,
-      ENTITY_TYPE,
-      employeeId,
+      entityType,
+      entityId,
       data.relation_type,
       data.is_emergency_contact || false,
       userId,
@@ -169,4 +171,4 @@ async function softDelete(id, userId) {
   );
 }
 
-module.exports = { findAllByEmployee, findById, findByType, create, update, softDelete };
+module.exports = { findAllByEntity, findAllByEmployee, findById, findByType, create, update, softDelete };

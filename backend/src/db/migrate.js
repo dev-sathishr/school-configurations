@@ -1250,6 +1250,84 @@ async function migrate() {
         WHERE is_emergency_contact = true AND deleted_at IS NULL;
     `).catch(() => console.log('Index idx_relation_mappings_emergency already exists'));
 
+    // ── Student schema ────────────────────────────────────────────────────────
+    await client.query('CREATE SCHEMA IF NOT EXISTS student');
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE student.gender_type AS ENUM ('male','female','other');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE student.blood_group_type AS ENUM ('A+','A-','B+','B-','AB+','AB-','O+','O-','unknown');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE student.profile_status AS ENUM ('enquiry','admitted','enrolled','withdrawn','alumni');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    // Central student profile — one record per student across their lifecycle
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS student.student_profiles (
+        id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        profile_no          VARCHAR(50) UNIQUE,
+        location_id         UUID NOT NULL REFERENCES settings.locations(id),
+        first_name          VARCHAR(100) NOT NULL,
+        middle_name         VARCHAR(100),
+        last_name           VARCHAR(100),
+        full_name           VARCHAR(300) GENERATED ALWAYS AS (
+                              TRIM(first_name || ' ' || COALESCE(middle_name, '') || ' ' || COALESCE(last_name, ''))
+                            ) STORED,
+        dob                 DATE,
+        gender              student.gender_type,
+        blood_group         student.blood_group_type DEFAULT 'unknown',
+        aadhaar_no          VARCHAR(12),
+        mother_tongue       VARCHAR(100),
+        religion            VARCHAR(100),
+        community           VARCHAR(100),
+        caste               VARCHAR(100),
+        nationality         VARCHAR(100) DEFAULT 'Indian',
+        birth_place         VARCHAR(100),
+        primary_contact_code VARCHAR(10) DEFAULT '+91',
+        primary_contact_no  VARCHAR(20),
+        email               VARCHAR(100),
+        status              student.profile_status DEFAULT 'enquiry',
+        is_active           BOOLEAN DEFAULT TRUE,
+        photo_url           VARCHAR(500),
+        notes               VARCHAR(500),
+        created_by          UUID REFERENCES settings.users(id),
+        updated_by          UUID REFERENCES settings.users(id),
+        created_at          TIMESTAMPTZ DEFAULT NOW(),
+        updated_at          TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by          UUID REFERENCES settings.users(id),
+        deleted_at          TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_student_profiles_location
+        ON student.student_profiles (location_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_student_profiles_status
+        ON student.student_profiles (status)
+        WHERE deleted_at IS NULL;
+    `).catch(() => {});
+
+    // Add missing columns to existing student_profiles table
+    await client.query(`ALTER TABLE student.student_profiles ADD COLUMN IF NOT EXISTS birth_place VARCHAR(100)`).catch(() => {});
+    await client.query(`ALTER TABLE student.student_profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`).catch(() => {});
+
     console.log('Migration completed successfully');
   } catch (err) {
     console.error('Migration failed:', err);

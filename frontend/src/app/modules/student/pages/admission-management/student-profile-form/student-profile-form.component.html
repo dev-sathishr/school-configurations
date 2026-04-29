@@ -1,0 +1,205 @@
+<div class="mx-auto max-w-4xl">
+  <div class="mb-6">
+    <app-breadcrumb></app-breadcrumb>
+  </div>
+
+  @if (errorMessage) {
+    <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <app-loader size="large" text="Loading student profile..." />
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+      <fieldset [disabled]="viewMode" class="space-y-6">
+
+        <!-- Photo & Personal Info -->
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <h4 class="text-foreground mb-4 text-sm font-semibold">Personal Information</h4>
+          <div class="flex flex-col items-start gap-5 md:flex-row">
+
+            <div class="shrink-0">
+              <app-file-upload #photoUpload
+                entityType="student_profile"
+                [entityId]="editId"
+                fileType="photo"
+                accept="image/*"
+                [maxSize]="2"
+                displayStyle="photo"
+                label="Photo"
+                [initialFile]="photo"
+                [allowCamera]="true">
+              </app-file-upload>
+            </div>
+
+            <div class="grid w-full flex-1 grid-cols-1 gap-4 md:grid-cols-3">
+              <app-form-field [formGroup]="form" controlName="first_name" label="First Name"
+                [required]="true" [submitted]="submitted" placeholder="e.g. Ravi"
+                [minLength]="2" [maxLength]="100" [lettersOnly]="true" />
+              <app-form-field [formGroup]="form" controlName="last_name" label="Last Name"
+                placeholder="e.g. Sharma" [maxLength]="100" [lettersOnly]="true" />
+              <app-form-field [formGroup]="form" controlName="dob" label="Date of Birth"
+                fieldType="date" [required]="true" [submitted]="submitted" [max]="dobMaxDate" />
+              <app-form-field [formGroup]="form" controlName="gender" label="Gender"
+                fieldType="select" [options]="genderOptions" placeholder="Select gender"
+                [required]="true" [submitted]="submitted" />
+              <app-form-field [formGroup]="form" controlName="blood_group" label="Blood Group"
+                fieldType="select" [options]="bloodGroupOptions" placeholder="Select blood group" />
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Contact Details -->
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <h4 class="text-foreground mb-4 text-sm font-semibold">Contact Details</h4>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <app-form-field [formGroup]="form" controlName="contact" label="Mobile Number"
+              fieldType="phone" placeholder="Phone number" [required]="true" [submitted]="submitted" />
+            <app-form-field [formGroup]="form" controlName="email" label="Email"
+              fieldType="email" placeholder="e.g. ravi@example.com" [maxLength]="100" [submitted]="submitted" />
+          </div>
+        </div>
+
+        <!-- Identity & Background -->
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <h4 class="text-foreground mb-4 text-sm font-semibold">Identity & Background</h4>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <app-form-field [formGroup]="form" controlName="aadhaar_no" label="Aadhaar No"
+              placeholder="12-digit number" [maxLength]="12" [digitsOnly]="true" [submitted]="submitted" />
+            <app-form-field [formGroup]="form" controlName="nationality" label="Nationality"
+              placeholder="e.g. Indian" [maxLength]="100" />
+            <app-form-field [formGroup]="form" controlName="birth_place" label="Birth Place"
+              placeholder="e.g. Chennai" [maxLength]="100" />
+            <app-form-field [formGroup]="form" controlName="mother_tongue" label="Mother Tongue"
+              placeholder="e.g. Tamil" [maxLength]="100" />
+            <app-form-field [formGroup]="form" controlName="religion" label="Religion"
+              fieldType="select" [options]="religionOptions" placeholder="Select religion" />
+            <app-form-field [formGroup]="form" controlName="community" label="Community"
+              fieldType="select" [options]="communityOptions" placeholder="Select community" />
+            <app-form-field [formGroup]="form" controlName="caste" label="Caste"
+              placeholder="e.g. Brahmin" [maxLength]="100" />
+          </div>
+        </div>
+
+        <!-- Address -->
+        <app-address [addresses]="addresses" [errorMessage]="addressError" (addressesChange)="onAddressesChange($event)" />
+
+        <!-- Family Info -->
+        <div class="bg-background border-muted/30 rounded-lg border p-5"
+          [class.border-red-400]="familyError">
+          <div class="mb-4 flex items-center justify-between">
+            <h4 class="text-foreground text-sm font-semibold">Family Information</h4>
+            @if (!viewMode) {
+              @if (editMode) {
+                <app-button impact="light" tone="primary" shape="rounded" size="small" type="button"
+                  (buttonClick)="familyForm?.openCreate(familyApiBaseUrl)">
+                  + Add Member
+                </app-button>
+              } @else {
+                <app-button impact="light" tone="primary" shape="rounded" size="small" type="button"
+                  (buttonClick)="openLocalCreate()">
+                  + Add Member
+                </app-button>
+              }
+            }
+          </div>
+
+          @if (editMode || viewMode) {
+            <!-- Edit / View mode: load from API -->
+            <app-relation-list
+              #familyList
+              [apiBaseUrl]="familyApiBaseUrl"
+              moduleCode="ADMISSION_MANAGEMENT"
+              [readonly]="viewMode"
+              [hideAddButton]="true"
+              (onEdit)="familyForm?.openEdit(familyApiBaseUrl, $event)"
+              (onView)="familyForm?.openView(familyApiBaseUrl, $event)"
+              (onDelete)="familyForm?.openDelete($event)" />
+          } @else {
+            <!-- Create mode: local array, saved with profile in one shot -->
+            @if (localFamily.length === 0) {
+              <p class="text-muted-foreground py-6 text-center text-xs">No family members added. Click "+ Add Member" to add one.</p>
+            } @else {
+              <div class="space-y-3">
+                @for (m of localFamily; track $index) {
+                  <div class="border-muted/20 flex items-start justify-between rounded-lg border p-4"
+                    [class.border-amber-500]="m.is_emergency_contact">
+                    <div class="min-w-0 flex-1">
+                      <div class="mb-1 flex flex-wrap items-center gap-2">
+                        <span class="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                          {{ relationLabel(m.relation_type) }}
+                        </span>
+                        @if (m.is_emergency_contact) {
+                          <span class="rounded bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700">Emergency Contact</span>
+                        }
+                      </div>
+                      <p class="text-foreground text-sm">{{ m.name }}</p>
+                      @if (m.contact_no) {
+                        <p class="text-muted-foreground text-xs">{{ m.contact_code }} {{ m.contact_no }}</p>
+                      }
+                    </div>
+                    <div class="ml-3 flex shrink-0 gap-1">
+                      <button type="button" (click)="openLocalEdit($index)"
+                        class="text-muted-foreground hover:text-primary rounded p-1.5 transition-colors hover:bg-primary/10" title="Edit">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                        </svg>
+                      </button>
+                      <button type="button" (click)="removeLocalMember($index)"
+                        class="text-muted-foreground hover:text-destructive rounded p-1.5 transition-colors hover:bg-destructive/10" title="Remove">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          @if (familyError) {
+            <p class="mt-2 text-xs text-red-500">{{ familyError }}</p>
+          }
+
+          <!-- Shared modal — used in both create (local) and edit (API) modes -->
+          <app-relation-form
+            #familyForm
+            (onSaved)="familyList?.load()"
+            (onDeleted)="familyList?.load()"
+            (onLocalSaved)="onLocalFamilySaved($event)" />
+        </div>
+
+        <!-- Status & Notes -->
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <div class="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
+            <app-form-field [formGroup]="form" controlName="is_active" label="Active" fieldType="checkbox" />
+            <app-form-field [formGroup]="form" controlName="notes" label="Notes"
+              fieldType="textarea" [rows]="3" placeholder="Any additional notes..." [maxLength]="500" />
+          </div>
+        </div>
+
+      </fieldset>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-3">
+        <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">
+          {{ viewMode ? 'Back' : 'Cancel' }}
+        </app-button>
+        @if (viewMode) {
+          @if (ps.canEdit('ADMISSION_MANAGEMENT')) {
+            <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">
+              Edit
+            </app-button>
+          }
+        } @else {
+          <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving">
+            {{ editMode ? 'Update Profile' : 'Save & Continue' }}
+          </app-button>
+        }
+      </div>
+
+    </form>
+  }
+</div>

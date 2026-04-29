@@ -41,6 +41,10 @@ const employeeExperienceRoutes = require('./modules/employee/employee-info/emplo
 const employeeDocumentRoutes = require('./modules/employee/employee-info/employee-documents/employee-document.routes');
 const employeeRelationRoutes = require('./modules/employee/employee-info/employee-family/relation.routes');
 
+// Student
+const studentProfileRoutes = require('./modules/student/student-profiles/student-profile.routes');
+const studentProfileFamilyRoutes = require('./modules/student/student-profiles/student-profile-family.routes');
+
 // Master
 const sequenceCodeRoutes = require('./modules/master/sequence-master/sequence-codes/sequence-code.routes');
 const sequenceControlRoutes = require('./modules/master/sequence-master/sequence-controls/sequence-control.routes');
@@ -89,6 +93,8 @@ app.use('/api/v1/employees/:employeeId/experience', employeeExperienceRoutes);
 app.use('/api/v1/employees/:employeeId/documents', employeeDocumentRoutes);
 app.use('/api/v1/employees/:employeeId/family', employeeRelationRoutes);
 app.use('/api/v1/ifsc', ifscRouter);
+app.use('/api/v1/student-profiles', studentProfileRoutes);
+app.use('/api/v1/student-profiles/:profileId/family', studentProfileFamilyRoutes);
 app.use('/api/v1/sequence-codes', sequenceCodeRoutes);
 app.use('/api/v1/sequence-controls', sequenceControlRoutes);
 app.use('/api/v1/document-types', documentTypeRoutes);

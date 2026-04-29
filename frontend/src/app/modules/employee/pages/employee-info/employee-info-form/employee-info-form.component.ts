@@ -31,8 +31,8 @@ import { EmployeeExperienceListComponent } from '../employee-experience/employee
 import { EmployeeExperienceFormComponent } from '../employee-experience/employee-experience-form.component';
 import { EmployeeDocumentListComponent } from '../employee-document/employee-document-list.component';
 import { EmployeeDocumentFormComponent } from '../employee-document/employee-document-form.component';
-import { EmployeeRelationListComponent } from '../employee-family/employee-relation-list.component';
-import { EmployeeRelationFormComponent } from '../employee-family/employee-relation-form.component';
+import { RelationListComponent } from '../../../../../shared/components/relation/relation-list.component';
+import { RelationFormComponent } from '../../../../../shared/components/relation/relation-form.component';
 
 type FormTab = 'personal' | 'contact' | 'payroll' | 'bank' | 'qualification' | 'experience' | 'document' | 'family';
 
@@ -58,8 +58,8 @@ type FormTab = 'personal' | 'contact' | 'payroll' | 'bank' | 'qualification' | '
     EmployeeExperienceFormComponent,
     EmployeeDocumentListComponent,
     EmployeeDocumentFormComponent,
-    EmployeeRelationListComponent,
-    EmployeeRelationFormComponent,
+    RelationListComponent,
+    RelationFormComponent,
     ModalComponent,
   ],
 })
@@ -75,8 +75,8 @@ export class EmployeeInfoFormComponent extends FormPageBase {
   @ViewChild('experienceForm') experienceForm?: EmployeeExperienceFormComponent;
   @ViewChild('documentList') documentList?: EmployeeDocumentListComponent;
   @ViewChild('documentForm') documentForm?: EmployeeDocumentFormComponent;
-  @ViewChild('familyList') familyList?: EmployeeRelationListComponent;
-  @ViewChild('familyForm') familyForm?: EmployeeRelationFormComponent;
+  @ViewChild('familyList') familyList?: RelationListComponent;
+  @ViewChild('familyForm') familyForm?: RelationFormComponent;
 
   listRoute = '/employee/employee-info';
   resourcePath = API.employees.base;

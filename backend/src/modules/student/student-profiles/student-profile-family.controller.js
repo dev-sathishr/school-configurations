@@ -1,9 +1,11 @@
-const svc = require('./relation.service');
-const res = require('../../../../shared/helpers/response.helper');
-const { wrap } = require('../../../../shared/middleware/async-handler');
+const svc = require('../../employee/employee-info/employee-family/relation.service');
+const res = require('../../../shared/helpers/response.helper');
+const { wrap } = require('../../../shared/middleware/async-handler');
+
+const ENTITY_TYPE = 'student_profile';
 
 async function getAll(req, resp) {
-  const result = await svc.getAll('employee', req.params.employeeId);
+  const result = await svc.getAll(ENTITY_TYPE, req.params.profileId);
   if (result.error) return res.handleError(resp, result);
   return res.success(resp, { data: result.data });
 }
@@ -15,7 +17,7 @@ async function getById(req, resp) {
 }
 
 async function create(req, resp) {
-  const result = await svc.create('employee', req.params.employeeId, req.body, req.user.id);
+  const result = await svc.create(ENTITY_TYPE, req.params.profileId, req.body, req.user.id);
   if (result.error) return res.handleError(resp, result);
   return res.created(resp, { data: result.data }, 'Relation saved');
 }

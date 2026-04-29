@@ -86,6 +86,20 @@ export function requiredRange(min: number, max: number): ValidatorFn[] {
   return [Validators.required, Validators.minLength(min), Validators.maxLength(max)];
 }
 
+/** Letters, spaces, hyphens and apostrophes only — for name fields. */
+export const LETTERS_ONLY_PATTERN = /^[a-zA-Z\s'\-\.]+$/;
+
+/** Required name letters-only: min 2, max 100. */
+export const PERSON_NAME: ValidatorFn[] = [
+  Validators.required, Validators.minLength(2), Validators.maxLength(100),
+  Validators.pattern(LETTERS_ONLY_PATTERN),
+];
+
+/** Optional name letters-only: max 100. */
+export const PERSON_NAME_OPTIONAL: ValidatorFn[] = [
+  Validators.maxLength(100), Validators.pattern(LETTERS_ONLY_PATTERN),
+];
+
 // --- Domain-specific custom validators ---
 
 /**

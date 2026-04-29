@@ -25,8 +25,8 @@ function validate(body) {
   return errors;
 }
 
-async function getAll(employeeId) {
-  const rows = await repo.findAllByEmployee(employeeId);
+async function getAll(entityType, entityId) {
+  const rows = await repo.findAllByEntity(entityType, entityId);
   return { data: rows };
 }
 
@@ -37,16 +37,16 @@ async function getById(id) {
   return { data: { ...row, addresses } };
 }
 
-async function create(employeeId, body, userId) {
+async function create(entityType, entityId, body, userId) {
   const errors = validate(body);
   if (errors.length) return { error: 'badRequest', message: errors.join(', ') };
 
   if (body.relation_type !== 'other') {
-    const existing = await repo.findByType(employeeId, body.relation_type);
-    if (existing) return { error: 'conflict', message: `A ${body.relation_type.replace(/_/g, ' ')} relation already exists for this employee` };
+    const existing = await repo.findByType(entityType, entityId, body.relation_type);
+    if (existing) return { error: 'conflict', message: `A ${body.relation_type.replace(/_/g, ' ')} relation already exists for this record` };
   }
 
-  const row = await repo.create(employeeId, body, userId);
+  const row = await repo.create(entityType, entityId, body, userId);
 
   if (body.addresses?.length) {
     await saveAddresses('relation', row.relation_id, body.addresses, userId);
@@ -63,8 +63,8 @@ async function update(id, body, userId) {
   if (errors.length) return { error: 'badRequest', message: errors.join(', ') };
 
   if (body.relation_type !== 'other') {
-    const duplicate = await repo.findByType(existing.entity_id, body.relation_type, id);
-    if (duplicate) return { error: 'conflict', message: `A ${body.relation_type.replace(/_/g, ' ')} relation already exists for this employee` };
+    const duplicate = await repo.findByType(existing.entity_type, existing.entity_id, body.relation_type, id);
+    if (duplicate) return { error: 'conflict', message: `A ${body.relation_type.replace(/_/g, ' ')} relation already exists for this record` };
   }
 
   const row = await repo.update(id, body, userId);
