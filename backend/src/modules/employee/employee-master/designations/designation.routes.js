@@ -16,11 +16,11 @@ router.use(authenticate);
 
 router.get('/dropdown', getDropdown);
 router.get('/', checkModuleView('DESIGNATIONS'), getAll);
-router.get('/:id', checkRecordOwnership('settings.designations', 'DESIGNATIONS'), getById);
+router.get('/:id', checkRecordOwnership('employee.designations', 'DESIGNATIONS'), getById);
 router.post('/', authorizeModule('DESIGNATIONS', 'CREATE'), create);
 router.post('/import', authorizeModule('DESIGNATIONS', 'IMPORT'), importRows);
 router.post('/delete-multiple', authorizeModule('DESIGNATIONS', 'DELETE'), removeMultiple);
-router.put('/:id', authorizeModule('DESIGNATIONS', 'EDIT'), checkRecordOwnership('settings.designations', 'DESIGNATIONS'), update);
-router.delete('/:id', authorizeModule('DESIGNATIONS', 'DELETE'), checkRecordOwnership('settings.designations', 'DESIGNATIONS'), remove);
+router.put('/:id', authorizeModule('DESIGNATIONS', 'EDIT'), checkRecordOwnership('employee.designations', 'DESIGNATIONS'), update);
+router.delete('/:id', authorizeModule('DESIGNATIONS', 'DELETE'), checkRecordOwnership('employee.designations', 'DESIGNATIONS'), remove);
 
 module.exports = router;

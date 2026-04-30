@@ -51,7 +51,7 @@ async function remove(id, userId) {
   if (!current) return { error: 'notFound', message: 'Sequence code not found' };
 
   const usageResult = await db.query(
-    `SELECT COUNT(*)::int AS cnt FROM settings.sequence_controls WHERE sequence_code_id = $1 AND deleted_at IS NULL`,
+    `SELECT COUNT(*)::int AS cnt FROM master.sequence_controls WHERE sequence_code_id = $1 AND deleted_at IS NULL`,
     [id]
   );
   const usageCount = usageResult.rows[0]?.cnt || 0;
@@ -76,7 +76,7 @@ async function removeMultiple(ids, userId) {
     const current = await sequenceCodeRepo.findById(id);
     if (current) {
       const usageResult = await db.query(
-        `SELECT COUNT(*)::int AS cnt FROM settings.sequence_controls WHERE sequence_code_id = $1 AND deleted_at IS NULL`,
+        `SELECT COUNT(*)::int AS cnt FROM master.sequence_controls WHERE sequence_code_id = $1 AND deleted_at IS NULL`,
         [id]
       );
       const usageCount = usageResult.rows[0]?.cnt || 0;

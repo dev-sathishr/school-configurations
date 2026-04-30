@@ -1,7 +1,7 @@
 const db = require('../../../../config/database');
 const repoHelper = require('../../../../shared/helpers/repo.helper');
 
-const TABLE = 'settings.employee_payroll';
+const TABLE = 'employee.employee_payroll';
 
 const SELECT_FIELDS = `
   ep.id, ep.employee_id, ep.joining_date, ep.relieving_date, ep.relieving_reason,

@@ -2,7 +2,7 @@ const db = require('../../../../config/database');
 const { paginate } = require('../../../../shared/helpers/pagination.helper');
 const repoHelper = require('../../../../shared/helpers/repo.helper');
 
-const TABLE = 'settings.sequence_codes';
+const TABLE = 'master.sequence_codes';
 
 const SELECT_FIELDS = `sc.id, sc.code, sc.name, sc.is_active,
   sc.created_by, sc.updated_by, sc.created_at, sc.updated_at,
@@ -28,7 +28,7 @@ async function findAll(query) {
 async function findById(id) {
   const result = await db.query(`
     SELECT ${SELECT_FIELDS}
-    FROM settings.sequence_codes sc
+    FROM master.sequence_codes sc
     ${JOINS}
     WHERE sc.id = $1 AND sc.deleted_at IS NULL
   `, [id]);
@@ -37,7 +37,7 @@ async function findById(id) {
 
 async function findByCode(code) {
   const result = await db.query(
-    'SELECT * FROM settings.sequence_codes WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL',
+    'SELECT * FROM master.sequence_codes WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL',
     [code]
   );
   return result.rows[0] || null;
@@ -59,7 +59,7 @@ async function getDropdown(query) {
 
 async function create(data, userId) {
   const result = await db.query(`
-    INSERT INTO settings.sequence_codes (code, name, is_active, created_by, updated_by)
+    INSERT INTO master.sequence_codes (code, name, is_active, created_by, updated_by)
     VALUES ($1, $2, $3, $4, $5)
     RETURNING id, code, name, is_active, created_at
   `, [
@@ -74,7 +74,7 @@ async function create(data, userId) {
 
 async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
-    UPDATE settings.sequence_codes SET
+    UPDATE master.sequence_codes SET
       name = $1, code = $2, is_active = $3,
       updated_by = $4, updated_at = NOW()
     WHERE id = $5

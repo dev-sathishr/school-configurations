@@ -6,10 +6,10 @@ const { authenticate, authorizeModule, checkModuleView, checkRecordOwnership } =
 router.use(authenticate);
 
 router.get('/', checkModuleView('SEQUENCE_CONTROLS'), getAll);
-router.get('/:id', checkRecordOwnership('settings.sequence_controls', 'SEQUENCE_CONTROLS'), getById);
+router.get('/:id', checkRecordOwnership('master.sequence_controls', 'SEQUENCE_CONTROLS'), getById);
 router.post('/', authorizeModule('SEQUENCE_CONTROLS', 'CREATE'), create);
 router.post('/delete-multiple', authorizeModule('SEQUENCE_CONTROLS', 'DELETE'), removeMultiple);
-router.put('/:id', authorizeModule('SEQUENCE_CONTROLS', 'EDIT'), checkRecordOwnership('settings.sequence_controls', 'SEQUENCE_CONTROLS'), update);
-router.delete('/:id', authorizeModule('SEQUENCE_CONTROLS', 'DELETE'), checkRecordOwnership('settings.sequence_controls', 'SEQUENCE_CONTROLS'), remove);
+router.put('/:id', authorizeModule('SEQUENCE_CONTROLS', 'EDIT'), checkRecordOwnership('master.sequence_controls', 'SEQUENCE_CONTROLS'), update);
+router.delete('/:id', authorizeModule('SEQUENCE_CONTROLS', 'DELETE'), checkRecordOwnership('master.sequence_controls', 'SEQUENCE_CONTROLS'), remove);
 
 module.exports = router;

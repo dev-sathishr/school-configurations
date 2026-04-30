@@ -3,7 +3,7 @@ const { paginate } = require('../../../../shared/helpers/pagination.helper');
 const repoHelper = require('../../../../shared/helpers/repo.helper');
 const { applyLocationScope, scopedFindByIdClause } = require('../../../../shared/helpers/location-scope.helper');
 
-const TABLE = 'settings.employee_info';
+const TABLE = 'employee.employee_info';
 
 const SELECT_FIELDS = `
   e.id, e.location_id, e.designation_id,

@@ -2,7 +2,7 @@ const db = require('../../../config/database');
 const { paginate } = require('../../../shared/helpers/pagination.helper');
 const repoHelper = require('../../../shared/helpers/repo.helper');
 
-const TABLE = 'settings.document_types';
+const TABLE = 'master.document_types';
 
 const SELECT_FIELDS = `
   dt.id, dt.code, dt.name, dt.category, dt.is_active, dt.notes,
@@ -31,7 +31,7 @@ async function findAll(query) {
 async function findById(id) {
   const result = await db.query(`
     SELECT ${SELECT_FIELDS}
-    FROM settings.document_types dt
+    FROM master.document_types dt
     ${JOINS}
     WHERE dt.id = $1 AND dt.deleted_at IS NULL
   `, [id]);
@@ -40,7 +40,7 @@ async function findById(id) {
 
 async function findByCode(code) {
   const result = await db.query(
-    `SELECT * FROM settings.document_types WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+    `SELECT * FROM master.document_types WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
     [code]
   );
   return result.rows[0] || null;
@@ -62,7 +62,7 @@ async function getDropdown(query) {
 
 async function create(data, userId) {
   const result = await db.query(`
-    INSERT INTO settings.document_types
+    INSERT INTO master.document_types
       (code, name, category, is_active, notes, document_no_label, validation_pattern, created_by, updated_by)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING id
@@ -82,7 +82,7 @@ async function create(data, userId) {
 
 async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
-    UPDATE settings.document_types SET
+    UPDATE master.document_types SET
       name               = $1,
       code               = $2,
       category           = $3,

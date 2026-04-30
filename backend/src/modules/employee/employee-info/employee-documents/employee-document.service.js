@@ -14,7 +14,7 @@ async function getById(id) {
 
 async function validateDocumentType(document_type_id, document_no) {
   const dtResult = await db.query(
-    `SELECT id, name, document_no_label, validation_pattern FROM settings.document_types WHERE id = $1 AND is_active = true AND deleted_at IS NULL`,
+    `SELECT id, name, document_no_label, validation_pattern FROM master.document_types WHERE id = $1 AND is_active = true AND deleted_at IS NULL`,
     [document_type_id]
   );
   if (!dtResult.rows.length) {

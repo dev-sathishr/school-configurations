@@ -32,6 +32,8 @@ async function migrate() {
   try {
     await client.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto"');
     await client.query('CREATE SCHEMA IF NOT EXISTS settings');
+    await client.query('CREATE SCHEMA IF NOT EXISTS employee');
+    await client.query('CREATE SCHEMA IF NOT EXISTS master');
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS settings.users (
@@ -347,7 +349,7 @@ async function migrate() {
 
     // Employee master tables
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.employee_categories (
+      CREATE TABLE IF NOT EXISTS employee.employee_categories (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(200) NOT NULL,
         code VARCHAR(100) NOT NULL,
@@ -364,14 +366,14 @@ async function migrate() {
 
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_employee_category_code_unique
-        ON settings.employee_categories (LOWER(code))
+        ON employee.employee_categories (LOWER(code))
         WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_employee_category_code_unique already exists'));
 
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.employee_groups (
+      CREATE TABLE IF NOT EXISTS employee.employee_groups (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        employee_category_id UUID REFERENCES settings.employee_categories(id),
+        employee_category_id UUID REFERENCES employee.employee_categories(id),
         name VARCHAR(200) NOT NULL,
         code VARCHAR(100) NOT NULL,
         description TEXT,
@@ -387,25 +389,25 @@ async function migrate() {
 
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_employee_group_code_unique
-        ON settings.employee_groups (LOWER(code))
+        ON employee.employee_groups (LOWER(code))
         WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_employee_group_code_unique already exists'));
 
     await client.query(`
-      ALTER TABLE settings.employee_groups
-      ADD COLUMN IF NOT EXISTS employee_category_id UUID REFERENCES settings.employee_categories(id);
+      ALTER TABLE employee.employee_groups
+      ADD COLUMN IF NOT EXISTS employee_category_id UUID REFERENCES employee.employee_categories(id);
     `).catch(() => {});
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_employee_groups_category
-        ON settings.employee_groups (employee_category_id)
+        ON employee.employee_groups (employee_category_id)
         WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_employee_groups_category already exists'));
 
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.designations (
+      CREATE TABLE IF NOT EXISTS employee.designations (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        employee_group_id UUID REFERENCES settings.employee_groups(id),
+        employee_group_id UUID REFERENCES employee.employee_groups(id),
         name VARCHAR(200) NOT NULL,
         code VARCHAR(100) NOT NULL,
         description TEXT,
@@ -421,27 +423,27 @@ async function migrate() {
 
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_designation_code_unique
-        ON settings.designations (LOWER(code))
+        ON employee.designations (LOWER(code))
         WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_designation_code_unique already exists'));
 
     await client.query(`
-      ALTER TABLE settings.designations
-      ADD COLUMN IF NOT EXISTS employee_group_id UUID REFERENCES settings.employee_groups(id);
+      ALTER TABLE employee.designations
+      ADD COLUMN IF NOT EXISTS employee_group_id UUID REFERENCES employee.employee_groups(id);
     `).catch(() => {});
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_designations_group
-        ON settings.designations (employee_group_id)
+        ON employee.designations (employee_group_id)
         WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_designations_group already exists'));
 
     // Employee info table — main employee record with personal + contact fields
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.employee_info (
+      CREATE TABLE IF NOT EXISTS employee.employee_info (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         location_id UUID REFERENCES settings.locations(id),
-        designation_id UUID REFERENCES settings.designations(id),
+        designation_id UUID REFERENCES employee.designations(id),
         employee_name VARCHAR(200) NOT NULL,
         display_name VARCHAR(200),
         employee_code VARCHAR(50) NOT NULL,
@@ -470,25 +472,25 @@ async function migrate() {
 
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_employee_info_code_location_unique
-        ON settings.employee_info (location_id, LOWER(employee_code))
+        ON employee.employee_info (location_id, LOWER(employee_code))
         WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_employee_info_code_location_unique already exists'));
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_employee_info_location
-        ON settings.employee_info (location_id)
+        ON employee.employee_info (location_id)
         WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_employee_info_location already exists'));
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_employee_info_designation
-        ON settings.employee_info (designation_id)
+        ON employee.employee_info (designation_id)
         WHERE deleted_at IS NULL;
     `).catch(() => console.log('Index idx_employee_info_designation already exists'));
 
     // Sequence codes — master list of named sequences (e.g. EMPLOYEE)
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.sequence_codes (
+      CREATE TABLE IF NOT EXISTS master.sequence_codes (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         code VARCHAR(50) UNIQUE NOT NULL,
         name VARCHAR(100) NOT NULL,
@@ -504,7 +506,7 @@ async function migrate() {
 
     // Document types master — categorised list of document types used when employees upload documents
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.document_types (
+      CREATE TABLE IF NOT EXISTS master.document_types (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         code VARCHAR(20) UNIQUE NOT NULL,
         name VARCHAR(100) NOT NULL,
@@ -523,12 +525,12 @@ async function migrate() {
     `);
 
     // Add document_no_label and validation_pattern columns if upgrading an existing table
-    await client.query(`ALTER TABLE settings.document_types ADD COLUMN IF NOT EXISTS document_no_label VARCHAR(100)`);
-    await client.query(`ALTER TABLE settings.document_types ADD COLUMN IF NOT EXISTS validation_pattern VARCHAR(500)`);
+    await client.query(`ALTER TABLE master.document_types ADD COLUMN IF NOT EXISTS document_no_label VARCHAR(100)`);
+    await client.query(`ALTER TABLE master.document_types ADD COLUMN IF NOT EXISTS validation_pattern VARCHAR(500)`);
 
     // Fee categories master — used to classify student fee line items
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.fee_categories (
+      CREATE TABLE IF NOT EXISTS master.fee_categories (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         code VARCHAR(20) UNIQUE NOT NULL,
         name VARCHAR(100) NOT NULL,
@@ -542,14 +544,14 @@ async function migrate() {
         deleted_at TIMESTAMPTZ
       );
     `);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_fee_categories_code ON settings.fee_categories(code) WHERE deleted_at IS NULL`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_fee_categories_active ON settings.fee_categories(is_active) WHERE deleted_at IS NULL`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fee_categories_code ON master.fee_categories(code) WHERE deleted_at IS NULL`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fee_categories_active ON master.fee_categories(is_active) WHERE deleted_at IS NULL`);
 
     // Sequence controls — per-location config: prefix, suffix, counter, max
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.sequence_controls (
+      CREATE TABLE IF NOT EXISTS master.sequence_controls (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        sequence_code_id UUID NOT NULL REFERENCES settings.sequence_codes(id),
+        sequence_code_id UUID NOT NULL REFERENCES master.sequence_codes(id),
         location_id UUID NOT NULL REFERENCES settings.locations(id),
         prefix VARCHAR(20) DEFAULT '',
         suffix VARCHAR(20) DEFAULT '',
@@ -800,17 +802,10 @@ async function migrate() {
          );
     `).catch(() => {});
 
-    // Academic level enum
-    await client.query(`
-      CREATE TYPE academic.academic_level AS ENUM (
-        'nursery', 'primary', 'middle', 'secondary', 'higher_secondary'
-      );
-    `).catch(() => console.log('Enum academic_level already exists, skipping...'));
-
     // Create academic schema
     await client.query('CREATE SCHEMA IF NOT EXISTS academic');
 
-    // Re-create enum in academic schema if needed
+    // Academic level enum
     await client.query(`
       DO $$ BEGIN
         CREATE TYPE academic.academic_level AS ENUM ('nursery', 'primary', 'middle', 'secondary', 'higher_secondary');
@@ -1002,9 +997,9 @@ async function migrate() {
     // new row. is_current = true marks the active period (enforced by partial
     // unique index). relieving_date / relieving_reason are null while employed.
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.employee_payroll (
+      CREATE TABLE IF NOT EXISTS employee.employee_payroll (
         id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        employee_id         UUID NOT NULL REFERENCES settings.employee_info(id),
+        employee_id         UUID NOT NULL REFERENCES employee.employee_info(id),
         joining_date        DATE NOT NULL,
         relieving_date      DATE,
         relieving_reason    VARCHAR(200),
@@ -1034,18 +1029,18 @@ async function migrate() {
     `);
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_employee_payroll_employee
-        ON settings.employee_payroll (employee_id) WHERE deleted_at IS NULL;
+        ON employee.employee_payroll (employee_id) WHERE deleted_at IS NULL;
     `).catch(() => {});
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_employee_payroll_current
-        ON settings.employee_payroll (employee_id)
+        ON employee.employee_payroll (employee_id)
         WHERE is_current = true AND deleted_at IS NULL;
     `).catch(() => console.log('Index idx_employee_payroll_current already exists'));
 
     // Drop bank columns from payroll — bank accounts are now a separate polymorphic table
-    await client.query(`ALTER TABLE settings.employee_payroll DROP COLUMN IF EXISTS bank_name`).catch(() => {});
-    await client.query(`ALTER TABLE settings.employee_payroll DROP COLUMN IF EXISTS bank_account_no`).catch(() => {});
-    await client.query(`ALTER TABLE settings.employee_payroll DROP COLUMN IF EXISTS bank_ifsc`).catch(() => {});
+    await client.query(`ALTER TABLE employee.employee_payroll DROP COLUMN IF EXISTS bank_name`).catch(() => {});
+    await client.query(`ALTER TABLE employee.employee_payroll DROP COLUMN IF EXISTS bank_account_no`).catch(() => {});
+    await client.query(`ALTER TABLE employee.employee_payroll DROP COLUMN IF EXISTS bank_ifsc`).catch(() => {});
 
     // Bank account type enum
     await client.query(`
@@ -1103,9 +1098,9 @@ async function migrate() {
 
     // ── Employee Qualifications ────────────────────────────────────────
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.employee_qualifications (
+      CREATE TABLE IF NOT EXISTS employee.employee_qualifications (
         id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        employee_id       UUID NOT NULL REFERENCES settings.employee_info(id),
+        employee_id       UUID NOT NULL REFERENCES employee.employee_info(id),
         degree            VARCHAR(50)  NOT NULL,
         field_of_study    VARCHAR(200),
         institution       VARCHAR(300) NOT NULL,
@@ -1124,15 +1119,15 @@ async function migrate() {
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_employee_qualifications_employee
-        ON settings.employee_qualifications (employee_id)
+        ON employee.employee_qualifications (employee_id)
         WHERE deleted_at IS NULL;
     `).catch(() => {});
 
     // ── Employee Experience ────────────────────────────────────────────
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.employee_experience (
+      CREATE TABLE IF NOT EXISTS employee.employee_experience (
         id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        employee_id       UUID NOT NULL REFERENCES settings.employee_info(id),
+        employee_id       UUID NOT NULL REFERENCES employee.employee_info(id),
         organization      VARCHAR(300) NOT NULL,
         designation       VARCHAR(200),
         from_date         DATE NOT NULL,
@@ -1150,16 +1145,16 @@ async function migrate() {
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_employee_experience_employee
-        ON settings.employee_experience (employee_id)
+        ON employee.employee_experience (employee_id)
         WHERE deleted_at IS NULL;
     `).catch(() => {});
 
     // ── Employee Documents ─────────────────────────────────────────────
     await client.query(`
-      CREATE TABLE IF NOT EXISTS settings.employee_documents (
+      CREATE TABLE IF NOT EXISTS employee.employee_documents (
         id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        employee_id       UUID NOT NULL REFERENCES settings.employee_info(id),
-        document_type_id  UUID NOT NULL REFERENCES settings.document_types(id),
+        employee_id       UUID NOT NULL REFERENCES employee.employee_info(id),
+        document_type_id  UUID NOT NULL REFERENCES master.document_types(id),
         document_no       VARCHAR(100),
         expiry_date       DATE,
         notes             VARCHAR(500),
@@ -1174,7 +1169,7 @@ async function migrate() {
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_employee_documents_employee
-        ON settings.employee_documents (employee_id)
+        ON employee.employee_documents (employee_id)
         WHERE deleted_at IS NULL;
     `).catch(() => {});
 

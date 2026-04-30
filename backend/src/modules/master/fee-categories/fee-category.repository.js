@@ -2,7 +2,7 @@ const db = require('../../../config/database');
 const { paginate } = require('../../../shared/helpers/pagination.helper');
 const repoHelper = require('../../../shared/helpers/repo.helper');
 
-const TABLE = 'settings.fee_categories';
+const TABLE = 'master.fee_categories';
 
 const SELECT_FIELDS = `
   fc.id, fc.code, fc.name, fc.description, fc.is_active,
@@ -30,7 +30,7 @@ async function findAll(query) {
 async function findById(id) {
   const result = await db.query(`
     SELECT ${SELECT_FIELDS}
-    FROM settings.fee_categories fc
+    FROM master.fee_categories fc
     ${JOINS}
     WHERE fc.id = $1 AND fc.deleted_at IS NULL
   `, [id]);
@@ -39,7 +39,7 @@ async function findById(id) {
 
 async function findByCode(code) {
   const result = await db.query(
-    `SELECT id FROM settings.fee_categories WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+    `SELECT id FROM master.fee_categories WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
     [code]
   );
   return result.rows[0] || null;
@@ -61,7 +61,7 @@ async function getDropdown(query) {
 
 async function create(data, userId) {
   const result = await db.query(`
-    INSERT INTO settings.fee_categories
+    INSERT INTO master.fee_categories
       (code, name, description, is_active, created_by, updated_by)
     VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING id
@@ -78,7 +78,7 @@ async function create(data, userId) {
 
 async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
-    UPDATE settings.fee_categories SET
+    UPDATE master.fee_categories SET
       code        = $1,
       name        = $2,
       description = $3,

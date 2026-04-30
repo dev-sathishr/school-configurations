@@ -2,7 +2,7 @@ const db = require('../../../../config/database');
 const { paginate } = require('../../../../shared/helpers/pagination.helper');
 const repoHelper = require('../../../../shared/helpers/repo.helper');
 
-const TABLE = 'settings.employee_categories';
+const TABLE = 'employee.employee_categories';
 
 const SELECT_FIELDS = `ec.id, ec.name, ec.code, ec.description, ec.is_active,
   ec.created_by, ec.updated_by, ec.created_at, ec.updated_at,

@@ -373,7 +373,7 @@ async function seed() {
     const empCategoryIds = {};
     for (const cat of employeeCategories) {
       const existing = await client.query(
-        `SELECT id FROM settings.employee_categories WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        `SELECT id FROM employee.employee_categories WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
         [cat.code]
       );
       if (existing.rows.length > 0) {
@@ -382,7 +382,7 @@ async function seed() {
         continue;
       }
       const result = await client.query(
-        `INSERT INTO settings.employee_categories (name, code, description, is_active, created_by, updated_by)
+        `INSERT INTO employee.employee_categories (name, code, description, is_active, created_by, updated_by)
          VALUES ($1, $2, $3, true, $4, $5) RETURNING id`,
         [cat.name, cat.code, cat.description, adminId, adminId]
       );
@@ -400,7 +400,7 @@ async function seed() {
     const empGroupIds = {};
     for (const grp of employeeGroups) {
       const existing = await client.query(
-        `SELECT id FROM settings.employee_groups WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        `SELECT id FROM employee.employee_groups WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
         [grp.code]
       );
       if (existing.rows.length > 0) {
@@ -409,7 +409,7 @@ async function seed() {
         continue;
       }
       const result = await client.query(
-        `INSERT INTO settings.employee_groups (name, code, description, employee_category_id, is_active, created_by, updated_by)
+        `INSERT INTO employee.employee_groups (name, code, description, employee_category_id, is_active, created_by, updated_by)
          VALUES ($1, $2, $3, $4, true, $5, $6) RETURNING id`,
         [grp.name, grp.code, grp.description, empCategoryIds[grp.category], adminId, adminId]
       );
@@ -436,7 +436,7 @@ async function seed() {
     let desigInserted = 0;
     for (const desig of designations) {
       const existing = await client.query(
-        `SELECT id FROM settings.designations WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        `SELECT id FROM employee.designations WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
         [desig.code]
       );
       if (existing.rows.length > 0) {
@@ -444,7 +444,7 @@ async function seed() {
         continue;
       }
       await client.query(
-        `INSERT INTO settings.designations (name, code, description, employee_group_id, is_active, created_by, updated_by)
+        `INSERT INTO employee.designations (name, code, description, employee_group_id, is_active, created_by, updated_by)
          VALUES ($1, $2, $3, $4, true, $5, $6)`,
         [desig.name, desig.code, desig.description, empGroupIds[desig.group], adminId, adminId]
       );
@@ -459,7 +459,7 @@ async function seed() {
     if (orgId) {
       // Clear old locations (re-seed) — must delete dependents first
       await client.query('DELETE FROM settings.user_locations');
-      await client.query('DELETE FROM settings.sequence_controls WHERE location_id IN (SELECT id FROM settings.locations WHERE organization_id = $1)', [orgId]);
+      await client.query('DELETE FROM master.sequence_controls WHERE location_id IN (SELECT id FROM settings.locations WHERE organization_id = $1)', [orgId]);
       await client.query('DELETE FROM settings.locations WHERE organization_id = $1', [orgId]);
 
       const locations = [
@@ -513,7 +513,7 @@ async function seed() {
       const seqCodeIds = {};
       for (const sc of sequenceCodes) {
         const existing = await client.query(
-          `SELECT id FROM settings.sequence_codes WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+          `SELECT id FROM master.sequence_codes WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
           [sc.code]
         );
         if (existing.rows.length > 0) {
@@ -521,7 +521,7 @@ async function seed() {
           continue;
         }
         const result = await client.query(
-          `INSERT INTO settings.sequence_codes (code, name, is_active, created_by, updated_by)
+          `INSERT INTO master.sequence_codes (code, name, is_active, created_by, updated_by)
            VALUES ($1, $2, true, $3, $4) RETURNING id`,
           [sc.code, sc.name, adminId, adminId]
         );
@@ -540,12 +540,12 @@ async function seed() {
         for (const def of seqControlDefs) {
           if (!seqCodeIds[def.code]) continue;
           const existing = await client.query(
-            `SELECT id FROM settings.sequence_controls WHERE sequence_code_id = $1 AND location_id = $2`,
+            `SELECT id FROM master.sequence_controls WHERE sequence_code_id = $1 AND location_id = $2`,
             [seqCodeIds[def.code], locId]
           );
           if (existing.rows.length > 0) continue;
           await client.query(
-            `INSERT INTO settings.sequence_controls
+            `INSERT INTO master.sequence_controls
                (sequence_code_id, location_id, prefix, suffix, last_no, max_no, digit_length, is_active, created_by, updated_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)`,
             [seqCodeIds[def.code], locId, def.prefixFn(locCode), '', 0, def.max, def.digits, adminId, adminId]
@@ -591,20 +591,20 @@ async function seed() {
     let dtInserted = 0;
     for (const dt of documentTypes) {
       const existing = await client.query(
-        `SELECT id FROM settings.document_types WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        `SELECT id FROM master.document_types WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
         [dt.code]
       );
       if (existing.rows.length > 0) {
         // Update validation fields even for existing rows so patterns are applied on re-seed
         await client.query(
-          `UPDATE settings.document_types SET document_no_label = $1, validation_pattern = $2
+          `UPDATE master.document_types SET document_no_label = $1, validation_pattern = $2
            WHERE LOWER(code) = LOWER($3) AND deleted_at IS NULL`,
           [dt.document_no_label, dt.validation_pattern, dt.code]
         );
         continue;
       }
       await client.query(
-        `INSERT INTO settings.document_types (code, name, category, is_active, document_no_label, validation_pattern, created_by, updated_by)
+        `INSERT INTO master.document_types (code, name, category, is_active, document_no_label, validation_pattern, created_by, updated_by)
          VALUES ($1, $2, $3, true, $4, $5, $6, $7)`,
         [dt.code, dt.name, dt.category, dt.document_no_label, dt.validation_pattern, adminId, adminId]
       );
@@ -624,12 +624,12 @@ async function seed() {
     let fcInserted = 0;
     for (const fc of feeCategories) {
       const existing = await client.query(
-        `SELECT id FROM settings.fee_categories WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
+        `SELECT id FROM master.fee_categories WHERE LOWER(code) = LOWER($1) AND deleted_at IS NULL`,
         [fc.code]
       );
       if (existing.rows.length === 0) {
         await client.query(
-          `INSERT INTO settings.fee_categories (code, name, description, is_active, created_by, updated_by)
+          `INSERT INTO master.fee_categories (code, name, description, is_active, created_by, updated_by)
            VALUES ($1, $2, $3, true, $4, $5)`,
           [fc.code, fc.name, fc.description, adminId, adminId]
         );

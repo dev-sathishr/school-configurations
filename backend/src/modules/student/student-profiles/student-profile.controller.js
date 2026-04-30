@@ -2,6 +2,18 @@ const profileService = require('./student-profile.service');
 const res = require('../../../shared/helpers/response.helper');
 const { wrap } = require('../../../shared/middleware/async-handler');
 
+// FormData sends everything as strings — parse JSON fields back to objects/arrays.
+function parseMultipartBody(body) {
+  const parsed = { ...body };
+  for (const key of ['addresses', 'family']) {
+    if (typeof parsed[key] === 'string') {
+      try { parsed[key] = JSON.parse(parsed[key]); } catch { delete parsed[key]; }
+    }
+  }
+  if (parsed.is_active !== undefined) parsed.is_active = parsed.is_active === 'true';
+  return parsed;
+}
+
 async function getAll(req, resp) {
   const result = await profileService.getAll(req.query, req.user.id);
   return res.success(resp, result);
@@ -14,13 +26,15 @@ async function getById(req, resp) {
 }
 
 async function create(req, resp) {
-  const result = await profileService.create(req.body, req.user.id);
+  const body = parseMultipartBody(req.body);
+  const result = await profileService.create(body, req.file || null, req.user.id);
   if (result.error) return res.handleError(resp, result);
   return res.created(resp, { data: result.data }, 'Student profile created successfully');
 }
 
 async function update(req, resp) {
-  const result = await profileService.update(req.params.id, req.body, req.user.id);
+  const body = parseMultipartBody(req.body);
+  const result = await profileService.update(req.params.id, body, req.file || null, req.user.id);
   if (result.error) return res.handleError(resp, result);
   return res.success(resp, { data: result.data }, 'Student profile updated successfully');
 }

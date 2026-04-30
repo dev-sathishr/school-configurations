@@ -31,6 +31,7 @@ export class FormFieldComponent {
   @Input() minLength: number | null = null;
   @Input() uppercase = false;
   @Input() lowercase = false;
+  @Input() titlecase = false;
   @Input() digitsOnly = false;
   @Input() lettersOnly = false;
   @Input() min: string | null = null;
@@ -94,6 +95,14 @@ export class FormFieldComponent {
   }
 
   // Input transform hooks (case + digit filtering)
+  onInput(): void {
+    if (this.digitsOnly) { this.toDigits(); return; }
+    if (this.lettersOnly) this.toLetters();
+    if (this.uppercase) this.toUppercase();
+    else if (this.lowercase) this.toLowercase();
+    else if (this.titlecase) this.toTitlecase();
+  }
+
   toUppercase(): void {
     const val = this.control?.value;
     if (val) this.control?.setValue(val.toUpperCase(), { emitEvent: false });
@@ -112,5 +121,13 @@ export class FormFieldComponent {
   toLetters(): void {
     const val = this.control?.value;
     if (val) this.control?.setValue(val.replace(/[^a-zA-Z\s'\-\.]/g, ''), { emitEvent: false });
+  }
+
+  toTitlecase(): void {
+    const val = this.control?.value as string;
+    if (!val) return;
+    // Capitalize first letter of each word, lowercase the rest
+    const transformed = val.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    if (transformed !== val) this.control?.setValue(transformed, { emitEvent: false });
   }
 }

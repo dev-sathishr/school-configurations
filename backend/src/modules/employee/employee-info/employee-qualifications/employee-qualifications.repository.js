@@ -1,6 +1,6 @@
 const db = require('../../../../config/database');
 
-const TABLE = 'settings.employee_qualifications';
+const TABLE = 'employee.employee_qualifications';
 
 const SELECT_FIELDS = `
   q.id, q.employee_id, q.degree, q.field_of_study, q.institution,

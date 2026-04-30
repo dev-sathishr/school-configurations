@@ -22,12 +22,11 @@
               {{ statusBadge.label }}
             </span>
           </div>
-          <p class="text-muted-foreground mt-1 text-sm">
-            {{ profile().profile_no }}
-            @if (profile().primary_contact_no) {
-              &nbsp;·&nbsp; {{ profile().primary_contact_code }} {{ profile().primary_contact_no }}
-            }
-          </p>
+          @if (profile().primary_contact_no) {
+            <p class="text-muted-foreground mt-1 text-sm">
+              {{ profile().primary_contact_code }} {{ profile().primary_contact_no }}
+            </p>
+          }
         </div>
         <app-button impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="editProfile()">
           Edit Profile

@@ -18,8 +18,8 @@ async function generateNextCode(sequenceCode, locationId) {
     // Lock the control row for this sequence + location
     const ctrl = await client.query(`
       SELECT sc.id, sc.prefix, sc.suffix, sc.last_no, sc.max_no, sc.digit_length
-      FROM settings.sequence_controls sc
-      JOIN settings.sequence_codes s ON s.id = sc.sequence_code_id
+      FROM master.sequence_controls sc
+      JOIN master.sequence_codes s ON s.id = sc.sequence_code_id
       WHERE UPPER(s.code) = UPPER($1)
         AND sc.location_id = $2
         AND sc.is_active = true
@@ -43,7 +43,7 @@ async function generateNextCode(sequenceCode, locationId) {
 
     // Increment counter atomically
     await client.query(
-      `UPDATE settings.sequence_controls SET last_no = $1, updated_at = NOW() WHERE id = $2`,
+      `UPDATE master.sequence_controls SET last_no = $1, updated_at = NOW() WHERE id = $2`,
       [nextNo, row.id]
     );
 
@@ -67,8 +67,8 @@ async function generateNextCode(sequenceCode, locationId) {
 async function peekNextCode(sequenceCode, locationId) {
   const result = await db.pool.query(`
     SELECT sc.prefix, sc.suffix, sc.last_no, sc.digit_length
-    FROM settings.sequence_controls sc
-    JOIN settings.sequence_codes s ON s.id = sc.sequence_code_id
+    FROM master.sequence_controls sc
+    JOIN master.sequence_codes s ON s.id = sc.sequence_code_id
     WHERE UPPER(s.code) = UPPER($1)
       AND sc.location_id = $2
       AND sc.is_active = true

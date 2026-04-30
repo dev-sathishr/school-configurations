@@ -6,9 +6,9 @@ const { applyLocationScope, scopedFindByIdClause } = require('../../../shared/he
 const TABLE = 'student.student_profiles';
 
 const SELECT_FIELDS = `
-  sp.id, sp.profile_no, sp.location_id, sp.first_name, sp.middle_name, sp.last_name,
-  sp.full_name, sp.dob, sp.gender, sp.blood_group, sp.aadhaar_no, sp.mother_tongue,
-  sp.religion, sp.community, sp.caste, sp.nationality, sp.birth_place,
+  sp.id, sp.location_id, sp.first_name, sp.middle_name, sp.last_name,
+  sp.full_name, sp.dob, sp.gender, sp.blood_group, sp.aadhaar_no,
+  sp.nationality, sp.birth_place,
   sp.primary_contact_code, sp.primary_contact_no, sp.email,
   sp.status, sp.is_active, sp.photo_url, sp.notes,
   sp.created_at, sp.updated_at,
@@ -47,9 +47,9 @@ async function findAll(query, scope) {
     alias: 'sp',
     selectFields: SELECT_FIELDS,
     joins: JOINS,
-    searchColumns: ['sp.first_name', 'sp.last_name', 'sp.middle_name', 'sp.profile_no', 'sp.primary_contact_no', 'sp.email'],
+    searchColumns: ['sp.first_name', 'sp.last_name', 'sp.middle_name', 'sp.primary_contact_no', 'sp.email'],
     filterableColumns: ['sp.status', 'sp.gender', 'sp.location_id', 'sp.blood_group'],
-    sortableColumns: ['sp.first_name', 'sp.last_name', 'sp.profile_no', 'sp.dob', 'sp.status', 'sp.created_at'],
+    sortableColumns: ['sp.first_name', 'sp.last_name', 'sp.dob', 'sp.status', 'sp.created_at'],
     defaultSortBy: 'sp.created_at',
     defaultSortOrder: 'DESC',
     extraWhere: clauses.join(' AND '),
@@ -71,15 +71,13 @@ async function findById(id, scope) {
 async function create(data, userId) {
   const result = await db.query(`
     INSERT INTO student.student_profiles (
-      profile_no, location_id, first_name, middle_name, last_name,
-      dob, gender, blood_group, aadhaar_no, mother_tongue,
-      religion, community, caste, nationality, birth_place,
+      location_id, first_name, middle_name, last_name,
+      dob, gender, blood_group, aadhaar_no, nationality, birth_place,
       primary_contact_code, primary_contact_no, email,
       status, is_active, notes, created_by, updated_by
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
     RETURNING id
   `, [
-    data.profile_no || null,
     data.location_id,
     data.first_name,
     data.middle_name || null,
@@ -88,10 +86,6 @@ async function create(data, userId) {
     data.gender || null,
     data.blood_group || 'unknown',
     data.aadhaar_no || null,
-    data.mother_tongue || null,
-    data.religion || null,
-    data.community || null,
-    data.caste || null,
     data.nationality || 'Indian',
     data.birth_place || null,
     data.primary_contact_code || '+91',
@@ -116,21 +110,17 @@ async function update(id, data, userId) {
       gender = COALESCE($5::student.gender_type, gender),
       blood_group = COALESCE($6::student.blood_group_type, blood_group),
       aadhaar_no = $7,
-      mother_tongue = $8,
-      religion = $9,
-      community = $10,
-      caste = $11,
-      nationality = COALESCE($12, nationality),
-      birth_place = $13,
-      primary_contact_code = COALESCE($14, primary_contact_code),
-      primary_contact_no = $15,
-      email = $16,
-      status = COALESCE($17::student.profile_status, status),
-      is_active = COALESCE($18, is_active),
-      notes = $19,
-      updated_by = $20,
+      nationality = COALESCE($8, nationality),
+      birth_place = $9,
+      primary_contact_code = COALESCE($10, primary_contact_code),
+      primary_contact_no = $11,
+      email = $12,
+      status = COALESCE($13::student.profile_status, status),
+      is_active = COALESCE($14, is_active),
+      notes = $15,
+      updated_by = $16,
       updated_at = NOW()
-    WHERE id = $21 AND deleted_at IS NULL
+    WHERE id = $17 AND deleted_at IS NULL
     RETURNING id
   `, [
     data.first_name || null,
@@ -140,10 +130,6 @@ async function update(id, data, userId) {
     data.gender || null,
     data.blood_group || null,
     data.aadhaar_no !== undefined ? data.aadhaar_no || null : undefined,
-    data.mother_tongue !== undefined ? data.mother_tongue || null : undefined,
-    data.religion !== undefined ? data.religion || null : undefined,
-    data.community !== undefined ? data.community || null : undefined,
-    data.caste !== undefined ? data.caste || null : undefined,
     data.nationality || null,
     data.birth_place !== undefined ? data.birth_place || null : undefined,
     data.primary_contact_code || null,

@@ -115,6 +115,7 @@ export const defaultFlagLabel = (isDefault: boolean): 'Default' | '—' =>
 
 // ── Address type ────────────────────────────────────────────────────
 
+// Organization addresses
 export type AddressType =
   | 'primary' | 'registered' | 'communication' | 'billing' | 'branch' | 'other';
 
@@ -125,6 +126,41 @@ export const ADDRESS_TYPE_OPTIONS: SelectOption[] = [
   { value: 'billing',       label: 'Billing' },
   { value: 'branch',        label: 'Branch' },
   { value: 'other',         label: 'Other' },
+];
+
+// Location addresses
+export type LocationAddressType = 'primary' | 'branch' | 'other';
+
+export const LOCATION_ADDRESS_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'primary', label: 'Primary' },
+  { value: 'branch',  label: 'Branch' },
+  { value: 'other',   label: 'Other' },
+];
+
+// Employee addresses
+export type EmployeeAddressType = 'permanent' | 'current' | 'other';
+
+export const EMPLOYEE_ADDRESS_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'permanent', label: 'Permanent' },
+  { value: 'current',   label: 'Current' },
+  { value: 'other',     label: 'Other' },
+];
+
+// Student addresses
+export type StudentAddressType = 'permanent' | 'current' | 'other';
+
+export const STUDENT_ADDRESS_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'permanent', label: 'Permanent' },
+  { value: 'current',   label: 'Current' },
+  { value: 'other',     label: 'Other' },
+];
+
+// Relation (family/guardian) addresses
+export type RelationAddressType = 'primary' | 'other';
+
+export const RELATION_ADDRESS_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'primary', label: 'Primary' },
+  { value: 'other',   label: 'Other' },
 ];
 
 // ── User — Person type ──────────────────────────────────────────────
@@ -208,6 +244,18 @@ export const COMMUNITY_OPTIONS: SelectOption[] = [
   { value: 'sc',      label: 'SC' },
   { value: 'st',      label: 'ST' },
   { value: 'other',   label: 'Other' },
+];
+
+// ── Student — Nationality ───────────────────────────────────────────
+
+export const NATIONALITY_OPTIONS: SelectOption[] = [
+  { value: 'Indian',      label: 'Indian' },
+  { value: 'Sri Lankan',  label: 'Sri Lankan' },
+  { value: 'Bangladeshi', label: 'Bangladeshi' },
+  { value: 'Nepali',      label: 'Nepali' },
+  { value: 'Pakistani',   label: 'Pakistani' },
+  { value: 'Afghan',      label: 'Afghan' },
+  { value: 'Other',       label: 'Other' },
 ];
 
 // ── Qualification — Degree ──────────────────────────────────────────
@@ -346,6 +394,13 @@ export const GENDER_LABELS: Record<string, string> = {
 export type BloodGroupType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'unknown';
 
 // ── Relation Types ─────────────────────────────────────────────────────────
+
+// Relation types where only one instance per student makes sense
+export const UNIQUE_RELATION_TYPES = new Set([
+  'father', 'mother', 'spouse', 'guardian', 'legal_guardian',
+  'grandfather', 'grandmother', 'stepfather', 'stepmother',
+  'father_in_law', 'mother_in_law',
+]);
 
 export const RELATION_TYPE_OPTIONS: SelectOption[] = [
   { value: 'father',         label: 'Father' },

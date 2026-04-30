@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, EventEmitter, inject, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../button/button.component';
@@ -8,7 +8,8 @@ import { ModalComponent } from '../modal/modal.component';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { AddressComponent, Address } from '../address/address.component';
 import { CommonService } from '../../services/common/common.service';
-import { RELATION_TYPE_OPTIONS, GENDER_OPTIONS } from '../../../core/constants/enums';
+import { RELATION_TYPE_OPTIONS, GENDER_OPTIONS, RELATION_ADDRESS_TYPE_OPTIONS, UNIQUE_RELATION_TYPES } from '../../../core/constants/enums';
+import { SelectOption } from '../form-field/form-field.component';
 import * as V from '../../validators/common';
 
 type FormMode = 'create' | 'edit' | 'view';
@@ -36,7 +37,7 @@ type FormMode = 'create' | 'edit' | 'view';
                   fieldType="select" [options]="relationTypeOptions" [required]="true" [submitted]="submitted" />
                 <app-form-field [formGroup]="form" controlName="name" label="Name"
                   [required]="true" [submitted]="submitted" placeholder="Full name"
-                  [minLength]="2" [maxLength]="200" [uppercase]="true" />
+                  [minLength]="2" [maxLength]="200" [lettersOnly]="true" [titlecase]="true" />
                 <app-form-field [formGroup]="form" controlName="gender" label="Gender"
                   fieldType="select" [options]="genderOptions" placeholder="Select gender"
                   [required]="true" [submitted]="submitted" />
@@ -50,8 +51,10 @@ type FormMode = 'create' | 'edit' | 'view';
             <div class="bg-background border-muted/30 rounded-lg border p-4">
               <h4 class="text-foreground mb-3 text-xs font-semibold">Contact</h4>
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <app-form-field [formGroup]="form" controlName="contact" label="Contact Number"
-                  fieldType="phone" placeholder="Phone number" />
+                @if (formReady) {
+                  <app-form-field [formGroup]="form" controlName="contact" label="Contact Number"
+                    fieldType="phone" placeholder="Phone number" [required]="true" [submitted]="submitted" />
+                }
                 <app-form-field [formGroup]="form" controlName="email" label="Email"
                   fieldType="email" placeholder="e.g. name@email.com" [maxLength]="100" [submitted]="submitted" />
               </div>
@@ -69,7 +72,7 @@ type FormMode = 'create' | 'edit' | 'view';
               </div>
             </div>
 
-            <app-address [addresses]="addresses" [errorMessage]="addressError" (addressesChange)="onAddressesChange($event)" />
+            <app-address [addresses]="addresses" [addressTypes]="relationAddressTypes" [errorMessage]="addressError" (addressesChange)="onAddressesChange($event)" />
 
             <div class="bg-background border-muted/30 rounded-lg border p-4">
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -123,12 +126,25 @@ export class RelationFormComponent {
   private cs  = inject(CommonService);
   private cdr = inject(ChangeDetectorRef);
 
-  readonly relationTypeOptions = RELATION_TYPE_OPTIONS;
-  readonly genderOptions       = GENDER_OPTIONS;
+  /** Relation types already used by other members — unique ones will be hidden from the dropdown */
+  @Input() usedRelationTypes: string[] = [];
+
+  readonly relationAddressTypes   = RELATION_ADDRESS_TYPE_OPTIONS;
+  readonly genderOptions          = GENDER_OPTIONS;
+
+  get relationTypeOptions(): SelectOption[] {
+    const currentType = this.form?.get('relation_type')?.value;
+    return RELATION_TYPE_OPTIONS.filter(opt =>
+      !UNIQUE_RELATION_TYPES.has(opt.value) ||
+      opt.value === currentType ||
+      !this.usedRelationTypes.includes(opt.value)
+    );
+  }
 
   showModal         = false;
   showDeleteConfirm = false;
   mode: FormMode    = 'create';
+  formReady         = true;
   loading           = false;
   saving            = false;
   submitted         = false;
@@ -149,13 +165,18 @@ export class RelationFormComponent {
     return { create: 'Add Family Member', edit: 'Edit Family Member', view: 'Family Member Details' }[this.mode];
   }
 
+  private resetPhone(): void {
+    this.formReady = false;
+    setTimeout(() => { this.formReady = true; this.cdr.markForCheck(); }, 0);
+  }
+
   private buildForm(): FormGroup {
     return this.fb.group({
       relation_type:        ['', Validators.required],
       name:                 ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
       gender:               ['', Validators.required],
       dob:                  [''],
-      contact:              [{ code: '+91', number: '' }],
+      contact:              [{ code: '+91', number: '' }, Validators.required],
       email:                ['', V.EMAIL],
       aadhaar_no:           ['', [Validators.maxLength(12), Validators.pattern(/^\d{0,12}$/)]],
       occupation:           ['', Validators.maxLength(200)],
@@ -182,6 +203,7 @@ export class RelationFormComponent {
     this.submitted    = false;
     this.errorMessage = '';
     this.addressError = '';
+    this.resetPhone();
     this.showModal    = true;
   }
 
@@ -229,6 +251,7 @@ export class RelationFormComponent {
     this.submitted    = false;
     this.errorMessage = '';
     this.addressError = '';
+    this.resetPhone();
     this.showModal    = true;
   }
 

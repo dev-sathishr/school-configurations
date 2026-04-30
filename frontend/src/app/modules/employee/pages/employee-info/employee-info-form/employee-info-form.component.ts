@@ -19,6 +19,7 @@ import {
   MARITAL_STATUS_OPTIONS,
   RELIGION_OPTIONS,
   COMMUNITY_OPTIONS,
+  EMPLOYEE_ADDRESS_TYPE_OPTIONS,
 } from '../../../../../core/constants/enums';
 import * as V from '../../../../../shared/validators/common';
 import { EmployeePayrollListComponent } from '../employee-payroll/employee-payroll-list.component';
@@ -92,7 +93,8 @@ export class EmployeeInfoFormComponent extends FormPageBase {
   addressError = '';
   photo: UploadedFile | null = null;
 
-  readonly genderOptions     = GENDER_OPTIONS;
+  readonly genderOptions          = GENDER_OPTIONS;
+  readonly employeeAddressTypes   = EMPLOYEE_ADDRESS_TYPE_OPTIONS;
   readonly bloodGroupOptions = BLOOD_GROUP_OPTIONS;
   readonly maritalOptions    = MARITAL_STATUS_OPTIONS;
   readonly religionOptions   = RELIGION_OPTIONS;

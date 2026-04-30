@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, Input, OnChanges, Output, EventEmitter, S
 import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../button/button.component';
 import { LoaderComponent } from '../loader/loader.component';
+import { InrCurrencyPipe } from '../../pipes/inr-currency.pipe';
 import { CommonService } from '../../services/common/common.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { RELATION_TYPE_OPTIONS, RelationType } from '../../../core/constants/enums';
@@ -29,7 +30,7 @@ const RELATION_LABELS: Record<string, string> =
 @Component({
   selector: 'app-relation-list',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, LoaderComponent],
+  imports: [CommonModule, ButtonComponent, LoaderComponent, InrCurrencyPipe],
   template: `
     <div>
       <div class="mb-4 flex items-center justify-between">
@@ -124,7 +125,7 @@ const RELATION_LABELS: Record<string, string> =
                 @if (m.annual_income) {
                   <div>
                     <p class="text-muted-foreground text-[10px] uppercase tracking-wide">Annual Income</p>
-                    <p class="text-foreground text-xs font-medium">{{ m.annual_income | number }}</p>
+                    <p class="text-foreground text-xs font-medium">{{ m.annual_income | inrCurrency }}</p>
                   </div>
                 }
               </div>

@@ -16,11 +16,11 @@ router.use(authenticate);
 
 router.get('/dropdown', getDropdown);
 router.get('/', checkModuleView('EMPLOYEE_GROUPS'), getAll);
-router.get('/:id', checkRecordOwnership('settings.employee_groups', 'EMPLOYEE_GROUPS'), getById);
+router.get('/:id', checkRecordOwnership('employee.employee_groups', 'EMPLOYEE_GROUPS'), getById);
 router.post('/', authorizeModule('EMPLOYEE_GROUPS', 'CREATE'), create);
 router.post('/import', authorizeModule('EMPLOYEE_GROUPS', 'IMPORT'), importRows);
 router.post('/delete-multiple', authorizeModule('EMPLOYEE_GROUPS', 'DELETE'), removeMultiple);
-router.put('/:id', authorizeModule('EMPLOYEE_GROUPS', 'EDIT'), checkRecordOwnership('settings.employee_groups', 'EMPLOYEE_GROUPS'), update);
-router.delete('/:id', authorizeModule('EMPLOYEE_GROUPS', 'DELETE'), checkRecordOwnership('settings.employee_groups', 'EMPLOYEE_GROUPS'), remove);
+router.put('/:id', authorizeModule('EMPLOYEE_GROUPS', 'EDIT'), checkRecordOwnership('employee.employee_groups', 'EMPLOYEE_GROUPS'), update);
+router.delete('/:id', authorizeModule('EMPLOYEE_GROUPS', 'DELETE'), checkRecordOwnership('employee.employee_groups', 'EMPLOYEE_GROUPS'), remove);
 
 module.exports = router;

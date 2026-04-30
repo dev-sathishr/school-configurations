@@ -35,9 +35,9 @@
             <div class="grid w-full flex-1 grid-cols-1 gap-4 md:grid-cols-3">
               <app-form-field [formGroup]="form" controlName="first_name" label="First Name"
                 [required]="true" [submitted]="submitted" placeholder="e.g. Ravi"
-                [minLength]="2" [maxLength]="100" [lettersOnly]="true" />
+                [minLength]="2" [maxLength]="100" [lettersOnly]="true" [titlecase]="true" />
               <app-form-field [formGroup]="form" controlName="last_name" label="Last Name"
-                placeholder="e.g. Sharma" [maxLength]="100" [lettersOnly]="true" />
+                placeholder="e.g. Sharma" [maxLength]="100" [lettersOnly]="true" [titlecase]="true" />
               <app-form-field [formGroup]="form" controlName="dob" label="Date of Birth"
                 fieldType="date" [required]="true" [submitted]="submitted" [max]="dobMaxDate" />
               <app-form-field [formGroup]="form" controlName="gender" label="Gender"
@@ -68,22 +68,11 @@
             <app-form-field [formGroup]="form" controlName="aadhaar_no" label="Aadhaar No"
               placeholder="12-digit number" [maxLength]="12" [digitsOnly]="true" [submitted]="submitted" />
             <app-form-field [formGroup]="form" controlName="nationality" label="Nationality"
-              placeholder="e.g. Indian" [maxLength]="100" />
+              fieldType="select" [options]="nationalityOptions" placeholder="Select nationality" />
             <app-form-field [formGroup]="form" controlName="birth_place" label="Birth Place"
               placeholder="e.g. Chennai" [maxLength]="100" />
-            <app-form-field [formGroup]="form" controlName="mother_tongue" label="Mother Tongue"
-              placeholder="e.g. Tamil" [maxLength]="100" />
-            <app-form-field [formGroup]="form" controlName="religion" label="Religion"
-              fieldType="select" [options]="religionOptions" placeholder="Select religion" />
-            <app-form-field [formGroup]="form" controlName="community" label="Community"
-              fieldType="select" [options]="communityOptions" placeholder="Select community" />
-            <app-form-field [formGroup]="form" controlName="caste" label="Caste"
-              placeholder="e.g. Brahmin" [maxLength]="100" />
           </div>
         </div>
-
-        <!-- Address -->
-        <app-address [addresses]="addresses" [errorMessage]="addressError" (addressesChange)="onAddressesChange($event)" />
 
         <!-- Family Info -->
         <div class="bg-background border-muted/30 rounded-lg border p-5"
@@ -166,10 +155,46 @@
           <!-- Shared modal — used in both create (local) and edit (API) modes -->
           <app-relation-form
             #familyForm
+            [usedRelationTypes]="usedRelationTypes"
             (onSaved)="familyList?.load()"
             (onDeleted)="familyList?.load()"
             (onLocalSaved)="onLocalFamilySaved($event)" />
         </div>
+
+        <!-- Address -->
+        <app-address
+          title="Student Address"
+          [addresses]="addresses"
+          [addressTypes]="studentAddressTypes"
+          [maxAddresses]="1"
+          [errorMessage]="addressError"
+          [showSameAsParent]="!viewMode && !editMode && familyMembersWithAddresses.length > 0"
+          [sameAsParent]="sameAsParent"
+          (addressesChange)="onAddressesChange($event)"
+          (sameAsParentChange)="onSameAsParentChange($event)"
+          (sameAsParentClick)="onSameAsParentPickerOpen()" />
+
+        <!-- Parent address picker — shown when multiple family members have addresses -->
+        <app-modal
+          [visible]="showParentPicker"
+          title="Select Address Source"
+          size="small"
+          (onClose)="closeParentPicker()">
+          <p class="mb-4 text-sm text-muted-foreground">Multiple family members have addresses. Select one to copy from:</p>
+          <div class="space-y-2">
+            @for (member of familyMembersWithAddresses; track $index) {
+              <button type="button"
+                class="w-full rounded-lg border border-muted/30 p-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
+                (click)="copyFromMember(member)">
+                <p class="text-sm font-medium text-foreground">{{ member.first_name }} {{ member.last_name }}</p>
+                <p class="text-xs text-muted-foreground">{{ relationLabel(member.relation_type) }} · {{ member.addresses.length }} address{{ member.addresses.length > 1 ? 'es' : '' }}</p>
+              </button>
+            }
+          </div>
+          <div modal-footer class="flex justify-end">
+            <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="closeParentPicker()">Cancel</app-button>
+          </div>
+        </app-modal>
 
         <!-- Status & Notes -->
         <div class="bg-background border-muted/30 rounded-lg border p-5">

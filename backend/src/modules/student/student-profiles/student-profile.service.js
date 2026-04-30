@@ -1,7 +1,7 @@
 const profileRepo = require('./student-profile.repository');
 const relationRepo = require('../../employee/employee-info/employee-family/relation.repository');
+const fileRepo = require('../../files/file.repository');
 const { validate } = require('../../../shared/helpers/validate.helper');
-const { generateNextCode } = require('../../../shared/helpers/sequence.helper');
 const { getUserLocationScope, assertLocationAllowed } = require('../../../shared/helpers/location-scope.helper');
 const userRepo = require('../../settings/users/user.repository');
 const { saveAddresses, getAddresses } = require('../../../shared/helpers/address.helper');
@@ -10,13 +10,17 @@ const ENTITY_TYPE = 'student_profile';
 
 async function saveFamilyMembers(profileId, members, userId) {
   if (!members || !Array.isArray(members) || members.length === 0) return;
+  const emergencyCount = members.filter(m => m.is_emergency_contact).length;
+  if (emergencyCount > 1) {
+    return { error: 'badRequest', message: 'Only one family member can be marked as emergency contact' };
+  }
   for (const m of members) {
     const row = await relationRepo.create(ENTITY_TYPE, profileId, m, userId);
     if (m.addresses?.length) {
-      const { saveAddresses: sa } = require('../../../shared/helpers/address.helper');
-      await sa('relation', row.relation_id, m.addresses, userId);
+      await saveAddresses('relation', row.relation_id, m.addresses, userId);
     }
   }
+  return null;
 }
 
 const PROFILE_RULES = {
@@ -26,10 +30,6 @@ const PROFILE_RULES = {
   dob:                  {                              label: 'Date of Birth' },
   gender:               {                              label: 'Gender' },
   aadhaar_no:           { max: 12,                     label: 'Aadhaar Number' },
-  mother_tongue:        { max: 100,                    label: 'Mother Tongue' },
-  religion:             { max: 100,                    label: 'Religion' },
-  community:            { max: 100,                    label: 'Community' },
-  caste:                { max: 100,                    label: 'Caste' },
   nationality:          { max: 100,                    label: 'Nationality' },
   birth_place:          { max: 100,                    label: 'Birth Place' },
   primary_contact_no:   { max: 20,                     label: 'Contact Number' },
@@ -46,9 +46,12 @@ async function getById(id, userId) {
   const scope = await getUserLocationScope(userId);
   const profile = await profileRepo.findById(id, scope);
   if (!profile) return { error: 'notFound', message: 'Student profile not found' };
-  const addresses = await getAddresses('student_profile', id);
-  const family = await relationRepo.findAllByEntity('student_profile', id);
-  return { data: { ...profile, addresses, family } };
+  const [addresses, family, photo] = await Promise.all([
+    getAddresses(ENTITY_TYPE, id),
+    relationRepo.findAllByEntity(ENTITY_TYPE, id),
+    fileRepo.findOneByEntity(ENTITY_TYPE, id, 'photo'),
+  ]);
+  return { data: { ...profile, addresses, family, photo: photo || null } };
 }
 
 async function resolveLocationId(userId) {
@@ -58,11 +61,24 @@ async function resolveLocationId(userId) {
   return defaultRow.id;
 }
 
-async function create(body, userId) {
+async function savePhoto(entityType, entityId, file, userId) {
+  await fileRepo.softDeleteByEntity(entityType, entityId, 'photo', userId);
+  await fileRepo.create({
+    entity_type: entityType,
+    entity_id:   entityId,
+    file_type:   'photo',
+    original_name: file.originalname,
+    stored_name:   file.filename,
+    mime_type:     file.mimetype,
+    size:          file.size,
+    path:          `uploads/${file.filename}`,
+  }, userId);
+}
+
+async function create(body, file, userId) {
   const errors = validate(body, PROFILE_RULES);
   if (errors.length) return { error: 'badRequest', message: errors.join(', ') };
 
-  // Auto-assign location from user's default permitted location
   const locationId = body.location_id || (await resolveLocationId(userId));
   if (!locationId) return { error: 'badRequest', message: 'No location assigned to your account' };
   body = { ...body, location_id: locationId };
@@ -76,20 +92,17 @@ async function create(body, userId) {
     if (exists) return { error: 'conflict', message: 'Aadhaar number is already registered' };
   }
 
-  const profileNo = await generateNextCode('STUDENT_PROFILE', body.location_id);
-  if (profileNo.error) return { error: 'badRequest', message: profileNo.error };
-
-  const id = await profileRepo.create({ ...body, profile_no: profileNo.code }, userId);
-  if (body.addresses?.length) {
-    await saveAddresses('student_profile', id, body.addresses, userId);
-  }
+  const id = await profileRepo.create(body, userId);
+  if (body.addresses?.length) await saveAddresses(ENTITY_TYPE, id, body.addresses, userId);
   if (body.family?.length) {
-    await saveFamilyMembers(id, body.family, userId);
+    const familyError = await saveFamilyMembers(id, body.family, userId);
+    if (familyError) { await profileRepo.softDelete(id, userId); return familyError; }
   }
+  if (file) await savePhoto(ENTITY_TYPE, id, file, userId);
   return getById(id, userId);
 }
 
-async function update(id, body, userId) {
+async function update(id, body, file, userId) {
   const scope = await getUserLocationScope(userId);
   const current = await profileRepo.findById(id, scope);
   if (!current) return { error: 'notFound', message: 'Student profile not found' };
@@ -105,9 +118,8 @@ async function update(id, body, userId) {
 
   const updated = await profileRepo.update(id, body, userId);
   if (!updated) return { error: 'notFound', message: 'Student profile not found' };
-  if (body.addresses && Array.isArray(body.addresses)) {
-    await saveAddresses('student_profile', id, body.addresses, userId);
-  }
+  if (body.addresses && Array.isArray(body.addresses)) await saveAddresses(ENTITY_TYPE, id, body.addresses, userId);
+  if (file) await savePhoto(ENTITY_TYPE, id, file, userId);
   return getById(id, userId);
 }
 

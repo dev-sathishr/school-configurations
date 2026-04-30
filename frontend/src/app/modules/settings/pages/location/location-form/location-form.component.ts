@@ -9,7 +9,7 @@ import { AddressComponent, Address } from '../../../../../shared/components/addr
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
 import { API } from '../../../../../core/api/endpoints';
-import { LOCATION_TYPE_OPTIONS } from '../../../../../core/constants/enums';
+import { LOCATION_TYPE_OPTIONS, LOCATION_ADDRESS_TYPE_OPTIONS } from '../../../../../core/constants/enums';
 import * as V from '../../../../../shared/validators/common';
 
 @Component({
@@ -26,6 +26,7 @@ export class LocationFormComponent extends FormPageBase {
   addresses: Address[] = [];
 
   locationTypes = LOCATION_TYPE_OPTIONS;
+  locationAddressTypes = LOCATION_ADDRESS_TYPE_OPTIONS;
 
   private uniqueValidator(field: string): AsyncValidatorFn {
     return (control: AbstractControl): Observable<ValidationErrors | null> => {

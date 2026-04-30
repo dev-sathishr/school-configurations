@@ -405,6 +405,27 @@ All under `shared/components/`:
 
 **Rule**: when adding a new form, check this list first. Most widgets already exist.
 
+### 3.4b Currency formatting — `InrCurrencyPipe`
+
+All monetary amounts (annual income, fees, deposits, loan amounts, etc.) **must** use Indian number formatting: `₹1,20,000` — not `1,20,000` or `120,000`.
+
+**Pipe**: `InrCurrencyPipe` in [shared/pipes/inr-currency.pipe.ts](frontend/src/app/shared/pipes/inr-currency.pipe.ts)
+
+```ts
+import { InrCurrencyPipe } from '@shared/pipes/inr-currency.pipe';
+// or relative path
+```
+
+```html
+{{ member.annual_income | inrCurrency }}   <!-- ₹1,20,000 -->
+{{ fee.amount | inrCurrency }}             <!-- ₹50,000 -->
+```
+
+**Rules**:
+- Never use `| number`, `| currency`, or `toLocaleString` for INR amounts — always `| inrCurrency`.
+- Null/undefined/empty renders as `—` (em dash), not `₹0` or blank.
+- For form inputs, use `fieldType="number"` as usual — the pipe is display-only.
+
 ### 3.5 Permissions UI
 
 Three ways to gate UI:

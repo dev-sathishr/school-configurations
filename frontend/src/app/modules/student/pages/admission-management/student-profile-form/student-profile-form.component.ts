@@ -4,9 +4,9 @@ import { API } from '../../../../../core/api/endpoints';
 import {
   GENDER_OPTIONS,
   BLOOD_GROUP_OPTIONS,
-  RELIGION_OPTIONS,
-  COMMUNITY_OPTIONS,
+  NATIONALITY_OPTIONS,
   RELATION_TYPE_OPTIONS,
+  STUDENT_ADDRESS_TYPE_OPTIONS,
 } from '../../../../../core/constants/enums';
 import { FormPageBase } from '../../../../../shared/components/form-page/form-page.base';
 import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
@@ -17,6 +17,7 @@ import { FileUploadComponent, UploadedFile } from '../../../../../shared/compone
 import { AddressComponent, Address } from '../../../../../shared/components/address/address.component';
 import { RelationListComponent } from '../../../../../shared/components/relation/relation-list.component';
 import { RelationFormComponent } from '../../../../../shared/components/relation/relation-form.component';
+import { ModalComponent } from '../../../../../shared/components/modal/modal.component';
 import * as V from '../../../../../shared/validators/common';
 
 const RELATION_LABELS: Record<string, string> =
@@ -35,6 +36,7 @@ const RELATION_LABELS: Record<string, string> =
     AddressComponent,
     RelationListComponent,
     RelationFormComponent,
+    ModalComponent,
   ],
 })
 export class StudentProfileFormComponent extends FormPageBase {
@@ -45,18 +47,55 @@ export class StudentProfileFormComponent extends FormPageBase {
   listRoute = '/student/admission';
   resourcePath = API.studentProfiles.base;
 
-  genderOptions     = GENDER_OPTIONS;
-  bloodGroupOptions = BLOOD_GROUP_OPTIONS;
-  religionOptions   = RELIGION_OPTIONS;
-  communityOptions  = COMMUNITY_OPTIONS;
+  genderOptions          = GENDER_OPTIONS;
+  studentAddressTypes    = STUDENT_ADDRESS_TYPE_OPTIONS;
+  bloodGroupOptions  = BLOOD_GROUP_OPTIONS;
+  nationalityOptions = NATIONALITY_OPTIONS;
 
   addresses: Address[] = [];
   photo: UploadedFile | null = null;
   addressError = '';
   familyError = '';
+  sameAsParent = false;
+  showParentPicker = false;
 
   // Local family array used in create mode; in edit/view the list loads from API
   localFamily: any[] = [];
+
+  get familyMembersWithAddresses(): any[] {
+    return this.localFamily.filter(m => m.addresses?.length);
+  }
+
+  get usedRelationTypes(): string[] {
+    return this.localFamily.map(m => m.relation_type).filter(Boolean);
+  }
+
+  onSameAsParentPickerOpen(): void {
+    const members = this.familyMembersWithAddresses;
+    if (members.length === 1) {
+      this.copyFromMember(members[0]);
+    } else {
+      this.showParentPicker = true;
+    }
+  }
+
+  copyFromMember(member: any): void {
+    this.addresses = (member.addresses as Address[]).map(a => ({ ...a, id: undefined }));
+    this.addressError = '';
+    this.sameAsParent = true;
+    this.showParentPicker = false;
+  }
+
+  closeParentPicker(): void {
+    this.showParentPicker = false;
+  }
+
+  onSameAsParentChange(checked: boolean): void {
+    if (!checked) {
+      this.sameAsParent = false;
+      this.addresses = [];
+    }
+  }
 
   get dobMaxDate(): string {
     const d = new Date();
@@ -80,10 +119,6 @@ export class StudentProfileFormComponent extends FormPageBase {
       gender:        ['', [Validators.required]],
       blood_group:   ['unknown'],
       aadhaar_no:    ['', V.maxLength(12)],
-      mother_tongue: ['', V.maxLength(100)],
-      religion:      [''],
-      community:     [''],
-      caste:         ['', V.maxLength(100)],
       nationality:   ['Indian', V.maxLength(100)],
       birth_place:   ['', V.maxLength(100)],
       contact:       [{ code: '+91', number: '' }],
@@ -98,9 +133,10 @@ export class StudentProfileFormComponent extends FormPageBase {
       ...d,
       contact: { code: d.primary_contact_code || '+91', number: d.primary_contact_no || '' },
     });
-    this.addresses  = d.addresses || [];
-    this.localFamily = d.family   || [];
-    this.photo      = d.photo     || null;
+    this.addresses   = d.addresses || [];
+    this.localFamily = d.family    || [];
+    this.photo       = d.photo     || null;
+    this.sameAsParent = false;
   }
 
   onAddressesChange(addresses: Address[]): void {
@@ -110,11 +146,20 @@ export class StudentProfileFormComponent extends FormPageBase {
 
   onLocalFamilySaved(member: any): void {
     const { _localIndex, ...data } = member;
+    let updated: any[];
     if (_localIndex !== undefined) {
-      this.localFamily = this.localFamily.map((m, i) => i === _localIndex ? data : m);
+      updated = this.localFamily.map((m, i) => i === _localIndex ? data : m);
     } else {
-      this.localFamily = [...this.localFamily, data];
+      updated = [...this.localFamily, data];
     }
+    // Enforce only one emergency contact — unmark others if this one is checked
+    if (data.is_emergency_contact) {
+      const savedIndex = _localIndex !== undefined ? _localIndex : updated.length - 1;
+      updated = updated.map((m, i) =>
+        i !== savedIndex && m.is_emergency_contact ? { ...m, is_emergency_contact: false } : m
+      );
+    }
+    this.localFamily = updated;
     if (this.localFamily.length > 0) this.familyError = '';
   }
 
@@ -158,47 +203,54 @@ export class StudentProfileFormComponent extends FormPageBase {
     this.localFamily = this.localFamily.filter((_, i) => i !== index);
   }
 
-  protected override toPayload(): any {
+  override onSubmit(): void {
+    this.submitted = true;
+    this.errorMessage = '';
+    if (!this.beforeSubmit()) return;
+    if (this.form.invalid) return;
+
+    this.saving = true;
+    const fd = this.buildFormData();
+
+    const req = this.editMode
+      ? this.cs.putFile({ url: `${this.resourcePath}/${this.editId}`, formData: fd })
+      : this.cs.postFile({ url: this.resourcePath, formData: fd });
+
+    req.subscribe({
+      next: () => {
+        this.form.markAsPristine();
+        this.saving = false;
+        this.cs.navigate({ url: this.listRoute });
+      },
+      error: (err: any) => this.handleSaveError(err),
+    });
+  }
+
+  private buildFormData(): FormData {
     const val = this.form.value;
-    const payload: any = {
-      first_name:           val.first_name?.trim(),
-      last_name:            val.last_name?.trim() || null,
-      dob:                  val.dob || null,
-      gender:               val.gender || null,
-      blood_group:          val.blood_group || 'unknown',
-      aadhaar_no:           val.aadhaar_no?.trim() || null,
-      mother_tongue:        val.mother_tongue?.trim() || null,
-      religion:             val.religion || null,
-      community:            val.community || null,
-      caste:                val.caste?.trim() || null,
-      nationality:          val.nationality?.trim() || null,
-      birth_place:          val.birth_place?.trim() || null,
-      primary_contact_code: val.contact?.code || '+91',
-      primary_contact_no:   val.contact?.number || null,
-      email:                val.email?.trim() || null,
-      notes:                val.notes?.trim() || null,
-      is_active:            val.is_active ?? true,
-      addresses:            this.addresses,
-    };
-    // On create, send local family so backend saves them in one shot
+    const fd = new FormData();
+
+    fd.append('first_name',           val.first_name?.trim() ?? '');
+    fd.append('last_name',            val.last_name?.trim() || '');
+    fd.append('dob',                  val.dob || '');
+    fd.append('gender',               val.gender || '');
+    fd.append('blood_group',          val.blood_group || 'unknown');
+    fd.append('aadhaar_no',           val.aadhaar_no?.trim() || '');
+    fd.append('nationality',          val.nationality || '');
+    fd.append('birth_place',          val.birth_place?.trim() || '');
+    fd.append('primary_contact_code', val.contact?.code || '+91');
+    fd.append('primary_contact_no',   val.contact?.number || '');
+    fd.append('email',                val.email?.trim() || '');
+    fd.append('notes',                val.notes?.trim() || '');
+    fd.append('is_active',            String(val.is_active ?? true));
+    fd.append('addresses',            JSON.stringify(this.addresses));
     if (!this.editMode) {
-      payload.family = this.localFamily;
+      fd.append('family', JSON.stringify(this.localFamily));
     }
-    return payload;
-  }
 
-  protected override afterSave(res: any): void {
-    const id = res?.data?.id ?? this.editId;
-    const pendingPhoto = !this.editMode && id ? this.photoUpload?.uploadPendingFile(id) : null;
-    if (pendingPhoto) {
-      pendingPhoto.subscribe({ next: () => this.goToDetail(id), error: () => this.goToDetail(id) });
-    } else {
-      this.goToDetail(id);
-    }
-  }
+    const pendingFile = this.photoUpload?.pendingFile;
+    if (pendingFile) fd.append('photo', pendingFile);
 
-  private goToDetail(id: string): void {
-    this.saving = false;
-    this.cs.navigate({ url: `${this.listRoute}/${id}/view` });
+    return fd;
   }
 }

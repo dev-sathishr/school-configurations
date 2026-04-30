@@ -1,6 +1,6 @@
 const db = require('../../../../config/database');
 
-const TABLE = 'settings.employee_documents';
+const TABLE = 'employee.employee_documents';
 
 const SELECT_FIELDS = `
   d.id, d.employee_id, d.document_type_id, d.document_no,

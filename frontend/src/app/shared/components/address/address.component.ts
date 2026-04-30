@@ -28,8 +28,15 @@ export interface Address {
 })
 export class AddressComponent implements AfterViewInit, OnDestroy {
   @Input() addresses: Address[] = [];
+  @Input() title = 'Addresses';
+  @Input() addressTypes: SelectOption[] = ADDRESS_TYPE_OPTIONS;
+  @Input() maxAddresses = Infinity;
   @Input() errorMessage = '';
+  @Input() showSameAsParent = false;
+  @Input() sameAsParent = false;
   @Output() addressesChange = new EventEmitter<Address[]>();
+  @Output() sameAsParentChange = new EventEmitter<boolean>();
+  @Output() sameAsParentClick = new EventEmitter<void>();
 
   @ViewChild('mapContainer') mapContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
@@ -58,13 +65,22 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
   locating = false;
   mapError = '';
 
-  // Default center: India
+  // Default center: India (fallback when geolocation is unavailable/denied)
   private defaultCenter = { lat: 20.5937, lng: 78.9629 };
   private defaultZoom = 5;
+  // Cached current position — fetched eagerly so the map opens on it immediately
+  private cachedPosition: { lat: number; lng: number } | null = null;
 
-  addressTypes: SelectOption[] = ADDRESS_TYPE_OPTIONS;
-
-  constructor(private fb: FormBuilder, private cs: CommonService, private cdr: ChangeDetectorRef, private zone: NgZone) {}
+  constructor(private fb: FormBuilder, private cs: CommonService, private cdr: ChangeDetectorRef, private zone: NgZone) {
+    // Prefetch current location eagerly so it's ready when the modal opens
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { this.cachedPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+        () => { /* permission denied — will fall back to India center */ },
+        { enableHighAccuracy: false, timeout: 8000 },
+      );
+    }
+  }
 
   ngAfterViewInit(): void {}
 
@@ -99,6 +115,14 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
     this.form.get('address_line1')?.valueChanges.subscribe(() => {
       if (!this.fillingFromMap) this.scheduleForwardGeocode();
     });
+  }
+
+  onSameAsParentToggle(checked: boolean): void {
+    if (checked && this.sameAsParentClick.observed) {
+      this.sameAsParentClick.emit();
+    } else {
+      this.sameAsParentChange.emit(checked);
+    }
   }
 
   openAdd(): void {
@@ -202,10 +226,13 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
     }
 
     const container = this.mapContainer.nativeElement;
+    const isNewAddress = !this.form.getRawValue().address_line1;
+    const initialCenter = isNewAddress && this.cachedPosition ? this.cachedPosition : this.defaultCenter;
+    const initialZoom   = isNewAddress && this.cachedPosition ? 15 : this.defaultZoom;
 
     this.map = new google.maps.Map(container, {
-      center: this.defaultCenter,
-      zoom: this.defaultZoom,
+      center: initialCenter,
+      zoom: initialZoom,
       mapTypeControl: true,
       mapTypeControlOptions: {
         style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
@@ -250,7 +277,7 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
           this.map?.setZoom(17);
           this.placeMarker(loc);
           if (place.address_components) {
-            this.zone.run(() => this.fillFromComponents(place.address_components!));
+            this.zone.run(() => this.fillFromComponents(place.address_components!, place.formatted_address));
           } else {
             this.reverseGeocode(loc);
           }
@@ -345,16 +372,26 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
     this.geocoder.geocode({ location }, (results, status) => {
       this.zone.run(() => {
         if (status === 'OK' && results?.[0]) {
-          this.fillFromComponents(results[0].address_components);
+          this.fillFromComponents(results[0].address_components, results[0].formatted_address);
         }
       });
     });
   }
 
-  private fillFromComponents(components: google.maps.GeocoderAddressComponent[], fromMap = true): void {
+  private fillFromComponents(
+    components: google.maps.GeocoderAddressComponent[],
+    formattedAddress?: string,
+    fromMap = true,
+  ): void {
     this.fillingFromMap = fromMap;
-    let addressLine1 = '';
-    let addressLine2 = '';
+
+    let premise = '';
+    let streetNumber = '';
+    let route = '';
+    let sublocality3 = '';
+    let sublocality2 = '';
+    let sublocality1 = '';
+    let neighborhood = '';
     let pincode = '';
     let city = '';
     let state = '';
@@ -362,43 +399,73 @@ export class AddressComponent implements AfterViewInit, OnDestroy {
 
     for (const comp of components) {
       const types = comp.types;
+      if (types.includes('premise') || types.includes('subpremise')) premise = premise ? comp.long_name + ', ' + premise : comp.long_name;
+      else if (types.includes('street_number'))  streetNumber = comp.long_name;
+      else if (types.includes('route'))          route = comp.long_name;
+      else if (types.includes('sublocality_level_3')) sublocality3 = comp.long_name;
+      else if (types.includes('sublocality_level_2')) sublocality2 = comp.long_name;
+      else if (types.includes('sublocality_level_1')) sublocality1 = comp.long_name;
+      else if (types.includes('neighborhood'))   neighborhood = comp.long_name;
+      else if (types.includes('locality'))       city = comp.long_name;
+      else if (types.includes('administrative_area_level_1')) state = comp.long_name;
+      else if (types.includes('country'))        country = comp.long_name;
+      else if (types.includes('postal_code'))    pincode = comp.long_name;
+    }
 
-      if (types.includes('street_number')) {
-        addressLine1 = comp.long_name + (addressLine1 ? ', ' + addressLine1 : '');
-      } else if (types.includes('route')) {
-        addressLine1 = addressLine1 ? addressLine1 + ', ' + comp.long_name : comp.long_name;
-      } else if (types.includes('premise') || types.includes('subpremise')) {
-        addressLine1 = addressLine1 ? comp.long_name + ', ' + addressLine1 : comp.long_name;
-      } else if (types.includes('sublocality_level_2') || types.includes('sublocality_level_3')) {
-        addressLine2 = addressLine2 ? addressLine2 + ', ' + comp.long_name : comp.long_name;
-      } else if (types.includes('sublocality_level_1') || types.includes('neighborhood')) {
-        addressLine2 = addressLine2 ? addressLine2 + ', ' + comp.long_name : comp.long_name;
-      } else if (types.includes('locality')) {
-        city = comp.long_name;
-      } else if (types.includes('administrative_area_level_1')) {
-        state = comp.long_name;
-      } else if (types.includes('country')) {
-        country = comp.long_name;
-      } else if (types.includes('postal_code')) {
-        pincode = comp.long_name;
+    // Build address_line1: prefer explicit street components; fall back to
+    // the finest sublocality available (very common in India where streets
+    // lack named routes).
+    let line1Parts: string[] = [];
+    if (premise)      line1Parts.push(premise);
+    if (streetNumber) line1Parts.push(streetNumber);
+    if (route)        line1Parts.push(route);
+
+    // When no street-level component exists, use the most specific sublocality
+    // as line 1 so the mandatory field is never blank.
+    if (line1Parts.length === 0) {
+      const finest = sublocality3 || sublocality2 || sublocality1 || neighborhood;
+      if (finest) line1Parts.push(finest);
+    }
+
+    // Last resort: extract first segment of formatted_address (everything before
+    // the first comma that isn't just a plus-code).
+    if (line1Parts.length === 0 && formattedAddress) {
+      const firstSegment = formattedAddress.split(',')[0].trim();
+      // Ignore plus-codes like "WC2H+8F"
+      if (firstSegment && !/^[A-Z0-9]{4,}\+[A-Z0-9]+$/.test(firstSegment)) {
+        line1Parts.push(firstSegment);
       }
     }
 
-    // Fill form fields
+    // Build address_line2: remaining sublocality levels not used in line 1.
+    let line2Parts: string[] = [];
+    if (line1Parts.length > 0 && (premise || streetNumber || route)) {
+      // Line 1 has explicit street info — put all sublocality in line 2.
+      if (sublocality3) line2Parts.push(sublocality3);
+      if (sublocality2) line2Parts.push(sublocality2);
+      if (sublocality1) line2Parts.push(sublocality1);
+      if (neighborhood && !line2Parts.includes(neighborhood)) line2Parts.push(neighborhood);
+    } else {
+      // Line 1 consumed the finest sublocality — put the broader ones in line 2.
+      const used = line1Parts[0];
+      const candidates = [sublocality3, sublocality2, sublocality1, neighborhood].filter(Boolean);
+      line2Parts = candidates.filter(s => s !== used);
+    }
+
+    const addressLine1 = line1Parts.join(', ');
+    const addressLine2 = line2Parts.join(', ');
+
     if (addressLine1) this.form.patchValue({ address_line1: addressLine1 });
     if (addressLine2) this.form.patchValue({ address_line2: addressLine2 });
-    if (city) this.form.get('city')?.setValue(city);
-    if (state) this.form.get('state')?.setValue(state);
+    if (city)    this.form.get('city')?.setValue(city);
+    if (state)   this.form.get('state')?.setValue(state);
     if (country) this.form.get('country')?.setValue(country);
 
-    // Set pincode — this also triggers the pincode lookup for post office
     if (pincode && pincode.length === 6) {
       this.form.patchValue({ pincode });
     }
 
     this.cdr.detectChanges();
-
-    // Reset flag after a tick so subsequent manual edits trigger forward geocode
     setTimeout(() => (this.fillingFromMap = false), 0);
   }
 

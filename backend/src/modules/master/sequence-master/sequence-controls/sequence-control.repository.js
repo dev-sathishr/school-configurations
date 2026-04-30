@@ -2,7 +2,7 @@ const db = require('../../../../config/database');
 const { paginate } = require('../../../../shared/helpers/pagination.helper');
 const repoHelper = require('../../../../shared/helpers/repo.helper');
 
-const TABLE = 'settings.sequence_controls';
+const TABLE = 'master.sequence_controls';
 
 const SELECT_FIELDS = `sc.id, sc.sequence_code_id, sc.location_id,
   sc.prefix, sc.suffix, sc.last_no, sc.max_no, sc.digit_length, sc.is_active, sc.notes,
@@ -33,7 +33,7 @@ async function findAll(query) {
 async function findById(id) {
   const result = await db.query(`
     SELECT ${SELECT_FIELDS}
-    FROM settings.sequence_controls sc
+    FROM master.sequence_controls sc
     ${JOINS}
     WHERE sc.id = $1 AND sc.deleted_at IS NULL
   `, [id]);
@@ -48,7 +48,7 @@ async function findByCodeAndLocation(sequenceCodeId, locationId, excludeId = nul
     excludeClause = `AND sc.id != $${params.length}`;
   }
   const result = await db.query(`
-    SELECT sc.id FROM settings.sequence_controls sc
+    SELECT sc.id FROM master.sequence_controls sc
     WHERE sc.sequence_code_id = $1 AND sc.location_id = $2
       AND sc.deleted_at IS NULL ${excludeClause}
     LIMIT 1
@@ -58,7 +58,7 @@ async function findByCodeAndLocation(sequenceCodeId, locationId, excludeId = nul
 
 async function create(data, userId) {
   const result = await db.query(`
-    INSERT INTO settings.sequence_controls
+    INSERT INTO master.sequence_controls
       (sequence_code_id, location_id, prefix, suffix, last_no, max_no, digit_length, is_active, notes, created_by, updated_by)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING id, sequence_code_id, location_id, prefix, suffix, last_no, max_no, digit_length, is_active, notes, created_at
@@ -80,7 +80,7 @@ async function create(data, userId) {
 
 async function update(id, data, current, userId, expectedUpdatedAt) {
   const result = await db.query(`
-    UPDATE settings.sequence_controls SET
+    UPDATE master.sequence_controls SET
       sequence_code_id = $1, location_id = $2, prefix = $3, suffix = $4,
       last_no = $5, max_no = $6, digit_length = $7, is_active = $8, notes = $9,
       updated_by = $10, updated_at = NOW()

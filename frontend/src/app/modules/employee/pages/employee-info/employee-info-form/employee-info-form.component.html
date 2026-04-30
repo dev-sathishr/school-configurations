@@ -225,7 +225,7 @@
           </div>
 
           <!-- Addresses -->
-          <app-address [addresses]="addresses" (addressesChange)="onAddressesChange($event)" />
+          <app-address [addresses]="addresses" [addressTypes]="employeeAddressTypes" (addressesChange)="onAddressesChange($event)" />
           @if (addressError) {
             <p class="-mt-4 text-xs text-red-500">{{ addressError }}</p>
           }

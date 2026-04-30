@@ -20,7 +20,7 @@ async function syncEmployeeEmail(personId, email) {
   const db = require('../../../config/database');
   // Only update if the employee currently has no email — never overwrite an existing one
   await db.query(
-    `UPDATE settings.employee_info SET email = $1, updated_at = NOW() WHERE id = $2 AND (email IS NULL OR email = '') AND deleted_at IS NULL`,
+    `UPDATE employee.employee_info SET email = $1, updated_at = NOW() WHERE id = $2 AND (email IS NULL OR email = '') AND deleted_at IS NULL`,
     [email, personId]
   );
 }

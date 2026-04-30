@@ -4,7 +4,6 @@ import { StudentComponent } from './student.component';
 import { MenuHomeComponent } from '../../shared/components/menu-home/menu-home.component';
 import { AdmissionManagementListComponent } from './pages/admission-management/admission-management-list/admission-management-list.component';
 import { StudentProfileFormComponent } from './pages/admission-management/student-profile-form/student-profile-form.component';
-import { StudentProfileDetailComponent } from './pages/admission-management/student-profile-detail/student-profile-detail.component';
 import { ModuleAccessGuard } from '../../core/guards/module-access.guard';
 
 const routes: Routes = [
@@ -21,7 +20,7 @@ const routes: Routes = [
           { path: '', component: AdmissionManagementListComponent },
           { path: 'new', component: StudentProfileFormComponent },
           { path: ':id/edit', component: StudentProfileFormComponent },
-          { path: ':id/view', component: StudentProfileDetailComponent },
+          { path: ':id/view', component: StudentProfileFormComponent },
         ],
       },
     ],
