@@ -91,6 +91,15 @@ async function create(entityType, entityId, data, userId) {
     ]
   );
 
+  if (data.is_emergency_contact) {
+    await db.query(
+      `UPDATE ${MAPPING_TABLE}
+       SET is_emergency_contact = false, updated_by = $3, updated_at = NOW()
+       WHERE entity_type = $1 AND entity_id = $2 AND deleted_at IS NULL`,
+      [entityType, entityId, userId]
+    );
+  }
+
   const mapping = await db.query(
     `INSERT INTO ${MAPPING_TABLE}
        (relation_id, entity_type, entity_id, relation_type, is_emergency_contact, created_by, updated_by)
@@ -110,12 +119,14 @@ async function create(entityType, entityId, data, userId) {
 
 async function update(id, data, userId) {
   const existing = await db.query(
-    `SELECT relation_id FROM ${MAPPING_TABLE} WHERE id = $1 AND deleted_at IS NULL`,
+    `SELECT relation_id, entity_type, entity_id FROM ${MAPPING_TABLE} WHERE id = $1 AND deleted_at IS NULL`,
     [id]
   );
   if (!existing.rows[0]) return null;
 
   const relationId = existing.rows[0].relation_id;
+  const entityType = existing.rows[0].entity_type;
+  const entityId = existing.rows[0].entity_id;
 
   await db.query(
     `UPDATE ${RELATION_TABLE} SET
@@ -140,6 +151,15 @@ async function update(id, data, userId) {
       relationId,
     ]
   );
+
+  if (data.is_emergency_contact) {
+    await db.query(
+      `UPDATE ${MAPPING_TABLE}
+       SET is_emergency_contact = false, updated_by = $4, updated_at = NOW()
+       WHERE entity_type = $1 AND entity_id = $2 AND id != $3 AND deleted_at IS NULL`,
+      [entityType, entityId, id, userId]
+    );
+  }
 
   await db.query(
     `UPDATE ${MAPPING_TABLE} SET

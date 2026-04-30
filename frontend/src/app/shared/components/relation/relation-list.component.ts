@@ -139,6 +139,8 @@ const RELATION_LABELS: Record<string, string> =
 export class RelationListComponent implements OnChanges {
   /** REST base URL for this entity's family — e.g. /employees/:id/family */
   @Input() apiBaseUrl = '';
+  @Input() preloadedMembers: RelationMember[] | null = null;
+  @Input() skipApiLoad = false;
   /** Module code for permission checks — e.g. 'EMPLOYEE_INFO' or 'ADMISSION_MANAGEMENT' */
   @Input() moduleCode = '';
   @Input() readonly = false;
@@ -161,7 +163,11 @@ export class RelationListComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['apiBaseUrl'] && this.apiBaseUrl) this.load();
+    if (changes['preloadedMembers']) {
+      this.members = Array.isArray(this.preloadedMembers) ? [...this.preloadedMembers] : [];
+      this.cdr.markForCheck();
+    }
+    if (changes['apiBaseUrl'] && this.apiBaseUrl && !this.skipApiLoad) this.load();
   }
 
   load(): void {

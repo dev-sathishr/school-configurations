@@ -9,7 +9,7 @@ const SELECT_FIELDS = `d.id, d.employee_group_id, d.name, d.code, d.description,
   eg.name AS employee_group_name, eg.code AS employee_group_code,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
 
-const JOINS = `LEFT JOIN settings.employee_groups eg ON d.employee_group_id = eg.id AND eg.deleted_at IS NULL
+const JOINS = `LEFT JOIN employee.employee_groups eg ON d.employee_group_id = eg.id AND eg.deleted_at IS NULL
   LEFT JOIN settings.users cb ON d.created_by = cb.id
   LEFT JOIN settings.users ub ON d.updated_by = ub.id`;
 

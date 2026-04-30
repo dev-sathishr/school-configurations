@@ -156,11 +156,12 @@ export const STUDENT_ADDRESS_TYPE_OPTIONS: SelectOption[] = [
 ];
 
 // Relation (family/guardian) addresses
-export type RelationAddressType = 'primary' | 'other';
+export type RelationAddressType = 'permanent' | 'current' | 'other';
 
 export const RELATION_ADDRESS_TYPE_OPTIONS: SelectOption[] = [
-  { value: 'primary', label: 'Primary' },
-  { value: 'other',   label: 'Other' },
+  { value: 'permanent', label: 'Permanent' },
+  { value: 'current',   label: 'Current' },
+  { value: 'other',     label: 'Other' },
 ];
 
 // ── User — Person type ──────────────────────────────────────────────
@@ -367,9 +368,10 @@ export type RelationType =
 
 // ── Student Profile ────────────────────────────────────────────────────────
 
-export type ProfileStatus = 'enquiry' | 'admitted' | 'enrolled' | 'withdrawn' | 'alumni';
+export type ProfileStatus = 'profile_created' | 'enquiry' | 'admitted' | 'enrolled' | 'withdrawn' | 'alumni';
 
 export const PROFILE_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'profile_created', label: 'Profile Created' },
   { value: 'enquiry',   label: 'Enquiry' },
   { value: 'admitted',  label: 'Admitted' },
   { value: 'enrolled',  label: 'Enrolled' },
@@ -378,6 +380,7 @@ export const PROFILE_STATUS_OPTIONS: SelectOption[] = [
 ];
 
 export const PROFILE_STATUS_BADGES: Record<string, { label: string; class: string }> = {
+  profile_created: { label: 'Profile Created', class: 'bg-muted text-muted-foreground' },
   enquiry:   { label: 'Enquiry',   class: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400' },
   admitted:  { label: 'Admitted',  class: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
   enrolled:  { label: 'Enrolled',  class: 'bg-green-500/10 text-green-700 dark:text-green-400' },

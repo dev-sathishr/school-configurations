@@ -67,8 +67,9 @@ type FormMode = 'create' | 'edit' | 'view';
                   placeholder="e.g. Teacher, Farmer" [maxLength]="200" />
                 <app-form-field [formGroup]="form" controlName="qualification" label="Qualification"
                   placeholder="e.g. B.Sc, M.A" [maxLength]="100" />
-                <app-form-field [formGroup]="form" controlName="annual_income" label="Annual Income (₹)"
-                  fieldType="number" placeholder="e.g. 300000" />
+                <app-form-field [formGroup]="form" controlName="annual_income" label="Annual Income (INR)"
+                  fieldType="text" placeholder="e.g. 300000" [digitsOnly]="true"
+                  [minLength]="1" [maxLength]="12" [submitted]="submitted" />
               </div>
             </div>
 
@@ -158,6 +159,7 @@ export class RelationFormComponent {
   private deleteId   = '';
   private localMode  = false;
   private localIndex: number | undefined = undefined;
+  private localMeta: Record<string, any> = {};
 
   form: FormGroup = this.buildForm();
 
@@ -181,7 +183,7 @@ export class RelationFormComponent {
       aadhaar_no:           ['', [Validators.maxLength(12), Validators.pattern(/^\d{0,12}$/)]],
       occupation:           ['', Validators.maxLength(200)],
       qualification:        ['', Validators.maxLength(100)],
-      annual_income:        [null],
+      annual_income:        ['', [Validators.minLength(1), Validators.maxLength(12), Validators.pattern(/^\d*$/)]],
       is_emergency_contact: [false],
       notes:                ['', V.NOTES],
     });
@@ -245,6 +247,7 @@ export class RelationFormComponent {
   openLocalCreate(): void {
     this.localMode    = true;
     this.localIndex   = undefined;
+    this.localMeta    = {};
     this.mode         = 'create';
     this.form         = this.buildForm();
     this.addresses    = [];
@@ -258,6 +261,14 @@ export class RelationFormComponent {
   openLocalEdit(data: any, index: number): void {
     this.localMode    = true;
     this.localIndex   = index;
+    this.localMeta    = {
+      id: data.id || undefined,
+      relation_id: data.relation_id || undefined,
+      entity_id: data.entity_id || undefined,
+      entity_type: data.entity_type || undefined,
+      created_at: data.created_at || undefined,
+      updated_at: data.updated_at || undefined,
+    };
     this.mode         = 'edit';
     this.form         = this.buildForm();
     this.addresses    = data.addresses || [];
@@ -266,16 +277,26 @@ export class RelationFormComponent {
     this.addressError = '';
     this.form.patchValue({
       ...data,
+      dob: this.toDateInput(data.dob),
       contact:       { code: data.contact_code || '+91', number: data.contact_no || '' },
       aadhaar_no:    data.aadhaar_no    || '',
-      annual_income: data.annual_income ?? null,
+      annual_income: this.toIncomeInput(data.annual_income),
     });
+    this.resetPhone();
     this.showModal    = true;
   }
 
   openLocalView(data: any, index: number): void {
     this.localMode    = true;
     this.localIndex   = index;
+    this.localMeta    = {
+      id: data.id || undefined,
+      relation_id: data.relation_id || undefined,
+      entity_id: data.entity_id || undefined,
+      entity_type: data.entity_type || undefined,
+      created_at: data.created_at || undefined,
+      updated_at: data.updated_at || undefined,
+    };
     this.mode         = 'view';
     this.form         = this.buildForm();
     this.addresses    = data.addresses || [];
@@ -284,10 +305,12 @@ export class RelationFormComponent {
     this.addressError = '';
     this.form.patchValue({
       ...data,
+      dob: this.toDateInput(data.dob),
       contact:       { code: data.contact_code || '+91', number: data.contact_no || '' },
       aadhaar_no:    data.aadhaar_no    || '',
-      annual_income: data.annual_income ?? null,
+      annual_income: this.toIncomeInput(data.annual_income),
     });
+    this.resetPhone();
     this.showModal    = true;
   }
 
@@ -298,9 +321,10 @@ export class RelationFormComponent {
         if (!d) return;
         this.form.patchValue({
           ...d,
+          dob: this.toDateInput(d.dob),
           contact:       { code: d.contact_code || '+91', number: d.contact_no || '' },
           aadhaar_no:    d.aadhaar_no    || '',
-          annual_income: d.annual_income ?? null,
+          annual_income: this.toIncomeInput(d.annual_income),
         });
         this.addresses = d.addresses || [];
         this.loading   = false;
@@ -336,6 +360,12 @@ export class RelationFormComponent {
     delete payload.contact;
 
     if (this.localMode) {
+      payload.id = this.localMeta['id'] || payload.id;
+      payload.relation_id = this.localMeta['relation_id'] || payload.relation_id;
+      payload.entity_id = this.localMeta['entity_id'] || payload.entity_id;
+      payload.entity_type = this.localMeta['entity_type'] || payload.entity_type;
+      payload.created_at = this.localMeta['created_at'] || payload.created_at;
+      payload.updated_at = this.localMeta['updated_at'] || payload.updated_at;
       if (this.localIndex !== undefined) payload._localIndex = this.localIndex;
       this.showModal = false;
       this.onLocalSaved.emit(payload);
@@ -384,5 +414,35 @@ export class RelationFormComponent {
     this.submitted    = false;
     this.localMode    = false;
     this.localIndex   = undefined;
+    this.localMeta    = {};
+  }
+
+  private toDateInput(value: string | Date | null | undefined): string {
+    if (!value) return '';
+
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, '0');
+      const d = String(value.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    if (typeof value !== 'string') return '';
+    const datePart = value.slice(0, 10);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
+    if (!match) return '';
+    return `${match[1]}-${match[2]}-${match[3]}`;
+  }
+
+  private toIncomeInput(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    const raw = String(value).trim();
+    if (!raw) return '';
+
+    // Existing records may come as decimal strings like "120000.00".
+    const decimalMatch = /^(\d+)\.0+$/.exec(raw);
+    if (decimalMatch) return decimalMatch[1];
+
+    return raw.replace(/\D/g, '');
   }
 }

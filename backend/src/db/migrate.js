@@ -153,6 +153,10 @@ async function migrate() {
       console.log('Enum address_type already exists, skipping...');
     });
 
+    // Student / relation modules use permanent/current/other. Keep legacy values for compatibility.
+    await client.query(`ALTER TYPE settings.address_type ADD VALUE IF NOT EXISTS 'permanent'`).catch(() => {});
+    await client.query(`ALTER TYPE settings.address_type ADD VALUE IF NOT EXISTS 'current'`).catch(() => {});
+
     // Address mappings table (polymorphic - links addresses to any entity)
     await client.query(`
       CREATE TABLE IF NOT EXISTS settings.address_mappings (
@@ -168,6 +172,22 @@ async function migrate() {
         deleted_at TIMESTAMPTZ
       );
     `);
+
+    // Backfill old relation/student address types into new naming.
+    await client.query(`
+      UPDATE settings.address_mappings
+         SET address_type = 'permanent'
+       WHERE entity_type IN ('student_profile', 'relation')
+         AND address_type = 'primary'
+         AND deleted_at IS NULL
+    `).catch(() => {});
+    await client.query(`
+      UPDATE settings.address_mappings
+         SET address_type = 'current'
+       WHERE entity_type IN ('student_profile', 'relation')
+         AND address_type = 'communication'
+         AND deleted_at IS NULL
+    `).catch(() => {});
 
     // Unique indexes (partial - only non-deleted records)
     await client.query(`
@@ -1264,10 +1284,11 @@ async function migrate() {
 
     await client.query(`
       DO $$ BEGIN
-        CREATE TYPE student.profile_status AS ENUM ('enquiry','admitted','enrolled','withdrawn','alumni');
+        CREATE TYPE student.profile_status AS ENUM ('profile_created','enquiry','admitted','enrolled','withdrawn','alumni');
       EXCEPTION WHEN duplicate_object THEN NULL;
       END $$;
     `);
+    await client.query(`ALTER TYPE student.profile_status ADD VALUE IF NOT EXISTS 'profile_created'`).catch(() => {});
 
     // Central student profile — one record per student across their lifecycle
     await client.query(`
@@ -1294,7 +1315,7 @@ async function migrate() {
         primary_contact_code VARCHAR(10) DEFAULT '+91',
         primary_contact_no  VARCHAR(20),
         email               VARCHAR(100),
-        status              student.profile_status DEFAULT 'enquiry',
+        status              student.profile_status DEFAULT 'profile_created',
         is_active           BOOLEAN DEFAULT TRUE,
         photo_url           VARCHAR(500),
         notes               VARCHAR(500),
@@ -1322,6 +1343,7 @@ async function migrate() {
     // Add missing columns to existing student_profiles table
     await client.query(`ALTER TABLE student.student_profiles ADD COLUMN IF NOT EXISTS birth_place VARCHAR(100)`).catch(() => {});
     await client.query(`ALTER TABLE student.student_profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`).catch(() => {});
+    await client.query(`ALTER TABLE student.student_profiles ALTER COLUMN status SET DEFAULT 'profile_created'`).catch(() => {});
 
     console.log('Migration completed successfully');
   } catch (err) {

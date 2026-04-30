@@ -10,10 +10,10 @@ const SELECT_FIELDS = `eg.id, eg.employee_category_id, eg.name, eg.code, eg.desc
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
   COALESCE(dc.designation_count, 0) AS designation_count`;
 
-const JOINS = `LEFT JOIN settings.employee_categories ec ON eg.employee_category_id = ec.id AND ec.deleted_at IS NULL
+const JOINS = `LEFT JOIN employee.employee_categories ec ON eg.employee_category_id = ec.id AND ec.deleted_at IS NULL
   LEFT JOIN settings.users cb ON eg.created_by = cb.id
   LEFT JOIN settings.users ub ON eg.updated_by = ub.id
-  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS designation_count FROM settings.designations d WHERE d.employee_group_id = eg.id AND d.deleted_at IS NULL) dc ON true`;
+  LEFT JOIN LATERAL (SELECT COUNT(*)::int AS designation_count FROM employee.designations d WHERE d.employee_group_id = eg.id AND d.deleted_at IS NULL) dc ON true`;
 
 async function findAll(query, viewOwnUserId) {
   return paginate({

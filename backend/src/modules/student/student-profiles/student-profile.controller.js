@@ -11,6 +11,11 @@ function parseMultipartBody(body) {
     }
   }
   if (parsed.is_active !== undefined) parsed.is_active = parsed.is_active === 'true';
+  if (parsed.same_as_parent !== undefined) parsed.same_as_parent = parsed.same_as_parent === 'true';
+  if (parsed.same_as_parent_source_index !== undefined) {
+    const n = Number.parseInt(String(parsed.same_as_parent_source_index), 10);
+    parsed.same_as_parent_source_index = Number.isInteger(n) ? n : undefined;
+  }
   return parsed;
 }
 

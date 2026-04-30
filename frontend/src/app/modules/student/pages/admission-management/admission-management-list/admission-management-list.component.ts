@@ -19,7 +19,7 @@ export class AdmissionManagementListComponent extends BaseListComponent {
   routeBase = '/student/admission';
 
   columns: ColumnConfig[] = [
-    { key: 'full_name',           label: 'Student Name',  sortable: true },
+    { key: 'full_name',           label: 'Student Name',  type: 'avatar', avatarKey: 'photo_file_id', sortable: true },
     { key: 'gender',              label: 'Gender',        sortable: false },
     { key: 'primary_contact_no',  label: 'Contact',       sortable: false },
     { key: 'status',              label: 'Status',        type: 'badge', badgeMap: PROFILE_STATUS_BADGES, sortable: true },

@@ -8,19 +8,124 @@ const { saveAddresses, getAddresses } = require('../../../shared/helpers/address
 
 const ENTITY_TYPE = 'student_profile';
 
+function normalizeAddressPart(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function comparableAddress(addr) {
+  return {
+    address_line1: normalizeAddressPart(addr.address_line1),
+    address_line2: normalizeAddressPart(addr.address_line2),
+    pincode: normalizeAddressPart(addr.pincode),
+    post_office: normalizeAddressPart(addr.post_office),
+    city: normalizeAddressPart(addr.city),
+    state: normalizeAddressPart(addr.state),
+    country: normalizeAddressPart(addr.country || 'India'),
+  };
+}
+
+function areSameAddress(left, right) {
+  const a = comparableAddress(left);
+  const b = comparableAddress(right);
+  return (
+    a.address_line1 === b.address_line1 &&
+    a.address_line2 === b.address_line2 &&
+    a.pincode === b.pincode &&
+    a.post_office === b.post_office &&
+    a.city === b.city &&
+    a.state === b.state &&
+    a.country === b.country
+  );
+}
+
+function withReusedParentAddressIds(body, createdFamily) {
+  const studentAddresses = Array.isArray(body.addresses) ? body.addresses : [];
+  if (!studentAddresses.length) return studentAddresses;
+
+  const sameAsParent = body.same_as_parent === true || body.same_as_parent === 'true';
+  if (!sameAsParent) return studentAddresses;
+
+  const sourceIndex = Number.parseInt(String(body.same_as_parent_source_index), 10);
+  if (!Number.isInteger(sourceIndex)) return studentAddresses;
+
+  const source = createdFamily.find((member) => member.index === sourceIndex);
+  if (!source?.saved_addresses?.length || !source.source_addresses?.length) return studentAddresses;
+
+  return studentAddresses.map((studentAddr, idx) => {
+    const sourceSavedAddr = source.saved_addresses[idx];
+    const sourceInputAddr = source.source_addresses[idx];
+    if (!sourceSavedAddr || !sourceInputAddr) return studentAddr;
+    if (!areSameAddress(studentAddr, sourceInputAddr)) return studentAddr;
+    return { ...studentAddr, id: sourceSavedAddr.id };
+  });
+}
+
 async function saveFamilyMembers(profileId, members, userId) {
-  if (!members || !Array.isArray(members) || members.length === 0) return;
+  if (!members || !Array.isArray(members) || members.length === 0) return { data: [] };
   const emergencyCount = members.filter(m => m.is_emergency_contact).length;
   if (emergencyCount > 1) {
     return { error: 'badRequest', message: 'Only one family member can be marked as emergency contact' };
   }
-  for (const m of members) {
+
+  const created = [];
+  for (let i = 0; i < members.length; i += 1) {
+    const m = members[i];
     const row = await relationRepo.create(ENTITY_TYPE, profileId, m, userId);
+    let savedAddresses = [];
     if (m.addresses?.length) {
-      await saveAddresses('relation', row.relation_id, m.addresses, userId);
+      savedAddresses = await saveAddresses('relation', row.relation_id, m.addresses, userId);
+    }
+    created.push({
+      index: i,
+      relation_id: row.relation_id,
+      source_addresses: Array.isArray(m.addresses) ? m.addresses : [],
+      saved_addresses: savedAddresses,
+    });
+  }
+  return { data: created };
+}
+
+async function syncFamilyMembers(profileId, members, userId) {
+  if (!Array.isArray(members)) return { data: [] };
+
+  const emergencyCount = members.filter(m => m.is_emergency_contact).length;
+  if (emergencyCount > 1) {
+    return { error: 'badRequest', message: 'Only one family member can be marked as emergency contact' };
+  }
+
+  const existing = await relationRepo.findAllByEntity(ENTITY_TYPE, profileId);
+  const existingById = new Map(existing.map((row) => [row.id, row]));
+  const keepIds = new Set();
+
+  for (const m of members) {
+    let mappingId = null;
+    let relationId = null;
+
+    if (m.id && existingById.has(m.id)) {
+      const current = existingById.get(m.id);
+      const updated = await relationRepo.update(m.id, m, userId);
+      if (!updated) return { error: 'notFound', message: 'Relation record not found' };
+      mappingId = m.id;
+      relationId = current.relation_id;
+    } else {
+      const created = await relationRepo.create(ENTITY_TYPE, profileId, m, userId);
+      mappingId = created.id;
+      relationId = created.relation_id;
+    }
+
+    if (mappingId) keepIds.add(mappingId);
+    if (relationId && Array.isArray(m.addresses)) {
+      await saveAddresses('relation', relationId, m.addresses, userId);
     }
   }
-  return null;
+
+  for (const row of existing) {
+    if (!keepIds.has(row.id)) {
+      await relationRepo.softDelete(row.id, userId);
+    }
+  }
+
+  return { data: [] };
 }
 
 const PROFILE_RULES = {
@@ -46,11 +151,19 @@ async function getById(id, userId) {
   const scope = await getUserLocationScope(userId);
   const profile = await profileRepo.findById(id, scope);
   if (!profile) return { error: 'notFound', message: 'Student profile not found' };
-  const [addresses, family, photo] = await Promise.all([
+  const [addresses, familyRows, photo] = await Promise.all([
     getAddresses(ENTITY_TYPE, id),
     relationRepo.findAllByEntity(ENTITY_TYPE, id),
     fileRepo.findOneByEntity(ENTITY_TYPE, id, 'photo'),
   ]);
+
+  const family = await Promise.all(
+    familyRows.map(async (member) => {
+      const relationAddresses = await getAddresses('relation', member.relation_id);
+      return { ...member, addresses: relationAddresses };
+    })
+  );
+
   return { data: { ...profile, addresses, family, photo: photo || null } };
 }
 
@@ -93,11 +206,19 @@ async function create(body, file, userId) {
   }
 
   const id = await profileRepo.create(body, userId);
-  if (body.addresses?.length) await saveAddresses(ENTITY_TYPE, id, body.addresses, userId);
+
+  let createdFamily = [];
   if (body.family?.length) {
-    const familyError = await saveFamilyMembers(id, body.family, userId);
-    if (familyError) { await profileRepo.softDelete(id, userId); return familyError; }
+    const familyResult = await saveFamilyMembers(id, body.family, userId);
+    if (familyResult.error) { await profileRepo.softDelete(id, userId); return familyResult; }
+    createdFamily = familyResult.data || [];
   }
+
+  if (body.addresses?.length) {
+    const addressesToSave = withReusedParentAddressIds(body, createdFamily);
+    await saveAddresses(ENTITY_TYPE, id, addressesToSave, userId);
+  }
+
   if (file) await savePhoto(ENTITY_TYPE, id, file, userId);
   return getById(id, userId);
 }
@@ -118,6 +239,10 @@ async function update(id, body, file, userId) {
 
   const updated = await profileRepo.update(id, body, userId);
   if (!updated) return { error: 'notFound', message: 'Student profile not found' };
+  if (body.family && Array.isArray(body.family)) {
+    const familyResult = await syncFamilyMembers(id, body.family, userId);
+    if (familyResult.error) return familyResult;
+  }
   if (body.addresses && Array.isArray(body.addresses)) await saveAddresses(ENTITY_TYPE, id, body.addresses, userId);
   if (file) await savePhoto(ENTITY_TYPE, id, file, userId);
   return getById(id, userId);

@@ -24,9 +24,9 @@ const SELECT_FIELDS = `
 
 const JOINS = `
   LEFT JOIN settings.locations l ON e.location_id = l.id AND l.deleted_at IS NULL
-  LEFT JOIN settings.designations d ON e.designation_id = d.id AND d.deleted_at IS NULL
-  LEFT JOIN settings.employee_groups eg ON d.employee_group_id = eg.id AND eg.deleted_at IS NULL
-  LEFT JOIN settings.employee_categories ec ON eg.employee_category_id = ec.id AND ec.deleted_at IS NULL
+  LEFT JOIN employee.designations d ON e.designation_id = d.id AND d.deleted_at IS NULL
+  LEFT JOIN employee.employee_groups eg ON d.employee_group_id = eg.id AND eg.deleted_at IS NULL
+  LEFT JOIN employee.employee_categories ec ON eg.employee_category_id = ec.id AND ec.deleted_at IS NULL
   LEFT JOIN settings.users cb ON e.created_by = cb.id
   LEFT JOIN settings.users ub ON e.updated_by = ub.id
   LEFT JOIN LATERAL (SELECT f.id FROM settings.files f WHERE f.entity_type = 'employee' AND f.entity_id = e.id AND f.file_type = 'photo' AND f.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 1) ep ON true

@@ -244,7 +244,7 @@ export class FormFieldPhoneComponent implements OnInit, OnChanges {
     // mutating control state during a valueChanges callback happens mid change-detection.
     // Only write when value actually changed to avoid re-triggering valueChanges.
     if (this.control && JSON.stringify(this.control.errors || null) !== JSON.stringify(merged)) {
-      setTimeout(() => this.control?.setErrors(merged));
+      this.control.setErrors(merged);
     }
   }
 }

@@ -11,6 +11,7 @@ const SELECT_FIELDS = `
   sp.nationality, sp.birth_place,
   sp.primary_contact_code, sp.primary_contact_no, sp.email,
   sp.status, sp.is_active, sp.photo_url, sp.notes,
+  pf.id AS photo_file_id,
   sp.created_at, sp.updated_at,
   json_build_object('id', loc.id, 'name', loc.name, 'code', loc.code) AS location,
   json_build_object('id', cb.id, 'full_name', cb.full_name) AS created_by,
@@ -21,6 +22,16 @@ const JOINS = `
   LEFT JOIN settings.locations loc ON loc.id = sp.location_id
   LEFT JOIN settings.users cb ON cb.id = sp.created_by
   LEFT JOIN settings.users ub ON ub.id = sp.updated_by
+  LEFT JOIN LATERAL (
+    SELECT f.id
+    FROM settings.files f
+    WHERE f.entity_type = 'student_profile'
+      AND f.entity_id = sp.id
+      AND f.file_type = 'photo'
+      AND f.deleted_at IS NULL
+    ORDER BY f.created_at DESC
+    LIMIT 1
+  ) pf ON TRUE
 `;
 
 function emptyPage(query) {
@@ -91,7 +102,7 @@ async function create(data, userId) {
     data.primary_contact_code || '+91',
     data.primary_contact_no || null,
     data.email || null,
-    data.status || 'enquiry',
+    data.status || 'profile_created',
     data.is_active !== undefined ? data.is_active : true,
     data.notes || null,
     userId,

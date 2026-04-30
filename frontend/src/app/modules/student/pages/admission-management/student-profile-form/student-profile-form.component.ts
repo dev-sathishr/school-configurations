@@ -15,7 +15,6 @@ import { FormFieldComponent } from '../../../../../shared/components/form-field/
 import { LoaderComponent } from '../../../../../shared/components/loader/loader.component';
 import { FileUploadComponent, UploadedFile } from '../../../../../shared/components/file-upload/file-upload.component';
 import { AddressComponent, Address } from '../../../../../shared/components/address/address.component';
-import { RelationListComponent } from '../../../../../shared/components/relation/relation-list.component';
 import { RelationFormComponent } from '../../../../../shared/components/relation/relation-form.component';
 import { ModalComponent } from '../../../../../shared/components/modal/modal.component';
 import * as V from '../../../../../shared/validators/common';
@@ -34,14 +33,12 @@ const RELATION_LABELS: Record<string, string> =
     LoaderComponent,
     FileUploadComponent,
     AddressComponent,
-    RelationListComponent,
     RelationFormComponent,
     ModalComponent,
   ],
 })
 export class StudentProfileFormComponent extends FormPageBase {
   @ViewChild('photoUpload') photoUpload!: FileUploadComponent;
-  @ViewChild('familyList') familyList?: RelationListComponent;
   @ViewChild('familyForm') familyForm?: RelationFormComponent;
 
   listRoute = '/student/admission';
@@ -57,9 +54,10 @@ export class StudentProfileFormComponent extends FormPageBase {
   addressError = '';
   familyError = '';
   sameAsParent = false;
+  sameAsParentSourceIndex: number | null = null;
   showParentPicker = false;
 
-  // Local family array used in create mode; in edit/view the list loads from API
+  // Family array used in both create and edit/view (from student profile API).
   localFamily: any[] = [];
 
   get familyMembersWithAddresses(): any[] {
@@ -73,16 +71,17 @@ export class StudentProfileFormComponent extends FormPageBase {
   onSameAsParentPickerOpen(): void {
     const members = this.familyMembersWithAddresses;
     if (members.length === 1) {
-      this.copyFromMember(members[0]);
+      this.copyFromMember(members[0], this.localFamily.indexOf(members[0]));
     } else {
       this.showParentPicker = true;
     }
   }
 
-  copyFromMember(member: any): void {
+  copyFromMember(member: any, sourceIndex?: number): void {
     this.addresses = (member.addresses as Address[]).map(a => ({ ...a, id: undefined }));
     this.addressError = '';
     this.sameAsParent = true;
+    this.sameAsParentSourceIndex = Number.isInteger(sourceIndex) ? sourceIndex! : this.localFamily.indexOf(member);
     this.showParentPicker = false;
   }
 
@@ -93,6 +92,7 @@ export class StudentProfileFormComponent extends FormPageBase {
   onSameAsParentChange(checked: boolean): void {
     if (!checked) {
       this.sameAsParent = false;
+      this.sameAsParentSourceIndex = null;
       this.addresses = [];
     }
   }
@@ -103,8 +103,27 @@ export class StudentProfileFormComponent extends FormPageBase {
     return d.toISOString().slice(0, 10);
   }
 
-  get familyApiBaseUrl(): string {
-    return this.editId ? `${API.studentProfiles.base}/${this.editId}/family` : '';
+  get ageDisplay(): string {
+    const rawDob = this.form?.get('dob')?.value;
+    if (!rawDob) return '--';
+
+    const dob = this.parseDobValue(rawDob);
+    if (!dob) return '--';
+
+    const today = new Date();
+    let years = today.getFullYear() - dob.getFullYear();
+    let months = today.getMonth() - dob.getMonth();
+
+    if (today.getDate() < dob.getDate()) months -= 1;
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+    if (years < 0) return '--';
+
+    const yearLabel = `${years} year${years === 1 ? '' : 's'}`;
+    if (months === 0) return yearLabel;
+    return `${yearLabel} ${months} month${months === 1 ? '' : 's'}`;
   }
 
   relationLabel(type: string): string {
@@ -131,12 +150,17 @@ export class StudentProfileFormComponent extends FormPageBase {
   protected override onRecordLoaded(d: any): void {
     this.form.patchValue({
       ...d,
+      dob: this.toDateInput(d.dob),
       contact: { code: d.primary_contact_code || '+91', number: d.primary_contact_no || '' },
     });
     this.addresses   = d.addresses || [];
-    this.localFamily = d.family    || [];
+    this.localFamily = (d.family || []).map((member: any) => ({
+      ...member,
+      dob: this.toDateInput(member.dob),
+    }));
     this.photo       = d.photo     || null;
     this.sameAsParent = false;
+    this.sameAsParentSourceIndex = null;
   }
 
   onAddressesChange(addresses: Address[]): void {
@@ -173,9 +197,7 @@ export class StudentProfileFormComponent extends FormPageBase {
 
     this.addressError = this.addresses.length === 0 ? 'At least one address is required' : '';
 
-    const familyCount = this.editMode
-      ? (this.familyList?.members?.length ?? 0)
-      : this.localFamily.length;
+    const familyCount = this.localFamily.length;
     this.familyError = familyCount === 0 ? 'At least one family member is required' : '';
 
     if (this.form.get('first_name')?.invalid || this.form.get('dob')?.invalid ||
@@ -200,6 +222,14 @@ export class StudentProfileFormComponent extends FormPageBase {
   }
 
   removeLocalMember(index: number): void {
+    if (this.sameAsParentSourceIndex !== null) {
+      if (index === this.sameAsParentSourceIndex) {
+        this.sameAsParent = false;
+        this.sameAsParentSourceIndex = null;
+      } else if (index < this.sameAsParentSourceIndex) {
+        this.sameAsParentSourceIndex -= 1;
+      }
+    }
     this.localFamily = this.localFamily.filter((_, i) => i !== index);
   }
 
@@ -244,13 +274,54 @@ export class StudentProfileFormComponent extends FormPageBase {
     fd.append('notes',                val.notes?.trim() || '');
     fd.append('is_active',            String(val.is_active ?? true));
     fd.append('addresses',            JSON.stringify(this.addresses));
+    fd.append('family', JSON.stringify(this.localFamily));
     if (!this.editMode) {
-      fd.append('family', JSON.stringify(this.localFamily));
+      fd.append('same_as_parent', String(this.sameAsParent));
+      if (this.sameAsParent && this.sameAsParentSourceIndex !== null && this.sameAsParentSourceIndex >= 0) {
+        fd.append('same_as_parent_source_index', String(this.sameAsParentSourceIndex));
+      }
     }
 
     const pendingFile = this.photoUpload?.pendingFile;
     if (pendingFile) fd.append('photo', pendingFile);
 
     return fd;
+  }
+
+  private parseDobValue(value: string | Date): Date | null {
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    }
+
+    if (typeof value !== 'string' || !value.trim()) return null;
+
+    const datePart = value.slice(0, 10);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
+    if (!match) return null;
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const parsed = new Date(year, month - 1, day);
+    if (Number.isNaN(parsed.getTime())) return null;
+    if (
+      parsed.getFullYear() !== year ||
+      parsed.getMonth() !== month - 1 ||
+      parsed.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  private toDateInput(value: string | Date | null | undefined): string {
+    if (!value) return '';
+    const parsed = this.parseDobValue(value);
+    if (!parsed) return '';
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
