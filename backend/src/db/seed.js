@@ -541,7 +541,7 @@ async function seed() {
       // Seed Sequence Codes (master list)
       const sequenceCodes = [
         { code: 'EMPLOYEE', name: 'Employee Code Sequence' },
-        { code: 'STUDENT_PROFILE', name: 'Student Profile Number Sequence' },
+        { code: 'ENQUIRY',  name: 'Enquiry Number Sequence' },
       ];
       const seqCodeIds = {};
       for (const sc of sequenceCodes) {
@@ -565,8 +565,8 @@ async function seed() {
       // e.g. MAIN-EMP-, EAST-EMP-, SPORT-EMP-  (admin can edit via Master > Sequence Controls)
       let scInserted = 0;
       const seqControlDefs = [
-        { code: 'EMPLOYEE',        prefixFn: (loc) => `${loc}-EMP-`,  digits: 3, max: 9999 },
-        { code: 'STUDENT_PROFILE', prefixFn: (loc) => `${loc}-STU-`,  digits: 4, max: 9999 },
+        { code: 'EMPLOYEE', prefixFn: (loc) => `${loc}-EMP-`, digits: 3, max: 9999 },
+        { code: 'ENQUIRY',  prefixFn: (loc) => `${loc}-ENQ-`, digits: 4, max: 9999 },
       ];
       for (const locCode of Object.keys(locationIds)) {
         const locId = locationIds[locCode];

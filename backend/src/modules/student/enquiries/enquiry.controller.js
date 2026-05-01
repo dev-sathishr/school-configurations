@@ -2,6 +2,12 @@ const enquiryService = require('./enquiry.service');
 const res = require('../../../shared/helpers/response.helper');
 const { wrap } = require('../../../shared/middleware/async-handler');
 
+async function getNextCode(req, resp) {
+  const result = await enquiryService.getNextCode(req.params.profileId, req.query.location_id || null, req.user.id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { data: result.data });
+}
+
 async function getAll(req, resp) {
   const result = await enquiryService.getAll(req.params.profileId, req.query, req.user.id);
   if (result.error) return res.handleError(resp, result);
@@ -38,4 +44,4 @@ async function removeMultiple(req, resp) {
   return res.success(resp, { deleted_count: result.deleted_count }, `${result.deleted_count} enquiry(s) deleted`);
 }
 
-module.exports = wrap({ getAll, getById, create, update, remove, removeMultiple });
+module.exports = wrap({ getAll, getById, getNextCode, create, update, remove, removeMultiple });

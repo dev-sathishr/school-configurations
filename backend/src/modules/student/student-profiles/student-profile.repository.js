@@ -163,6 +163,14 @@ async function softDeleteMultiple(ids, userId, scope) {
   return repoHelper.softDeleteMultiple({ table: TABLE, ids, userId, scopeColumn: 'location_id', scope });
 }
 
+async function updateStatus(id, status, userId) {
+  await db.query(`
+    UPDATE student.student_profiles
+    SET status = $1::student.profile_status, updated_by = $2, updated_at = NOW()
+    WHERE id = $3 AND deleted_at IS NULL
+  `, [status, userId, id]);
+}
+
 async function checkAadhaarUnique(aadhaarNo, excludeId = null) {
   let query = `SELECT id FROM student.student_profiles WHERE aadhaar_no = $1 AND deleted_at IS NULL`;
   const params = [aadhaarNo];
@@ -171,4 +179,4 @@ async function checkAadhaarUnique(aadhaarNo, excludeId = null) {
   return result.rows.length > 0;
 }
 
-module.exports = { findAll, findById, create, update, softDelete, softDeleteMultiple, checkAadhaarUnique };
+module.exports = { findAll, findById, create, update, softDelete, softDeleteMultiple, checkAadhaarUnique, updateStatus };

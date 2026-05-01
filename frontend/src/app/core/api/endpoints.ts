@@ -252,6 +252,7 @@ export const API = {
     base: (profileId: string) => `/student-profiles/${profileId}/enquiries`,
     detail: (profileId: string, id: string) => `/student-profiles/${profileId}/enquiries/${id}`,
     deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/enquiries/delete-multiple`,
+    nextCode: (profileId: string) => `/student-profiles/${profileId}/enquiries/next-code`,
   },
 
   // ── Chat ─────────────────────────────────────────────────────────

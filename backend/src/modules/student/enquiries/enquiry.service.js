@@ -1,8 +1,8 @@
 const enquiryRepo = require('./enquiry.repository');
 const profileRepo  = require('../student-profiles/student-profile.repository');
 const { validate }  = require('../../../shared/helpers/validate.helper');
-const { getUserLocationScope } = require('../../../shared/helpers/location-scope.helper');
-const { generateNextCode } = require('../../../shared/helpers/sequence.helper');
+const { getUserLocationScope, assertLocationAllowed } = require('../../../shared/helpers/location-scope.helper');
+const { generateNextCode, peekNextCode } = require('../../../shared/helpers/sequence.helper');
 
 const VALID_STATUSES    = ['open', 'follow_up', 'converted', 'closed', 'cancelled'];
 const VALID_RELATION_TYPES = [
@@ -49,6 +49,15 @@ function normalizeBody(body = {}) {
   };
 }
 
+async function getNextCode(profileId, locationId, userId) {
+  const check = await assertProfileExists(profileId);
+  if (check.error) return check;
+  const locId = locationId || check.profile.location_id;
+  const code = await peekNextCode('ENQUIRY', locId);
+  if (!code) return { error: 'notFound', message: 'No sequence control configured for ENQUIRY at this location. Please configure it in sequence settings.' };
+  return { data: { code } };
+}
+
 async function assertProfileExists(profileId) {
   const profile = await profileRepo.findById(profileId, null);
   if (!profile) return { error: 'notFound', message: 'Student profile not found' };
@@ -88,12 +97,12 @@ async function create(profileId, body, userId) {
   // Generate enquiry_no via sequence (falls back to timestamp if no sequence configured)
   const scope = await getUserLocationScope(userId);
   const locationId = check.profile.location_id;
-  const seqResult = await generateNextCode('ENQ', locationId).catch(() => null);
-  const enquiry_no = seqResult?.code
-    || `ENQ-${Date.now()}`;
+  const seqResult = await generateNextCode('ENQUIRY', locationId).catch(() => null);
+  const enquiry_no = seqResult?.code || `ENQ-${Date.now()}`;
 
   await enquiryRepo.closeActiveEnquiries(profileId, userId);
   const id = await enquiryRepo.create(profileId, { ...normalized, enquiry_no }, userId);
+  await profileRepo.updateStatus(profileId, 'enquiry', userId);
   const created = await enquiryRepo.findById(id, profileId);
   return { data: created };
 }
@@ -143,4 +152,4 @@ async function removeMultiple(profileId, ids, userId) {
   return { deleted_count: ids.length };
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple };
+module.exports = { getAll, getById, getNextCode, create, update, remove, removeMultiple };

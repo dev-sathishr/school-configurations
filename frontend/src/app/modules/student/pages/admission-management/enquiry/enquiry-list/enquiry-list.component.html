@@ -52,9 +52,35 @@
   [draggable]="true"
   (onClose)="closeModal()">
 
+  <div modal-header class="flex items-center gap-2">
+    @if (profileName) {
+      <div class="flex items-center gap-2 rounded-full border border-muted/30 bg-muted/10 px-2.5 py-1">
+        @if (profilePhotoUrl) {
+          <img [src]="profilePhotoUrl" [alt]="profileName" class="h-5 w-5 rounded-full object-cover" />
+        } @else {
+          <div class="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">
+            {{ profileName.charAt(0).toUpperCase() }}
+          </div>
+        }
+        <span class="text-xs font-medium text-foreground">{{ profileName }}</span>
+        @if (profileRegNo) {
+          <span class="text-[10px] text-muted-foreground">{{ profileRegNo }}</span>
+        }
+      </div>
+    }
+    @if (enquiryForm?.nextEnquiryNo || enquiryForm?.enquiryNo) {
+      <span class="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[11px] font-semibold text-primary tracking-wide">
+        {{ enquiryForm.enquiryNo || enquiryForm.nextEnquiryNo }}
+      </span>
+    }
+  </div>
+
   <app-enquiry-form
     #enquiryForm
     [profileId]="profileId"
+    [profileName]="profileName"
+    [profileRegNo]="profileRegNo"
+    [profilePhotoUrl]="profilePhotoUrl"
     [enquiryId]="modalEnquiryId"
     [viewMode]="modalViewMode"
     (saved)="onSaved()"

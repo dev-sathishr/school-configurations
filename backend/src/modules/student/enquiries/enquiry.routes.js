@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const { authenticate, authorizeModule } = require('../../../shared/middleware/auth.middleware');
-const { getAll, getById, create, update, remove, removeMultiple } = require('./enquiry.controller');
+const { getAll, getById, getNextCode, create, update, remove, removeMultiple } = require('./enquiry.controller');
 
 router.use(authenticate);
 
+router.get('/next-code',       authorizeModule('ENQUIRY', 'CREATE'), getNextCode);
 router.get('/',                authorizeModule('ENQUIRY', 'VIEW'),   getAll);
 router.get('/:id',             authorizeModule('ENQUIRY', 'VIEW'),   getById);
 router.post('/',               authorizeModule('ENQUIRY', 'CREATE'), create);

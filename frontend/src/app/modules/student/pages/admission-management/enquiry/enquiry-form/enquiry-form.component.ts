@@ -14,7 +14,10 @@ import * as V from '../../../../../../shared/validators/common';
   imports: [ReactiveFormsModule, FormFieldComponent, LocationFieldComponent],
 })
 export class EnquiryFormComponent implements OnChanges {
-  @Input() profileId = '';
+  @Input() profileId      = '';
+  @Input() profileName    = '';
+  @Input() profileRegNo   = '';
+  @Input() profilePhotoUrl = '';
   @Input() enquiryId = '';
   @Input() viewMode  = false;
 
@@ -28,6 +31,10 @@ export class EnquiryFormComponent implements OnChanges {
   saving            = false;
   errorMessage      = '';
   academicYearLabel = '';
+  nextEnquiryNo    = '';
+  codeLoading      = false;
+  enquiryNo        = '';
+  private skipCodeFetch = false;
 
   readonly recordLocation = signal<{ id: string; name: string; code: string } | null>(null);
 
@@ -44,10 +51,13 @@ export class EnquiryFormComponent implements OnChanges {
   }
 
   private init(): void {
-    this.submitted         = false;
-    this.saving            = false;
-    this.errorMessage      = '';
+    this.submitted     = false;
+    this.saving        = false;
+    this.errorMessage  = '';
     this.academicYearLabel = '';
+    this.nextEnquiryNo = '';
+    this.codeLoading   = false;
+    this.enquiryNo     = '';
     this.recordLocation.set(null);
     if (!this.form) {
       this.form = this.buildForm();
@@ -69,8 +79,12 @@ export class EnquiryFormComponent implements OnChanges {
     }
 
     if (!this.enquiryId) {
+      this.skipCodeFetch = true;
       const preferred = this.locationCtx.preferredLocationId();
       if (preferred) this.form.patchValue({ location_id: preferred });
+      this.skipCodeFetch = false;
+
+      if (this.profileId) this.fetchNextCode();
 
       this.cs.getService({ url: API.academicYears.dropdown }).subscribe({
         next: (res: any) => {
@@ -98,6 +112,7 @@ export class EnquiryFormComponent implements OnChanges {
             current_curriculum: d.current_curriculum?.id ?? d.current_curriculum ?? '',
             contact_no:         { code: d.contact_code || '+91', number: d.contact_no || '' },
           });
+          this.enquiryNo = d.enquiry_no || '';
           if (d.location?.id) {
             this.recordLocation.set({ id: d.location.id, name: d.location.name || '', code: d.location.code || '' });
           }
@@ -112,7 +127,7 @@ export class EnquiryFormComponent implements OnChanges {
   }
 
   private buildForm(): FormGroup {
-    return this.fb.group({
+    const form = this.fb.group({
       location_id:        ['', Validators.required],
       academic_year_id:   [''],
       enquiry_date:       [this.todayDate, Validators.required],
@@ -125,6 +140,31 @@ export class EnquiryFormComponent implements OnChanges {
       current_curriculum: [''],
       status:             ['open', Validators.required],
       notes:              ['', V.NOTES],
+    });
+
+    form.get('location_id')!.valueChanges.subscribe((locId: string | null) => {
+      if (!this.enquiryId && !this.skipCodeFetch && locId && this.profileId) {
+        this.fetchNextCode();
+      }
+    });
+
+    return form;
+  }
+
+  fetchNextCode(): void {
+    const locationId = this.form?.get('location_id')?.value;
+    this.codeLoading = true;
+    this.cdr.detectChanges();
+    this.cs.getService({ url: API.studentEnquiries.nextCode(this.profileId), params: locationId ? { location_id: locationId } : {} }).subscribe({
+      next: (res: any) => {
+        this.nextEnquiryNo = res?.data?.code || '';
+        this.codeLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.codeLoading = false;
+        this.cdr.detectChanges();
+      },
     });
   }
 
