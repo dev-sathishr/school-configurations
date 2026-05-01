@@ -186,8 +186,10 @@ async function seed() {
       { key: 'SEQUENCE_CONTROLS', name: 'Sequence Controls', display_name: 'Sequence Controls', icon: 'assets/icons/heroicons/outline/adjustments-horizontal.svg',     route_path: '/master/sequence',       display_order: 2, enforce_edit_lock: false, description: 'Configure prefix, suffix, counter and limit per location and sequence type' },
       { key: 'DOCUMENT_TYPES',    name: 'Document Types',    display_name: 'Document Types',    icon: 'assets/icons/heroicons/outline/folder.svg',                      route_path: '/master/document-types', display_order: 3, enforce_edit_lock: false, description: 'Manage document type categories used for employee document uploads' },
       { key: 'FEE_CATEGORIES',   name: 'Fee Categories',    display_name: 'Fee Categories',    icon: 'assets/icons/heroicons/outline/table-cells.svg',                 route_path: '/master/fee-categories', display_order: 4, enforce_edit_lock: false, description: 'Manage fee category types used to classify student fee items' },
+      { key: 'CURRICULUM',       name: 'Curriculum',        display_name: 'Curriculum',        icon: 'assets/icons/heroicons/outline/bookmark.svg',                    route_path: '/master/curriculum',     display_order: 5, enforce_edit_lock: false, description: 'Manage curriculum master data such as CBSE, ICSE and State Board' },
       // Student modules
-      { key: 'ADMISSION_MANAGEMENT', name: 'Admission Management', display_name: 'Admission Management', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/student/admission', display_order: 1, enforce_edit_lock: false, description: 'Manage student profiles, enquiries, admissions and enrollment' },
+      { key: 'STUDENT_PROFILE', name: 'Student Profile', display_name: 'Admission Management', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/student/admission', display_order: 1, enforce_edit_lock: false, description: 'Manage student profiles and admission records' },
+      { key: 'ENQUIRY',         name: 'Enquiry',         display_name: 'Enquiry',              icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/student/admission', display_order: 2, enforce_edit_lock: false, description: 'Manage student enquiries and follow-up details' },
     ];
 
     const moduleIds = {};
@@ -228,8 +230,10 @@ async function seed() {
       { menu: 'MASTER', module: 'SEQUENCE_CONTROLS', display_order: 2 },
       { menu: 'MASTER', module: 'DOCUMENT_TYPES',    display_order: 3 },
       { menu: 'MASTER', module: 'FEE_CATEGORIES',    display_order: 4 },
+      { menu: 'MASTER', module: 'CURRICULUM',        display_order: 5 },
       // Student modules
-      { menu: 'STUDENT', module: 'ADMISSION_MANAGEMENT', display_order: 1 },
+      { menu: 'STUDENT', module: 'STUDENT_PROFILE', display_order: 1 },
+      { menu: 'STUDENT', module: 'ENQUIRY',         display_order: 2 },
     ];
 
     let mmInserted = 0;
@@ -459,6 +463,7 @@ async function seed() {
     if (orgId) {
       // Clear old locations (re-seed) — must delete dependents first
       await client.query('DELETE FROM settings.user_locations');
+      await client.query('DELETE FROM academic.academic_years WHERE location_id IN (SELECT id FROM settings.locations WHERE organization_id = $1)', [orgId]);
       await client.query('DELETE FROM master.sequence_controls WHERE location_id IN (SELECT id FROM settings.locations WHERE organization_id = $1)', [orgId]);
       await client.query('DELETE FROM settings.locations WHERE organization_id = $1', [orgId]);
 
@@ -504,6 +509,34 @@ async function seed() {
         }
       }
       console.log(`User Locations seeded (${ulInserted} mappings)`);
+
+      // Seed Academic Years (previous/current/next) for Main Campus only.
+      const mainLocationId = locationIds.MAIN;
+      if (mainLocationId) {
+        const now = new Date();
+        const currentStartYear = (now.getMonth() + 1) >= 6 ? now.getFullYear() : (now.getFullYear() - 1);
+        const years = [currentStartYear - 1, currentStartYear, currentStartYear + 1];
+
+        let ayInserted = 0;
+        for (const startYear of years) {
+          await client.query(
+            `INSERT INTO academic.academic_years
+               (location_id, academic_year, start_date, end_date, is_default, is_active, created_by, updated_by)
+             VALUES ($1, $2, $3, $4, $5, true, $6, $7)`,
+            [
+              mainLocationId,
+              `${startYear}-${startYear + 1}`,
+              `${startYear}-06-01`,
+              `${startYear + 1}-05-31`,
+              startYear === currentStartYear,
+              adminId,
+              adminId,
+            ]
+          );
+          ayInserted++;
+        }
+        console.log(`Academic Years seeded (${ayInserted} records: previous, current, next)`);
+      }
 
       // Seed Sequence Codes (master list)
       const sequenceCodes = [
@@ -637,6 +670,41 @@ async function seed() {
       }
     }
     console.log(`Fee Categories seeded (${fcInserted} inserted, ${feeCategories.length - fcInserted} already existed)`);
+
+    // Seed Curriculum master data (mirrors SMS curriculum master)
+    const curriculums = [
+      { name: 'State Board', notes: 'Tamil Nadu State Board curriculum' },
+      { name: 'CBSE', notes: 'Central Board of Secondary Education' },
+      { name: 'ICSE', notes: 'Indian Certificate of Secondary Education' },
+      { name: 'IB', notes: 'International Baccalaureate curriculum' },
+      { name: 'IGCSE', notes: 'International General Certificate of Secondary Education' },
+    ];
+
+    let curInserted = 0;
+    let curUpdated = 0;
+    for (const c of curriculums) {
+      const existing = await client.query(
+        `SELECT id FROM master.curriculum WHERE LOWER(name) = LOWER($1) AND deleted_at IS NULL`,
+        [c.name]
+      );
+      if (existing.rows.length > 0) {
+        await client.query(
+          `UPDATE master.curriculum
+           SET notes = $1, is_active = true, updated_by = $2, updated_at = NOW()
+           WHERE id = $3`,
+          [c.notes, adminId, existing.rows[0].id]
+        );
+        curUpdated++;
+        continue;
+      }
+      await client.query(
+        `INSERT INTO master.curriculum (name, notes, is_active, created_by, updated_by)
+         VALUES ($1, $2, true, $3, $4)`,
+        [c.name, c.notes, adminId, adminId]
+      );
+      curInserted++;
+    }
+    console.log(`Curriculum seeded (${curInserted} inserted, ${curUpdated} updated)`);
 
   } catch (err) {
     console.error('Seed failed:', err);

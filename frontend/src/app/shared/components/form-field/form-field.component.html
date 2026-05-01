@@ -51,6 +51,7 @@
         [attr.maxlength]="maxLength"
         [attr.min]="min"
         [attr.max]="max"
+        [attr.readonly]="isReadOnly ? true : null"
         [attr.autocomplete]="autocomplete"
         [ngClass]="{ 'border-red-500!': hasError, 'uppercase!': uppercase, 'lowercase!': lowercase }"
         (input)="onInput()"

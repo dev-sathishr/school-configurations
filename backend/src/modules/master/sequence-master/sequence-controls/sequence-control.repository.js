@@ -11,7 +11,7 @@ const SELECT_FIELDS = `sc.id, sc.sequence_code_id, sc.location_id,
   l.name AS location_name, l.code AS location_code,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name`;
 
-const JOINS = `LEFT JOIN settings.sequence_codes sqc ON sc.sequence_code_id = sqc.id AND sqc.deleted_at IS NULL
+const JOINS = `LEFT JOIN master.sequence_codes sqc ON sc.sequence_code_id = sqc.id AND sqc.deleted_at IS NULL
   LEFT JOIN settings.locations l ON sc.location_id = l.id AND l.deleted_at IS NULL
   LEFT JOIN settings.users cb ON sc.created_by = cb.id
   LEFT JOIN settings.users ub ON sc.updated_by = ub.id`;

@@ -5,6 +5,7 @@ import { MenuHomeComponent } from '../../shared/components/menu-home/menu-home.c
 import { SequenceMasterComponent } from './pages/sequence-master/sequence-master.component';
 import { DocumentTypeComponent } from './pages/document-type/document-type.component';
 import { FeeCategoryPageComponent } from './pages/fee-category/fee-category-page.component';
+import { CurriculumPageComponent } from './pages/curriculum/curriculum-page.component';
 import { ModuleAccessGuard } from '../../core/guards/module-access.guard';
 
 const routes: Routes = [
@@ -30,6 +31,12 @@ const routes: Routes = [
         component: FeeCategoryPageComponent,
         canActivate: [ModuleAccessGuard],
         data: { moduleCodes: ['FEE_CATEGORIES'] },
+      },
+      {
+        path: 'curriculum',
+        component: CurriculumPageComponent,
+        canActivate: [ModuleAccessGuard],
+        data: { moduleCodes: ['CURRICULUM'] },
       },
     ],
   },

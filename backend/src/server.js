@@ -44,12 +44,14 @@ const employeeRelationRoutes = require('./modules/employee/employee-info/employe
 // Student
 const studentProfileRoutes = require('./modules/student/student-profiles/student-profile.routes');
 const studentProfileFamilyRoutes = require('./modules/student/student-profiles/student-profile-family.routes');
+const studentEnquiryRoutes = require('./modules/student/enquiries/enquiry.routes');
 
 // Master
 const sequenceCodeRoutes = require('./modules/master/sequence-master/sequence-codes/sequence-code.routes');
 const sequenceControlRoutes = require('./modules/master/sequence-master/sequence-controls/sequence-control.routes');
 const documentTypeRoutes = require('./modules/master/document-types/document-type.routes');
 const feeCategoryRoutes = require('./modules/master/fee-categories/fee-category.routes');
+const curriculumRoutes = require('./modules/master/curriculums/curriculum.routes');
 
 const { lookupPincode } = require('./shared/helpers/pincode.helper');
 const { authenticate } = require('./shared/middleware/auth.middleware');
@@ -95,10 +97,12 @@ app.use('/api/v1/employees/:employeeId/family', employeeRelationRoutes);
 app.use('/api/v1/ifsc', ifscRouter);
 app.use('/api/v1/student-profiles', studentProfileRoutes);
 app.use('/api/v1/student-profiles/:profileId/family', studentProfileFamilyRoutes);
+app.use('/api/v1/student-profiles/:profileId/enquiries', studentEnquiryRoutes);
 app.use('/api/v1/sequence-codes', sequenceCodeRoutes);
 app.use('/api/v1/sequence-controls', sequenceControlRoutes);
 app.use('/api/v1/document-types', documentTypeRoutes);
 app.use('/api/v1/fee-categories', feeCategoryRoutes);
+app.use('/api/v1/curriculums', curriculumRoutes);
 
 // Shared
 app.get('/api/v1/pincode/:pincode', authenticate, lookupPincode);

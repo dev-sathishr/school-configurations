@@ -1,6 +1,8 @@
-const svc = require('../../employee/employee-info/employee-family/relation.service');
-const res = require('../../../shared/helpers/response.helper');
+const svc  = require('../../employee/employee-info/employee-family/relation.service');
+const repo = require('../../employee/employee-info/employee-family/relation.repository');
+const res  = require('../../../shared/helpers/response.helper');
 const { wrap } = require('../../../shared/middleware/async-handler');
+const { getAddresses } = require('../../../shared/helpers/address.helper');
 
 const ENTITY_TYPE = 'student_profile';
 
@@ -34,4 +36,20 @@ async function remove(req, resp) {
   return res.success(resp, {}, 'Relation deleted');
 }
 
-module.exports = wrap({ getAll, getById, create, update, remove });
+async function search(req, resp) {
+  // SelectDropdownComponent sends ?search=; also accept ?q= for direct calls
+  const q = req.query.search || req.query.q || '';
+  const exclude = req.query.exclude_profile_id || null;
+  const rows = await repo.search(q, exclude ? 'student_profile' : null, exclude);
+  // Attach existing addresses for each relation so the edit modal can pre-populate them
+  const rowsWithAddresses = await Promise.all(
+    rows.map(async (row) => {
+      const addresses = await getAddresses('relation', row.relation_id);
+      return { ...row, addresses };
+    })
+  );
+  // Return paginated shape so SelectDropdownComponent works (data array)
+  return res.success(resp, { data: rowsWithAddresses });
+}
+
+module.exports = wrap({ getAll, getById, create, update, remove, search });

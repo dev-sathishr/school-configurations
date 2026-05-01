@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { getAll, getById, create, update, remove, removeMultiple } = require('./academic-year.controller');
+const { getAll, getById, create, update, remove, removeMultiple, getDropdown } = require('./academic-year.controller');
 const { authenticate, authorizeModule, checkModuleView } = require('../../../shared/middleware/auth.middleware');
 
 router.use(authenticate);
 
+router.get('/dropdown',       getDropdown);
 router.get('/',               checkModuleView('ACADEMIC_YEARS'), getAll);
 router.get('/:id',            getById);
 router.post('/',              authorizeModule('ACADEMIC_YEARS', 'CREATE'), create);

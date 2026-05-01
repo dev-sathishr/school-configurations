@@ -155,4 +155,23 @@ async function softDeleteMultiple(ids, userId, scope) {
   return repoHelper.softDeleteMultiple({ table: TABLE, ids, userId, scopeColumn: 'location_id', scope });
 }
 
-module.exports = { findAll, findById, checkUnique, findOverlap, create, update, clearOtherDefaults, softDelete, softDeleteMultiple };
+async function dropdown(query) {
+  const params = [];
+  const clauses = ['ay.deleted_at IS NULL', 'ay.is_active = true'];
+
+  if (query.location_id) {
+    params.push(query.location_id);
+    clauses.push(`ay.location_id = $${params.length}`);
+  }
+
+  const rows = await db.query(`
+    SELECT ay.id, ay.academic_year AS label, ay.start_date, ay.end_date, ay.is_default
+    FROM ${TABLE} ay
+    WHERE ${clauses.join(' AND ')}
+    ORDER BY ay.start_date DESC
+    LIMIT 100
+  `, params);
+  return { data: rows.rows };
+}
+
+module.exports = { findAll, findById, checkUnique, findOverlap, create, update, clearOtherDefaults, softDelete, softDeleteMultiple, dropdown };

@@ -48,6 +48,15 @@ export class FormFieldComponent {
   @Output() extraChange = new EventEmitter<string>();
   @Input() initialLabel = '';
 
+  private _readOnly = false;
+  @Input() set readonly(value: boolean | '' | 'true' | 'false' | null | undefined) {
+    this._readOnly = value === '' || value === true || value === 'true';
+  }
+  @Input() set readOnly(value: boolean | '' | 'true' | 'false' | null | undefined) {
+    this._readOnly = value === '' || value === true || value === 'true';
+  }
+  get isReadOnly(): boolean { return this._readOnly; }
+
   get control() { return this.formGroup.get(this.controlName); }
 
   get hasError(): boolean {

@@ -1,4 +1,5 @@
-const ayService = require('./academic-year.service');
+const ayService  = require('./academic-year.service');
+const ayRepo     = require('./academic-year.repository');
 const res = require('../../../shared/helpers/response.helper');
 const { wrap } = require('../../../shared/middleware/async-handler');
 
@@ -37,4 +38,9 @@ async function removeMultiple(req, resp) {
   return res.success(resp, { deleted_count: result.deleted_count }, `${result.deleted_count} academic year(s) deleted`);
 }
 
-module.exports = wrap({ getAll, getById, create, update, remove, removeMultiple });
+async function getDropdown(req, resp) {
+  const result = await ayRepo.dropdown(req.query);
+  return res.success(resp, result);
+}
+
+module.exports = wrap({ getAll, getById, create, update, remove, removeMultiple, getDropdown });

@@ -1,0 +1,38 @@
+<div class="mx-auto max-w-4xl">
+  <div class="mb-6">
+    <app-breadcrumb [suffix]="studentName" />
+  </div>
+
+  @if (visibleTabs.length === 0) {
+    <div class="bg-background border-muted/30 rounded-lg border p-6 text-center">
+      <p class="text-muted-foreground text-sm">You do not have access to Student admission tabs.</p>
+    </div>
+  } @else {
+    <!-- Tab bar -->
+    <div class="mb-6 border-b border-muted/30">
+      <nav class="-mb-px flex gap-1">
+        @for (tab of visibleTabs; track tab.key) {
+          <button
+            type="button"
+            (click)="setTab(tab.key)"
+            class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2"
+            [class.border-primary]="currentTab?.key === tab.key"
+            [class.text-primary]="currentTab?.key === tab.key"
+            [class.border-transparent]="currentTab?.key !== tab.key"
+            [class.text-muted-foreground]="currentTab?.key !== tab.key">
+            {{ tab.label }}
+          </button>
+        }
+      </nav>
+    </div>
+
+    <!-- Tab content -->
+    @if (currentTab?.key === 'profile') {
+      <app-student-profile-form [recordId]="recordId" [initialMode]="mode" />
+    }
+
+    @if (currentTab?.key === 'enquiry') {
+      <app-enquiry-list [profileId]="recordId" [profileName]="studentName" [profileRegNo]="studentRegNo" [profilePhotoUrl]="studentPhotoUrl" [readonly]="mode === 'view'" />
+    }
+  }
+</div>

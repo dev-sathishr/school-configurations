@@ -388,6 +388,26 @@ export const PROFILE_STATUS_BADGES: Record<string, { label: string; class: strin
   alumni:    { label: 'Alumni',    class: 'bg-purple-500/10 text-purple-700 dark:text-purple-400' },
 };
 
+// ── Student Enquiry status ──────────────────────────────────────────
+
+export type EnquiryStatus = 'open' | 'follow_up' | 'converted' | 'closed' | 'cancelled';
+
+export const ENQUIRY_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'open',       label: 'Open' },
+  { value: 'follow_up',  label: 'Follow Up' },
+  { value: 'converted',  label: 'Converted' },
+  { value: 'closed',     label: 'Closed' },
+  { value: 'cancelled',  label: 'Cancelled' },
+];
+
+export const ENQUIRY_STATUS_BADGES: Record<string, BadgeStyle> = {
+  open:       { label: 'Open',       class: BADGE_CLASS.blue },
+  follow_up:  { label: 'Follow Up',  class: BADGE_CLASS.orange },
+  converted:  { label: 'Converted',  class: BADGE_CLASS.green },
+  closed:     { label: 'Closed',     class: BADGE_CLASS.muted },
+  cancelled:  { label: 'Cancelled',  class: BADGE_CLASS.red },
+};
+
 export type GenderType = 'male' | 'female' | 'other';
 
 export const GENDER_LABELS: Record<string, string> = {

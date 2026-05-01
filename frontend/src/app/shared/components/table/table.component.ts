@@ -136,17 +136,27 @@ export class TableComponent implements OnInit, OnDestroy {
     }
     this.cs.getService({ url: this.apiUrl, params: q }).subscribe({
       next: (res: any) => {
-        this.data.set(res.data.map((row: any) => {
-          const mapped: any = { ...row, selected: false };
-          for (const [colKey, dataKey] of Object.entries(this.displayKeyMap)) {
-            mapped[colKey] = row[dataKey] ?? '-';
-          }
-          return this.rowTransform ? this.rowTransform(row, mapped) : mapped;
-        }));
-        this.pagination.set(res.pagination);
-        this.setLoading(false);
+        queueMicrotask(() => {
+          if (this.destroyed) return;
+          this.data.set((res.data || []).map((row: any) => {
+            const mapped: any = { ...row, selected: false };
+            for (const [colKey, dataKey] of Object.entries(this.displayKeyMap)) {
+              mapped[colKey] = row[dataKey] ?? '-';
+            }
+            return this.rowTransform ? this.rowTransform(row, mapped) : mapped;
+          }));
+          this.pagination.set(res.pagination || { page: q.page, size: q.size, total_count: 0, total_pages: 0 });
+          this.setLoading(false);
+          this.cdr.detectChanges();
+        });
       },
-      error: () => { this.setLoading(false); },
+      error: () => {
+        queueMicrotask(() => {
+          if (this.destroyed) return;
+          this.setLoading(false);
+          this.cdr.detectChanges();
+        });
+      },
     });
   }
 

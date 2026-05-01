@@ -141,7 +141,7 @@ export class RelationListComponent implements OnChanges {
   @Input() apiBaseUrl = '';
   @Input() preloadedMembers: RelationMember[] | null = null;
   @Input() skipApiLoad = false;
-  /** Module code for permission checks — e.g. 'EMPLOYEE_INFO' or 'ADMISSION_MANAGEMENT' */
+  /** Module code for permission checks — e.g. 'EMPLOYEE_INFO' or 'STUDENT_PROFILE' */
   @Input() moduleCode = '';
   @Input() readonly = false;
   @Input() hideAddButton = false;

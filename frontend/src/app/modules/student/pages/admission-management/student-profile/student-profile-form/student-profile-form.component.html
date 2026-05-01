@@ -1,7 +1,7 @@
-<div class="mx-auto max-w-4xl">
-  <div class="mb-6">
-    <app-breadcrumb></app-breadcrumb>
-  </div>
+<div [class]="!recordId ? 'mx-auto max-w-4xl' : ''">
+  @if (!recordId) {
+    <div class="mb-6"><app-breadcrumb /></div>
+  }
 
   @if (errorMessage) {
     <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
@@ -72,7 +72,8 @@
             <app-form-field [formGroup]="form" controlName="aadhaar_no" label="Aadhaar No"
               placeholder="12-digit number" [maxLength]="12" [digitsOnly]="true" [submitted]="submitted" />
             <app-form-field [formGroup]="form" controlName="nationality" label="Nationality"
-              fieldType="select" [options]="nationalityOptions" placeholder="Select nationality" />
+              fieldType="select" [options]="nationalityOptions" placeholder="Select nationality"
+              [required]="true" [submitted]="submitted" />
             <app-form-field [formGroup]="form" controlName="birth_place" label="Birth Place"
               placeholder="e.g. Chennai" [maxLength]="100" />
           </div>
@@ -84,10 +85,16 @@
           <div class="mb-4 flex items-center justify-between">
             <h4 class="text-foreground text-sm font-semibold">Family Information</h4>
             @if (!viewMode) {
-              <app-button impact="light" tone="primary" shape="rounded" size="small" type="button"
-                (buttonClick)="openLocalCreate()">
-                + Add Member
-              </app-button>
+              <div class="flex gap-2">
+                <app-button impact="light" tone="light" shape="rounded" size="small" type="button"
+                  (buttonClick)="openLinkModal()">
+                  Link Existing
+                </app-button>
+                <app-button impact="light" tone="primary" shape="rounded" size="small" type="button"
+                  (buttonClick)="openLocalCreate()">
+                  + Add New
+                </app-button>
+              </div>
             }
           </div>
 
@@ -100,9 +107,16 @@
                   [class.border-amber-500]="m.is_emergency_contact">
                   <div class="min-w-0 flex-1">
                     <div class="mb-1 flex flex-wrap items-center gap-2">
-                      <span class="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        {{ relationLabel(m.relation_type) }}
-                      </span>
+                      @if (m.relation_type) {
+                        <span class="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                          {{ relationLabel(m.relation_type) }}
+                        </span>
+                      } @else {
+                        <span class="rounded bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-600">Set Relation Type</span>
+                      }
+                      @if (m._linked) {
+                        <span class="rounded bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600">Linked</span>
+                      }
                       @if (m.is_emergency_contact) {
                         <span class="rounded bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700">Emergency Contact</span>
                       }
@@ -187,6 +201,95 @@
           </div>
         </app-modal>
 
+        <!-- Link Existing Person modal -->
+        <app-modal
+          [visible]="showLinkModal"
+          title="Link Existing Person"
+          size="medium"
+          (onClose)="closeLinkModal()">
+
+          <!-- Step 1: search -->
+          <div class="space-y-4">
+            <div>
+              <label class="mb-1.5 block text-xs font-medium text-foreground">Search person</label>
+              <app-select-dropdown
+                [asyncUrl]="relationsSearchUrl"
+                asyncValueKey="relation_id"
+                asyncLabelKey="name"
+                placeholder="Search by name or phone..."
+                [value]="selectedLinkId"
+                (valueChange)="onLinkPersonSelected($event)"
+                (itemSelected)="onLinkPersonItem($event)" />
+            </div>
+
+            <!-- Step 2: preview + relation type (shown after selection) -->
+            @if (selectedLinkPerson) {
+              <!-- Person details -->
+              <div class="rounded-lg border border-muted/30 bg-muted/10 divide-y divide-muted/20">
+                <div class="flex items-center gap-3 px-4 py-3">
+                  <div class="h-9 w-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center text-primary font-semibold text-sm">
+                    {{ selectedLinkPerson.name?.charAt(0)?.toUpperCase() }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-foreground leading-tight">{{ selectedLinkPerson.name }}</p>
+                    @if (selectedLinkPerson.contact_no) {
+                      <p class="text-xs text-muted-foreground mt-0.5">{{ selectedLinkPerson.contact_code }} {{ selectedLinkPerson.contact_no }}</p>
+                    }
+                  </div>
+                </div>
+                @if (selectedLinkPerson.gender || selectedLinkPerson.email || selectedLinkPerson.occupation || selectedLinkPerson.qualification) {
+                  <div class="grid grid-cols-2 gap-px px-4 py-3 text-xs">
+                    @if (selectedLinkPerson.gender) {
+                      <div>
+                        <p class="text-muted-foreground">Gender</p>
+                        <p class="text-foreground font-medium capitalize">{{ selectedLinkPerson.gender }}</p>
+                      </div>
+                    }
+                    @if (selectedLinkPerson.email) {
+                      <div>
+                        <p class="text-muted-foreground">Email</p>
+                        <p class="text-foreground font-medium truncate">{{ selectedLinkPerson.email }}</p>
+                      </div>
+                    }
+                    @if (selectedLinkPerson.occupation) {
+                      <div class="mt-2">
+                        <p class="text-muted-foreground">Occupation</p>
+                        <p class="text-foreground font-medium">{{ selectedLinkPerson.occupation }}</p>
+                      </div>
+                    }
+                    @if (selectedLinkPerson.qualification) {
+                      <div class="mt-2">
+                        <p class="text-muted-foreground">Qualification</p>
+                        <p class="text-foreground font-medium">{{ selectedLinkPerson.qualification }}</p>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Relation type -->
+              <div>
+                <label class="mb-1.5 block text-xs font-medium text-foreground">
+                  Relation to this student <span class="text-red-500">*</span>
+                </label>
+                <app-select-dropdown
+                  [options]="RELATION_TYPE_OPTIONS"
+                  placeholder="Select relation..."
+                  [value]="selectedLinkRelationType"
+                  (valueChange)="selectedLinkRelationType = $event" />
+              </div>
+            }
+          </div>
+
+          <div modal-footer class="flex justify-between">
+            <app-button impact="light" tone="light" shape="rounded" size="medium" type="button"
+              (buttonClick)="closeLinkModal()">Cancel</app-button>
+            <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button"
+              [disabled]="!selectedLinkPerson || !selectedLinkRelationType"
+              (buttonClick)="confirmLinkMember()">Link Person</app-button>
+          </div>
+        </app-modal>
+
         <!-- Status & Notes -->
         <div class="bg-background border-muted/30 rounded-lg border p-5">
           <div class="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
@@ -204,7 +307,7 @@
           {{ viewMode ? 'Back' : 'Cancel' }}
         </app-button>
         @if (viewMode) {
-          @if (ps.canEdit('ADMISSION_MANAGEMENT')) {
+          @if (ps.canEdit('STUDENT_PROFILE')) {
             <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">
               Edit
             </app-button>
@@ -219,3 +322,33 @@
     </form>
   }
 </div>
+
+<!-- Student Created Success Dialog -->
+<app-modal [visible]="showCreatedDialog" title="Profile Created" size="small" [closeOnBackdrop]="false" [showClose]="false">
+  <div class="space-y-4 py-2 text-center">
+    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </div>
+    <div>
+      <p class="text-foreground text-sm font-semibold">Student profile created successfully!</p>
+      @if (ps.canCreate('ENQUIRY')) {
+        <p class="text-muted-foreground mt-1 text-xs">Would you like to add an enquiry for this student?</p>
+      }
+    </div>
+    @if (ps.canCreate('ENQUIRY')) {
+      <button type="button" (click)="goToEnquiry()"
+        class="border-muted/40 hover:bg-muted/30 w-full rounded-lg border p-3 text-left transition-colors">
+        <p class="text-foreground text-xs font-semibold">Add Enquiry</p>
+        <p class="text-muted-foreground text-[11px]">Record class interest & follow-up details</p>
+      </button>
+    }
+  </div>
+
+  <div modal-footer class="flex justify-end">
+    <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="goToList()">
+      Go to List
+    </app-button>
+  </div>
+</app-modal>

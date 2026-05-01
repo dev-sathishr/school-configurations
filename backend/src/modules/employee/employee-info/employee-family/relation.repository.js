@@ -10,6 +10,7 @@ const SELECT_FIELDS = `
   m.relation_id,
   m.relation_type,
   m.is_emergency_contact,
+  m.is_linked,
   m.created_at,
   m.updated_at,
   r.name,
@@ -172,23 +173,114 @@ async function update(id, data, userId) {
   return { id };
 }
 
+// Create only the mapping record — for linking an existing relation (shared person).
+// No INSERT into settings.relations; the relation row already exists.
+async function createMapping(entityType, entityId, relationId, data, userId) {
+  if (data.is_emergency_contact) {
+    await db.query(
+      `UPDATE ${MAPPING_TABLE}
+       SET is_emergency_contact = false, updated_by = $3, updated_at = NOW()
+       WHERE entity_type = $1 AND entity_id = $2 AND deleted_at IS NULL`,
+      [entityType, entityId, userId]
+    );
+  }
+  const mapping = await db.query(
+    `INSERT INTO ${MAPPING_TABLE}
+       (relation_id, entity_type, entity_id, relation_type, is_emergency_contact, is_linked, created_by, updated_by)
+     VALUES ($1,$2,$3,$4,$5,true,$6,$6) RETURNING id, relation_id`,
+    [relationId, entityType, entityId, data.relation_type, data.is_emergency_contact || false, userId]
+  );
+  return mapping.rows[0];
+}
+
+// Update only the mapping fields (relation_type, is_emergency_contact) without touching
+// the shared settings.relations row — used for linked members to avoid mutating shared data.
+async function updateMappingOnly(id, data, userId) {
+  const existing = await db.query(
+    `SELECT relation_id, entity_type, entity_id FROM ${MAPPING_TABLE} WHERE id = $1 AND deleted_at IS NULL`,
+    [id]
+  );
+  if (!existing.rows[0]) return null;
+
+  const { entity_type: entityType, entity_id: entityId } = existing.rows[0];
+
+  if (data.is_emergency_contact) {
+    await db.query(
+      `UPDATE ${MAPPING_TABLE}
+       SET is_emergency_contact = false, updated_by = $4, updated_at = NOW()
+       WHERE entity_type = $1 AND entity_id = $2 AND id != $3 AND deleted_at IS NULL`,
+      [entityType, entityId, id, userId]
+    );
+  }
+
+  await db.query(
+    `UPDATE ${MAPPING_TABLE} SET
+       relation_type=$1, is_emergency_contact=$2,
+       updated_by=$3, updated_at=NOW()
+     WHERE id=$4 AND deleted_at IS NULL`,
+    [data.relation_type, data.is_emergency_contact || false, userId, id]
+  );
+
+  return { id };
+}
+
 async function softDelete(id, userId) {
   const existing = await db.query(
-    `SELECT relation_id FROM ${MAPPING_TABLE} WHERE id = $1 AND deleted_at IS NULL`,
+    `SELECT relation_id, is_linked FROM ${MAPPING_TABLE} WHERE id = $1 AND deleted_at IS NULL`,
     [id]
   );
   if (!existing.rows[0]) return;
 
-  const relationId = existing.rows[0].relation_id;
+  const { relation_id: relationId, is_linked: isLinked } = existing.rows[0];
 
   await db.query(
     `UPDATE ${MAPPING_TABLE} SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
     [userId, id]
   );
-  await db.query(
-    `UPDATE ${RELATION_TABLE} SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
-    [userId, relationId]
-  );
+
+  // Only soft-delete the shared relation row if it was NOT a linked (shared) person
+  if (!isLinked) {
+    await db.query(
+      `UPDATE ${RELATION_TABLE} SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
+      [userId, relationId]
+    );
+  }
 }
 
-module.exports = { findAllByEntity, findAllByEmployee, findById, findByType, create, update, softDelete };
+async function search(q, excludeEntityType, excludeEntityId) {
+  const term = `%${(q || '').trim()}%`;
+  const params = [term, term];
+  let exclude = '';
+  if (excludeEntityType && excludeEntityId) {
+    params.push(excludeEntityType, excludeEntityId);
+    exclude = `AND r.id NOT IN (
+      SELECT relation_id FROM ${MAPPING_TABLE}
+      WHERE entity_type = $3 AND entity_id = $4 AND deleted_at IS NULL
+    )`;
+  }
+  const result = await db.query(
+    `SELECT DISTINCT ON (r.id)
+       r.id AS relation_id,
+       r.name,
+       r.gender,
+       r.dob,
+       r.contact_code,
+       r.contact_no,
+       r.email,
+       r.occupation,
+       r.qualification,
+       r.annual_income,
+       r.aadhaar_no,
+       r.notes
+     FROM ${RELATION_TABLE} r
+     WHERE r.deleted_at IS NULL
+       AND (LOWER(r.name) LIKE LOWER($1) OR r.contact_no LIKE $2)
+       ${exclude}
+     ORDER BY r.id, r.name
+     LIMIT 20`,
+    params
+  );
+  return result.rows;
+}
+
+module.exports = { findAllByEntity, findAllByEmployee, findById, findByType, create, createMapping, update, updateMappingOnly, softDelete, search };

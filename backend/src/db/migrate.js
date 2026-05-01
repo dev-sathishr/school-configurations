@@ -567,6 +567,26 @@ async function migrate() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_fee_categories_code ON master.fee_categories(code) WHERE deleted_at IS NULL`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_fee_categories_active ON master.fee_categories(is_active) WHERE deleted_at IS NULL`);
 
+    // Curriculum master - mirrors the SMS "curriculum" master
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS master.curriculum (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL,
+        notes VARCHAR(500),
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+    await client.query(`ALTER TABLE master.curriculum ADD COLUMN IF NOT EXISTS notes VARCHAR(500)`).catch(() => {});
+    await client.query(`ALTER TABLE master.curriculum ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true`).catch(() => {});
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_curriculum_name_unique ON master.curriculum (LOWER(name)) WHERE deleted_at IS NULL`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_curriculum_active ON master.curriculum(is_active) WHERE deleted_at IS NULL`);
+
     // Sequence controls — per-location config: prefix, suffix, counter, max
     await client.query(`
       CREATE TABLE IF NOT EXISTS master.sequence_controls (
@@ -1265,6 +1285,13 @@ async function migrate() {
         WHERE is_emergency_contact = true AND deleted_at IS NULL;
     `).catch(() => console.log('Index idx_relation_mappings_emergency already exists'));
 
+    // is_linked flag — true when the mapping points to a shared/pre-existing relation row
+    // (linked from another student's family). Prevents deleting the shared row on removal.
+    await client.query(`
+      ALTER TABLE settings.relation_mappings
+        ADD COLUMN IF NOT EXISTS is_linked BOOLEAN DEFAULT false;
+    `);
+
     // ── Student schema ────────────────────────────────────────────────────────
     await client.query('CREATE SCHEMA IF NOT EXISTS student');
 
@@ -1344,6 +1371,59 @@ async function migrate() {
     await client.query(`ALTER TABLE student.student_profiles ADD COLUMN IF NOT EXISTS birth_place VARCHAR(100)`).catch(() => {});
     await client.query(`ALTER TABLE student.student_profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`).catch(() => {});
     await client.query(`ALTER TABLE student.student_profiles ALTER COLUMN status SET DEFAULT 'profile_created'`).catch(() => {});
+
+    // ── Student Enquiries ───────────────────────────────────────────────────────
+    await client.query(`
+      CREATE TYPE student.enquiry_status AS ENUM (
+        'open', 'follow_up', 'converted', 'closed', 'cancelled'
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS student.enquiries (
+        id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        student_profile_id  UUID NOT NULL REFERENCES student.student_profiles(id),
+        enquiry_no          VARCHAR(50) NOT NULL,
+        academic_year_id    UUID REFERENCES academic.academic_years(id),
+        enquiry_date        DATE NOT NULL,
+        enquired_by         VARCHAR(100) NOT NULL,
+        relation_type       VARCHAR(50) NOT NULL,
+        contact_code        VARCHAR(10) DEFAULT '+91',
+        contact_no          VARCHAR(15) NOT NULL,
+        enquired_class      VARCHAR(100) NOT NULL,
+        current_school      VARCHAR(100),
+        current_class       VARCHAR(100),
+        current_curriculum  VARCHAR(100),
+        source              VARCHAR(100),
+        status              student.enquiry_status DEFAULT 'open',
+        notes               VARCHAR(500),
+        is_active           BOOLEAN DEFAULT TRUE,
+        created_by          UUID REFERENCES settings.users(id),
+        updated_by          UUID REFERENCES settings.users(id),
+        created_at          TIMESTAMPTZ DEFAULT NOW(),
+        updated_at          TIMESTAMPTZ DEFAULT NOW(),
+        deleted_at          TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      ALTER TABLE student.enquiries
+        ADD COLUMN IF NOT EXISTS academic_year_id UUID REFERENCES academic.academic_years(id);
+      ALTER TABLE student.enquiries
+        ADD COLUMN IF NOT EXISTS current_class VARCHAR(100);
+      ALTER TABLE student.enquiries
+        ADD COLUMN IF NOT EXISTS current_curriculum VARCHAR(100);
+
+      CREATE INDEX IF NOT EXISTS idx_enquiries_profile
+        ON student.enquiries (student_profile_id)
+        WHERE deleted_at IS NULL;
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_enquiries_status
+        ON student.enquiries (status)
+        WHERE deleted_at IS NULL;
+    `);
 
     console.log('Migration completed successfully');
   } catch (err) {

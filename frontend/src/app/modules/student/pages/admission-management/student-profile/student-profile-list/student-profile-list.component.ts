@@ -1,22 +1,34 @@
 import { Component } from '@angular/core';
-import { API } from '../../../../../core/api/endpoints';
-import { PROFILE_STATUS_BADGES, GENDER_LABELS } from '../../../../../core/constants/enums';
-import { BaseListComponent } from '../../../../../shared/components/base-list/base-list.component';
-import { BreadcrumbComponent } from '../../../../../shared/components/breadcrumb/breadcrumb.component';
-import { ButtonComponent } from '../../../../../shared/components/button/button.component';
-import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
-import { TableComponent } from '../../../../../shared/components/table/table.component';
-import { ColumnConfig } from '../../../../../shared/components/table/services/table-filter.service';
+import { API } from '../../../../../../core/api/endpoints';
+import { PROFILE_STATUS_BADGES, GENDER_LABELS } from '../../../../../../core/constants/enums';
+import { BaseListComponent } from '../../../../../../shared/components/base-list/base-list.component';
+import { BreadcrumbComponent } from '../../../../../../shared/components/breadcrumb/breadcrumb.component';
+import { ButtonComponent } from '../../../../../../shared/components/button/button.component';
+import { HasPermissionDirective } from '../../../../../../shared/directives/has-permission.directive';
+import { TableComponent } from '../../../../../../shared/components/table/table.component';
+import { ColumnConfig } from '../../../../../../shared/components/table/services/table-filter.service';
 
 @Component({
-  selector: 'app-admission-management-list',
-  templateUrl: './admission-management-list.component.html',
+  selector: 'app-student-profile-list',
+  templateUrl: './student-profile-list.component.html',
   imports: [BreadcrumbComponent, ButtonComponent, HasPermissionDirective, TableComponent],
 })
-export class AdmissionManagementListComponent extends BaseListComponent {
+export class StudentProfileListComponent extends BaseListComponent {
   apiUrl = API.studentProfiles.base;
   override deleteUrl = API.studentProfiles.deleteMultiple;
   routeBase = '/student/admission';
+
+  get canOpenAdmissionDetails(): boolean {
+    return this.ps.canView('STUDENT_PROFILE') || this.ps.hasAnyPermission('ENQUIRY');
+  }
+
+  get canEditProfile(): boolean {
+    return this.ps.canEdit('STUDENT_PROFILE');
+  }
+
+  get canDeleteProfile(): boolean {
+    return this.ps.canDelete('STUDENT_PROFILE');
+  }
 
   columns: ColumnConfig[] = [
     { key: 'full_name',           label: 'Student Name',  type: 'avatar', avatarKey: 'photo_file_id', sortable: true },

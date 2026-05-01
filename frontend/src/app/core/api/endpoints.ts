@@ -156,8 +156,9 @@ export const API = {
     detail: (employeeId: string, id: string) => `/employees/${employeeId}/family/${id}`,
   },
   studentFamilyInfo: {
-    base:   (profileId: string) => `/student-profiles/${profileId}/family`,
-    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/family/${id}`,
+    base:          (profileId: string) => `/student-profiles/${profileId}/family`,
+    detail:        (profileId: string, id: string) => `/student-profiles/${profileId}/family/${id}`,
+    globalSearch:  '/student-profiles/relations/search',
   },
   ifsc: {
     lookup: (code: string) => `/ifsc/${code}`,
@@ -186,6 +187,12 @@ export const API = {
     dropdown: '/fee-categories/dropdown',
     deleteMultiple: '/fee-categories/delete-multiple',
   },
+  curriculums: {
+    base: '/curriculums',
+    detail: (id: string) => `/curriculums/${id}`,
+    dropdown: '/curriculums/dropdown',
+    deleteMultiple: '/curriculums/delete-multiple',
+  },
 
   // ── Academic ──────────────────────────────────────────────────────
   classes: {
@@ -205,6 +212,7 @@ export const API = {
     base: '/academic-years',
     detail: (id: string) => `/academic-years/${id}`,
     deleteMultiple: '/academic-years/delete-multiple',
+    dropdown: '/academic-years/dropdown',
   },
 
   // ── Sessions ─────────────────────────────────────────────────────
@@ -239,6 +247,11 @@ export const API = {
     base: '/student-profiles',
     detail: (id: string) => `/student-profiles/${id}`,
     deleteMultiple: '/student-profiles/delete-multiple',
+  },
+  studentEnquiries: {
+    base: (profileId: string) => `/student-profiles/${profileId}/enquiries`,
+    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/enquiries/${id}`,
+    deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/enquiries/delete-multiple`,
   },
 
   // ── Chat ─────────────────────────────────────────────────────────

@@ -1,8 +1,8 @@
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
   <app-breadcrumb></app-breadcrumb>
-  <app-button *appHasPermission="['ADMISSION_MANAGEMENT', 'CREATE']" impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="addNew()">
+  <app-button *appHasPermission="['STUDENT_PROFILE', 'CREATE']" impact="bold" tone="primary" shape="rounded" size="medium" (buttonClick)="addNew()">
     <span class="mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">+</span>
-    Add Admission
+    Add Student
   </app-button>
 </div>
 
@@ -13,9 +13,9 @@
   [columns]="columns"
   [displayKeyMap]="displayKeyMap"
   [rowTransform]="rowTransform"
-[canEdit]="ps.canEdit('ADMISSION_MANAGEMENT')"
-  [canDelete]="ps.canDelete('ADMISSION_MANAGEMENT')"
-  [canView]="ps.canView('ADMISSION_MANAGEMENT')"
+  [canEdit]="canEditProfile || canOpenAdmissionDetails"
+  [canDelete]="canDeleteProfile"
+  [canView]="canOpenAdmissionDetails"
   (onEdit)="editSelected($event)"
   (onView)="viewSelected($event)">
 </app-table>

@@ -268,6 +268,8 @@ export class RelationFormComponent {
       entity_type: data.entity_type || undefined,
       created_at: data.created_at || undefined,
       updated_at: data.updated_at || undefined,
+      _linked: data._linked || data.is_linked || undefined,
+      is_linked: data.is_linked || data._linked || undefined,
     };
     this.mode         = 'edit';
     this.form         = this.buildForm();
@@ -296,6 +298,8 @@ export class RelationFormComponent {
       entity_type: data.entity_type || undefined,
       created_at: data.created_at || undefined,
       updated_at: data.updated_at || undefined,
+      _linked: data._linked || data.is_linked || undefined,
+      is_linked: data.is_linked || data._linked || undefined,
     };
     this.mode         = 'view';
     this.form         = this.buildForm();
@@ -345,7 +349,8 @@ export class RelationFormComponent {
   submit(): void {
     this.submitted    = true;
     this.errorMessage = '';
-    this.addressError = this.addresses.length === 0 ? 'At least one address is required' : '';
+    const isLinked = !!(this.localMeta['_linked'] || this.localMeta['is_linked']);
+    this.addressError = (!isLinked && this.addresses.length === 0) ? 'At least one address is required' : '';
     if (this.form.invalid || this.addressError) return;
 
     const val      = this.form.value;
@@ -366,6 +371,8 @@ export class RelationFormComponent {
       payload.entity_type = this.localMeta['entity_type'] || payload.entity_type;
       payload.created_at = this.localMeta['created_at'] || payload.created_at;
       payload.updated_at = this.localMeta['updated_at'] || payload.updated_at;
+      if (this.localMeta['_linked']) payload._linked = this.localMeta['_linked'];
+      if (this.localMeta['is_linked']) payload.is_linked = this.localMeta['is_linked'];
       if (this.localIndex !== undefined) payload._localIndex = this.localIndex;
       this.showModal = false;
       this.onLocalSaved.emit(payload);

@@ -70,17 +70,25 @@ async function saveFamilyMembers(profileId, members, userId) {
   const created = [];
   for (let i = 0; i < members.length; i += 1) {
     const m = members[i];
-    const row = await relationRepo.create(ENTITY_TYPE, profileId, m, userId);
-    let savedAddresses = [];
-    if (m.addresses?.length) {
-      savedAddresses = await saveAddresses('relation', row.relation_id, m.addresses, userId);
+    let row;
+    if (m._linked && m.relation_id) {
+      // Existing shared relation — only insert a mapping row, never touch settings.relations
+      row = await relationRepo.createMapping(ENTITY_TYPE, profileId, m.relation_id, m, userId);
+      // Addresses already belong to the shared relation; no re-save needed
+      created.push({ index: i, relation_id: row.relation_id, source_addresses: [], saved_addresses: [] });
+    } else {
+      row = await relationRepo.create(ENTITY_TYPE, profileId, m, userId);
+      let savedAddresses = [];
+      if (m.addresses?.length) {
+        savedAddresses = await saveAddresses('relation', row.relation_id, m.addresses, userId);
+      }
+      created.push({
+        index: i,
+        relation_id: row.relation_id,
+        source_addresses: Array.isArray(m.addresses) ? m.addresses : [],
+        saved_addresses: savedAddresses,
+      });
     }
-    created.push({
-      index: i,
-      relation_id: row.relation_id,
-      source_addresses: Array.isArray(m.addresses) ? m.addresses : [],
-      saved_addresses: savedAddresses,
-    });
   }
   return { data: created };
 }
@@ -100,23 +108,37 @@ async function syncFamilyMembers(profileId, members, userId) {
   for (const m of members) {
     let mappingId = null;
     let relationId = null;
+    const isLinked = !!(m._linked || m.is_linked);
 
     if (m.id && existingById.has(m.id)) {
       const current = existingById.get(m.id);
-      const updated = await relationRepo.update(m.id, m, userId);
-      if (!updated) return { error: 'notFound', message: 'Relation record not found' };
+      if (isLinked || current.is_linked) {
+        // Linked member — only update mapping fields, never touch shared relation row
+        const updated = await relationRepo.updateMappingOnly(m.id, m, userId);
+        if (!updated) return { error: 'notFound', message: 'Relation record not found' };
+      } else {
+        const updated = await relationRepo.update(m.id, m, userId);
+        if (!updated) return { error: 'notFound', message: 'Relation record not found' };
+        relationId = current.relation_id;
+        if (relationId && Array.isArray(m.addresses)) {
+          await saveAddresses('relation', relationId, m.addresses, userId);
+        }
+      }
       mappingId = m.id;
-      relationId = current.relation_id;
+    } else if (isLinked && m.relation_id) {
+      // New linked member — only create mapping row
+      const created = await relationRepo.createMapping(ENTITY_TYPE, profileId, m.relation_id, m, userId);
+      mappingId = created.id;
     } else {
       const created = await relationRepo.create(ENTITY_TYPE, profileId, m, userId);
       mappingId = created.id;
       relationId = created.relation_id;
+      if (relationId && Array.isArray(m.addresses)) {
+        await saveAddresses('relation', relationId, m.addresses, userId);
+      }
     }
 
     if (mappingId) keepIds.add(mappingId);
-    if (relationId && Array.isArray(m.addresses)) {
-      await saveAddresses('relation', relationId, m.addresses, userId);
-    }
   }
 
   for (const row of existing) {

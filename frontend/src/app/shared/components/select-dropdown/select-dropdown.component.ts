@@ -45,6 +45,7 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
 
   // Events
   @Output() closed = new EventEmitter<void>();
+  @Output() itemSelected = new EventEmitter<any>(); // emits the full raw API item on selection
 
   // Initial label (to avoid extra API call in edit mode)
   @Input() initialLabel = '';
@@ -72,6 +73,7 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
   asyncLoading = false;
   private searchTimer: any = null;
   private _selectedLabel = '';
+  private _rawItems: Map<string, any> = new Map();
 
   get isAsync(): boolean { return !!this.asyncUrl; }
 
@@ -125,6 +127,9 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
     if (changes['initialLabel']) {
       this._selectedLabel = this.initialLabel;
     }
+    if (changes['value'] && !changes['value'].firstChange && this.isAsync && this.value && !this.initialLabel) {
+      this.loadSelectedLabel(this.value);
+    }
     if (changes['asyncUrl'] && !changes['asyncUrl'].firstChange) {
       this.asyncOptions = [];
       this.asyncPage = 1;
@@ -132,6 +137,7 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
       this.asyncTotalPages = 1;
       this._selectedLabel = '';
       this.search = '';
+      this._rawItems.clear();
     }
   }
 
@@ -282,7 +288,11 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
       this.value = opt.value;
       this.valueChange.emit(opt.value);
       if (this.asyncExtraKey && opt.extra !== undefined) this.extraChange.emit(opt.extra);
-      if (this.isAsync) this._selectedLabel = opt.label;
+      if (this.isAsync) {
+        this._selectedLabel = opt.label;
+        const raw = this._rawItems.get(opt.value);
+        if (raw !== undefined) this.itemSelected.emit(raw);
+      }
       this.isOpen = false;
     }
   }
@@ -317,11 +327,13 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
 
     this.cs.getService({ url: this.asyncUrl, params }).subscribe({
       next: (res: any) => {
-        const newOpts = (res.data || []).map((item: any) => ({
+        const rawData: any[] = res.data || [];
+        const newOpts = rawData.map((item: any) => ({
           value: item[this.asyncValueKey],
           label: item[this.asyncLabelKey],
           ...(this.asyncExtraKey ? { extra: item[this.asyncExtraKey] } : {}),
         }));
+        rawData.forEach((item: any) => this._rawItems.set(item[this.asyncValueKey], item));
         this.asyncOptions = page === 1 ? newOpts : [...this.asyncOptions, ...newOpts];
         this.asyncTotalCount = res.pagination?.total_count || newOpts.length;
         this.asyncTotalPages = res.pagination?.total_pages || 1;

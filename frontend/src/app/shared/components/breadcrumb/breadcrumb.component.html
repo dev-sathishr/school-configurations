@@ -7,7 +7,9 @@
         </a>
         <span class="text-muted-foreground/40 text-sm">/</span>
       } @else {
-        <span class="text-foreground text-sm font-semibold">{{ crumb.label }}</span>
+        <span class="text-sm font-semibold" [class]="suffix ? 'text-primary' : 'text-foreground'">
+          {{ crumb.label }}@if (suffix) { — {{ suffix }}}
+        </span>
       }
     }
   </nav>

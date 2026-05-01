@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 
@@ -8,6 +8,7 @@ import { Subscription, filter } from 'rxjs';
   imports: [RouterLink],
 })
 export class BreadcrumbComponent implements OnInit, OnDestroy {
+  @Input() suffix = '';
   breadcrumbs: { label: string; route?: string }[] = [];
   private routerSub!: Subscription;
 
@@ -49,7 +50,7 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
   }
 
   private buildBreadcrumbs(url: string) {
-    const parts = url.split('/').filter(Boolean);
+    const parts = url.split('?')[0].split('/').filter(Boolean);
     this.breadcrumbs = [];
     let path = '';
     for (const part of parts) {
