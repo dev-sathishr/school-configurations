@@ -45,6 +45,10 @@ const employeeRelationRoutes = require('./modules/employee/employee-info/employe
 const studentProfileRoutes = require('./modules/student/student-profiles/student-profile.routes');
 const studentProfileFamilyRoutes = require('./modules/student/student-profiles/student-profile-family.routes');
 const studentEnquiryRoutes = require('./modules/student/enquiries/enquiry.routes');
+const recommenderRoutes = require('./modules/student/recommenders/recommender.routes');
+const recommendationMappingRoutes = require('./modules/student/recommendation-mappings/recommendation-mapping.routes');
+const studentAssessmentRoutes = require('./modules/student/assessments/assessment.routes');
+const studentRegistrationRoutes = require('./modules/student/registrations/registration.routes');
 
 // Master
 const sequenceCodeRoutes = require('./modules/master/sequence-master/sequence-codes/sequence-code.routes');
@@ -98,6 +102,10 @@ app.use('/api/v1/ifsc', ifscRouter);
 app.use('/api/v1/student-profiles', studentProfileRoutes);
 app.use('/api/v1/student-profiles/:profileId/family', studentProfileFamilyRoutes);
 app.use('/api/v1/student-profiles/:profileId/enquiries', studentEnquiryRoutes);
+app.use('/api/v1/recommenders', recommenderRoutes);
+app.use('/api/v1/student-profiles/:profileId/recommendations', recommendationMappingRoutes);
+app.use('/api/v1/student-profiles/:profileId/assessments', studentAssessmentRoutes);
+app.use('/api/v1/student-profiles/:profileId/registrations', studentRegistrationRoutes);
 app.use('/api/v1/sequence-codes', sequenceCodeRoutes);
 app.use('/api/v1/sequence-controls', sequenceControlRoutes);
 app.use('/api/v1/document-types', documentTypeRoutes);

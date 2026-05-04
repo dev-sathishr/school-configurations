@@ -188,8 +188,11 @@ async function seed() {
       { key: 'FEE_CATEGORIES',   name: 'Fee Categories',    display_name: 'Fee Categories',    icon: 'assets/icons/heroicons/outline/table-cells.svg',                 route_path: '/master/fee-categories', display_order: 4, enforce_edit_lock: false, description: 'Manage fee category types used to classify student fee items' },
       { key: 'CURRICULUM',       name: 'Curriculum',        display_name: 'Curriculum',        icon: 'assets/icons/heroicons/outline/bookmark.svg',                    route_path: '/master/curriculum',     display_order: 5, enforce_edit_lock: false, description: 'Manage curriculum master data such as CBSE, ICSE and State Board' },
       // Student modules
-      { key: 'STUDENT_PROFILE', name: 'Student Profile', display_name: 'Admission Management', icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/student/admission', display_order: 1, enforce_edit_lock: false, description: 'Manage student profiles and admission records' },
-      { key: 'ENQUIRY',         name: 'Enquiry',         display_name: 'Enquiry',              icon: 'assets/icons/heroicons/outline/users.svg', route_path: '/student/admission', display_order: 2, enforce_edit_lock: false, description: 'Manage student enquiries and follow-up details' },
+      { key: 'STUDENT_PROFILE',          name: 'Student Profile',          display_name: 'Admission Management', icon: 'assets/icons/heroicons/outline/users.svg',              route_path: '/student/admission',    display_order: 1, enforce_edit_lock: false, description: 'Manage student profiles and admission records' },
+      { key: 'ENQUIRY',                  name: 'Enquiry',                  display_name: 'Enquiry',              icon: 'assets/icons/heroicons/outline/users.svg',              route_path: '/student/admission',    display_order: 2, enforce_edit_lock: false, description: 'Manage student enquiries and follow-up details' },
+      { key: 'RECOMMENDATIONS', name: 'Recommendations', display_name: 'Recommendations', icon: 'assets/icons/heroicons/outline/user-circle.svg', route_path: null, display_order: 3, enforce_edit_lock: false, description: 'Manage recommenders and link them to student enquiries (tab inside admission)' },
+      { key: 'ASSESSMENTS',     name: 'Assessments',     display_name: 'Assessments',     icon: 'assets/icons/heroicons/outline/clipboard-document-check.svg', route_path: null, display_order: 4, enforce_edit_lock: false, description: 'Aptitude assessments for student admission candidates (tab inside admission)' },
+      { key: 'REGISTRATIONS',   name: 'Registrations',   display_name: 'Registrations',   icon: 'assets/icons/heroicons/outline/document-text.svg',            route_path: null, display_order: 5, enforce_edit_lock: false, description: 'Formal class registration for admitted candidates (tab inside admission)' },
     ];
 
     const moduleIds = {};
@@ -232,8 +235,11 @@ async function seed() {
       { menu: 'MASTER', module: 'FEE_CATEGORIES',    display_order: 4 },
       { menu: 'MASTER', module: 'CURRICULUM',        display_order: 5 },
       // Student modules
-      { menu: 'STUDENT', module: 'STUDENT_PROFILE', display_order: 1 },
-      { menu: 'STUDENT', module: 'ENQUIRY',         display_order: 2 },
+      { menu: 'STUDENT', module: 'STUDENT_PROFILE',  display_order: 1 },
+      { menu: 'STUDENT', module: 'ENQUIRY',          display_order: 2 },
+      { menu: 'STUDENT', module: 'RECOMMENDATIONS',  display_order: 3 },
+      { menu: 'STUDENT', module: 'ASSESSMENTS',      display_order: 4 },
+      { menu: 'STUDENT', module: 'REGISTRATIONS',    display_order: 5 },
     ];
 
     let mmInserted = 0;
@@ -540,8 +546,10 @@ async function seed() {
 
       // Seed Sequence Codes (master list)
       const sequenceCodes = [
-        { code: 'EMPLOYEE', name: 'Employee Code Sequence' },
-        { code: 'ENQUIRY',  name: 'Enquiry Number Sequence' },
+        { code: 'EMPLOYEE',     name: 'Employee Code Sequence' },
+        { code: 'ENQUIRY',      name: 'Enquiry Number Sequence' },
+        { code: 'ASSESSMENT',   name: 'Assessment Number Sequence' },
+        { code: 'REGISTRATION', name: 'Registration Number Sequence' },
       ];
       const seqCodeIds = {};
       for (const sc of sequenceCodes) {
@@ -565,8 +573,10 @@ async function seed() {
       // e.g. MAIN-EMP-, EAST-EMP-, SPORT-EMP-  (admin can edit via Master > Sequence Controls)
       let scInserted = 0;
       const seqControlDefs = [
-        { code: 'EMPLOYEE', prefixFn: (loc) => `${loc}-EMP-`, digits: 3, max: 9999 },
-        { code: 'ENQUIRY',  prefixFn: (loc) => `${loc}-ENQ-`, digits: 4, max: 9999 },
+        { code: 'EMPLOYEE',     prefixFn: (loc) => `${loc}-EMP-`, digits: 3, max: 9999 },
+        { code: 'ENQUIRY',      prefixFn: (loc) => `${loc}-ENQ-`, digits: 4, max: 9999 },
+        { code: 'ASSESSMENT',   prefixFn: (loc) => `${loc}-ASS-`, digits: 4, max: 9999 },
+        { code: 'REGISTRATION', prefixFn: (loc) => `${loc}-REG-`, digits: 4, max: 9999 },
       ];
       for (const locCode of Object.keys(locationIds)) {
         const locId = locationIds[locCode];
@@ -705,6 +715,58 @@ async function seed() {
       curInserted++;
     }
     console.log(`Curriculum seeded (${curInserted} inserted, ${curUpdated} updated)`);
+
+    // Seed Class Generals and Class Levels
+    const mainLocResult = await client.query(
+      `SELECT id FROM settings.locations WHERE LOWER(code) = 'main' AND deleted_at IS NULL LIMIT 1`
+    );
+    const mainLocationId = mainLocResult.rows[0]?.id || null;
+
+    const classGenerals = [
+      { name: 'KINDERGARTEN 1', code: 'K1', academic_level: 'nursery', levels: [{ name: 'KINDERGARTEN 1A', code: 'K1 A', section: 'A' }] },
+      { name: 'STANDARD 1',     code: 'S1', academic_level: 'primary', levels: [{ name: 'STANDARD 1A',     code: 'S1 A', section: 'A' }] },
+    ];
+
+    let cgInserted = 0, clInserted = 0;
+    for (const cg of classGenerals) {
+      let cgId;
+      const cgExisting = await client.query(
+        `SELECT id FROM academic.class_generals WHERE LOWER(name) = LOWER($1) AND deleted_at IS NULL`,
+        [cg.name]
+      );
+      if (cgExisting.rows.length > 0) {
+        cgId = cgExisting.rows[0].id;
+        await client.query(
+          `UPDATE academic.class_generals SET code = $1, academic_level = $2, updated_by = $3, updated_at = NOW() WHERE id = $4`,
+          [cg.code, cg.academic_level, adminId, cgId]
+        );
+      } else {
+        const cgResult = await client.query(
+          `INSERT INTO academic.class_generals (name, code, academic_level, is_active, created_by, updated_by)
+           VALUES ($1, $2, $3, true, $4, $5) RETURNING id`,
+          [cg.name, cg.code, cg.academic_level, adminId, adminId]
+        );
+        cgId = cgResult.rows[0].id;
+        cgInserted++;
+      }
+
+      for (const cl of cg.levels) {
+        const clExisting = await client.query(
+          `SELECT id FROM academic.class_levels WHERE class_general_id = $1 AND LOWER(code) = LOWER($2) AND deleted_at IS NULL`,
+          [cgId, cl.code]
+        );
+        if (clExisting.rows.length === 0) {
+          await client.query(
+            `INSERT INTO academic.class_levels (class_general_id, name, code, section, location_id, capacity, is_active, created_by, updated_by)
+             VALUES ($1, $2, $3, $4, $5, 0, true, $6, $7)`,
+            [cgId, cl.name, cl.code, cl.section, mainLocationId, adminId, adminId]
+          );
+          clInserted++;
+        }
+      }
+    }
+    console.log(`Class Generals seeded (${cgInserted} inserted)`);
+    console.log(`Class Levels seeded (${clInserted} inserted)`);
 
   } catch (err) {
     console.error('Seed failed:', err);

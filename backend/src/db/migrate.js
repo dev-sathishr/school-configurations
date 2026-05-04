@@ -1425,6 +1425,164 @@ async function migrate() {
         WHERE deleted_at IS NULL;
     `);
 
+    // ── Recommenders master ───────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS student.recommenders (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        contact_code VARCHAR(10) DEFAULT '+91',
+        contact_no VARCHAR(15) NOT NULL,
+        email VARCHAR(100),
+        occupation VARCHAR(100),
+        notes VARCHAR(500),
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_recommenders_contact_no_unique
+        ON student.recommenders (contact_no)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_recommenders_contact_no_unique already exists'));
+
+    // ── Recommendation mappings ───────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS student.recommendation_mappings (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        student_profile_id UUID NOT NULL REFERENCES student.student_profiles(id),
+        recommender_id UUID NOT NULL REFERENCES student.recommenders(id),
+        enquiry_id UUID REFERENCES student.enquiries(id),
+        notes VARCHAR(500),
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_recommendation_mappings_profile
+        ON student.recommendation_mappings (student_profile_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_recommendation_mappings_profile already exists'));
+
+    // ── Assessments ────────────────────────────────────────────────────
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE student.assessment_type AS ENUM ('oral', 'written', 'oral_re', 'written_re', 'interview', 'other');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE student.assessment_result AS ENUM ('pass', 'fail', 'pending');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS student.assessments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        student_profile_id UUID NOT NULL REFERENCES student.student_profiles(id),
+        enquiry_id UUID NOT NULL REFERENCES student.enquiries(id),
+        assessment_no VARCHAR(50) NOT NULL,
+        assessment_date DATE NOT NULL,
+        type student.assessment_type NOT NULL,
+        assessed_by_id UUID REFERENCES settings.users(id),
+        sanctioned_class_id UUID REFERENCES academic.class_generals(id),
+        academic_year_id UUID REFERENCES academic.academic_years(id),
+        completed BOOLEAN NOT NULL DEFAULT false,
+        result student.assessment_result NOT NULL DEFAULT 'pending',
+        grade VARCHAR(10),
+        marks NUMERIC(6,2),
+        notes VARCHAR(500),
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_assessments_profile
+        ON student.assessments (student_profile_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_assessments_profile already exists'));
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_assessments_enquiry
+        ON student.assessments (enquiry_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_assessments_enquiry already exists'));
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_assessments_no_unique
+        ON student.assessments (LOWER(assessment_no))
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_assessments_no_unique already exists'));
+
+    // ── Registrations ──────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS student.registrations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        student_profile_id UUID NOT NULL REFERENCES student.student_profiles(id),
+        enquiry_id UUID NOT NULL REFERENCES student.enquiries(id),
+        registration_no VARCHAR(50) NOT NULL,
+        registration_date DATE NOT NULL,
+        academic_year_id UUID NOT NULL REFERENCES academic.academic_years(id),
+        sanctioned_class_id UUID NOT NULL REFERENCES academic.class_generals(id),
+        notes VARCHAR(500),
+        is_active BOOLEAN DEFAULT true,
+        created_by UUID REFERENCES settings.users(id),
+        updated_by UUID REFERENCES settings.users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_by UUID REFERENCES settings.users(id),
+        deleted_at TIMESTAMPTZ
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_registrations_profile
+        ON student.registrations (student_profile_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_registrations_profile already exists'));
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_registrations_enquiry
+        ON student.registrations (enquiry_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_registrations_enquiry already exists'));
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_registrations_no_unique
+        ON student.registrations (LOWER(registration_no))
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_registrations_no_unique already exists'));
+
+    // One active registration per (student, enquiry, sanctioned_class) — prevents
+    // the same student from being registered twice for the same class on the
+    // same enquiry. They can register for different classes (rare but allowed).
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_registrations_unique_per_enquiry_class
+        ON student.registrations (student_profile_id, enquiry_id, sanctioned_class_id)
+        WHERE deleted_at IS NULL;
+    `).catch(() => console.log('Index idx_registrations_unique_per_enquiry_class already exists'));
+
     console.log('Migration completed successfully');
   } catch (err) {
     console.error('Migration failed:', err);

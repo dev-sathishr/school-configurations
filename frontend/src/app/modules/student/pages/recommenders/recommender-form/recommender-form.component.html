@@ -1,0 +1,87 @@
+<div [class]="inlineMode ? '' : 'mx-auto max-w-3xl'">
+  @if (!inlineMode) {
+    <div class="mb-6"><app-breadcrumb /></div>
+  }
+
+  @if (loading) {
+    <app-loader text="Loading..." />
+  } @else {
+    @if (errorMessage) {
+      <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-5">
+      <fieldset [disabled]="viewMode" class="space-y-5">
+
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <h4 class="text-foreground mb-4 text-sm font-semibold">Recommender Details</h4>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+            <app-form-field [formGroup]="form" controlName="category" label="Category"
+              fieldType="select" [options]="categoryOptions" [required]="true" [submitted]="submitted" />
+
+            @if (nameSource(); as src) {
+              <app-form-field [formGroup]="form" controlName="name" label="Name"
+                fieldType="async-select"
+                [asyncUrl]="src.url" [asyncLabelKey]="src.labelKey" [asyncValueKey]="src.labelKey"
+                [initialLabel]="selectedNameLabel()"
+                selectPlaceholder="Search and select"
+                [required]="true" [submitted]="submitted"
+                (itemSelected)="onNameSelected($event)" />
+            } @else {
+              <app-form-field [formGroup]="form" controlName="name" label="Name"
+                placeholder="e.g. Ravi Kumar" [required]="true" [submitted]="submitted"
+                [minLength]="3" [maxLength]="100" [lettersOnly]="true" [titlecase]="true" />
+            }
+
+            <app-form-field [formGroup]="form" controlName="contact_no" label="Contact No"
+              fieldType="phone" [required]="true" [submitted]="submitted" />
+
+            <app-form-field [formGroup]="form" controlName="email" label="Email"
+              fieldType="email" placeholder="e.g. ravi@example.com" [maxLength]="100" [submitted]="submitted" />
+
+            <app-form-field [formGroup]="form" controlName="occupation" label="Occupation"
+              placeholder="e.g. Engineer" [maxLength]="100" />
+
+            <app-form-field [formGroup]="form" controlName="is_active" label="Active"
+              fieldType="checkbox" />
+          </div>
+        </div>
+
+        <app-address
+          [addresses]="addresses"
+          [errorMessage]="addressError"
+          (addressesChange)="onAddressesChange($event)" />
+
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <h4 class="text-foreground mb-4 text-sm font-semibold">Remarks</h4>
+          <app-form-field [formGroup]="form" controlName="notes" label="Notes"
+            fieldType="textarea" [rows]="3" placeholder="Any additional notes..." [maxLength]="500" />
+        </div>
+
+      </fieldset>
+
+      @if (!inlineMode) {
+        @if (!viewMode) {
+          <div class="flex justify-end gap-3">
+            <app-button impact="light" tone="light" shape="rounded" size="medium" type="button"
+              (buttonClick)="cancel()">
+              Cancel
+            </app-button>
+            <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit"
+              [loading]="saving">
+              {{ editMode ? 'Update' : 'Save' }}
+            </app-button>
+          </div>
+        } @else {
+          <div class="flex justify-end">
+            <app-button impact="light" tone="light" shape="rounded" size="medium" type="button"
+              (buttonClick)="cancel()">
+              Back
+            </app-button>
+          </div>
+        }
+      }
+    </form>
+  }
+</div>

@@ -8,6 +8,7 @@ const SELECT_FIELDS = `
   eq.id,
   eq.student_profile_id,
   eq.enquiry_no,
+  eq.enquiry_no || ' (' || INITCAP(REPLACE(eq.status::text, '_', ' ')) || ')' AS display_label,
   eq.academic_year_id,
   eq.enquiry_date,
   eq.enquired_by,
@@ -67,6 +68,20 @@ const JOINS = `
 async function findAll(profileId, query) {
   const clauses = [`eq.student_profile_id = $1`];
   const params  = [profileId];
+
+  // Convenience flag used by the recommendation form's enquiry dropdown:
+  // ?active=true narrows to enquiries that are still open or being followed up.
+  // ?include_id=<uuid> forces a specific enquiry to remain in the result even
+  // if it doesn't match `active` — used in edit mode so the currently-linked
+  // (possibly closed) enquiry stays visible in the dropdown.
+  if (String(query.active) === 'true') {
+    if (query.include_id) {
+      params.push(query.include_id);
+      clauses.push(`(eq.status IN ('open', 'follow_up') OR eq.id = $${params.length})`);
+    } else {
+      clauses.push(`eq.status IN ('open', 'follow_up')`);
+    }
+  }
 
   return paginate({
     table: TABLE,

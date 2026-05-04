@@ -29,6 +29,7 @@ export const API = {
   users: {
     base: '/users',
     detail: (id: string) => `/users/${id}`,
+    dropdown: '/users/dropdown',
     deleteMultiple: '/users/delete-multiple',
     import: '/users/import',
     checkUnique: '/users/check-unique',
@@ -253,6 +254,29 @@ export const API = {
     detail: (profileId: string, id: string) => `/student-profiles/${profileId}/enquiries/${id}`,
     deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/enquiries/delete-multiple`,
     nextCode: (profileId: string) => `/student-profiles/${profileId}/enquiries/next-code`,
+  },
+  recommenders: {
+    base: '/recommenders',
+    detail: (id: string) => `/recommenders/${id}`,
+    dropdown: '/recommenders/dropdown',
+    deleteMultiple: '/recommenders/delete-multiple',
+  },
+  studentRecommendations: {
+    base: (profileId: string) => `/student-profiles/${profileId}/recommendations`,
+    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/recommendations/${id}`,
+    deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/recommendations/delete-multiple`,
+  },
+  studentAssessments: {
+    base: (profileId: string) => `/student-profiles/${profileId}/assessments`,
+    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/assessments/${id}`,
+    deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/assessments/delete-multiple`,
+    nextCode: (profileId: string) => `/student-profiles/${profileId}/assessments/next-code`,
+  },
+  studentRegistrations: {
+    base: (profileId: string) => `/student-profiles/${profileId}/registrations`,
+    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/registrations/${id}`,
+    deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/registrations/delete-multiple`,
+    nextCode: (profileId: string) => `/student-profiles/${profileId}/registrations/next-code`,
   },
 
   // ── Chat ─────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@ const routes: Routes = [
       {
         path: 'admission',
         canActivate: [ModuleAccessGuard],
-        data: { moduleCodes: ['STUDENT_PROFILE', 'ENQUIRY'] },
+        data: { moduleCodes: ['STUDENT_PROFILE', 'ENQUIRY', 'RECOMMENDATIONS', 'ASSESSMENTS', 'REGISTRATIONS'] },
         children: [
           { path: '', component: StudentProfileListComponent },
           {

@@ -202,4 +202,9 @@ async function checkUnique(field, value, excludeId = null) {
   return { data: { available: true } };
 }
 
-module.exports = { getAll, getById, create, update, remove, removeMultiple, importRows, checkUnique };
+async function getDropdown(query) {
+  const data = await userRepo.getDropdown(query);
+  return { data };
+}
+
+module.exports = { getAll, getById, create, update, remove, removeMultiple, importRows, checkUnique, getDropdown };

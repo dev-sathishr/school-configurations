@@ -425,6 +425,73 @@ export const UNIQUE_RELATION_TYPES = new Set([
   'father_in_law', 'mother_in_law',
 ]);
 
+// ── Assessment type / result ────────────────────────────────────────
+
+export type AssessmentType = 'oral' | 'written' | 'oral_re' | 'written_re' | 'interview' | 'other';
+
+export const ASSESSMENT_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'oral',       label: 'Oral' },
+  { value: 'written',    label: 'Written' },
+  { value: 'oral_re',    label: 'Oral Re-Assessment' },
+  { value: 'written_re', label: 'Written Re-Assessment' },
+  { value: 'interview',  label: 'Interview' },
+  { value: 'other',      label: 'Other' },
+];
+
+export const ASSESSMENT_TYPE_BADGES: Record<AssessmentType, BadgeStyle> = {
+  oral:       { label: 'Oral',       class: BADGE_CLASS.blue },
+  written:    { label: 'Written',    class: BADGE_CLASS.purple },
+  oral_re:    { label: 'Oral Re',    class: BADGE_CLASS.orange },
+  written_re: { label: 'Written Re', class: BADGE_CLASS.orange },
+  interview:  { label: 'Interview',  class: BADGE_CLASS.primary },
+  other:      { label: 'Other',      class: BADGE_CLASS.muted },
+};
+
+export type AssessmentResult = 'pass' | 'fail' | 'pending';
+
+export const ASSESSMENT_RESULT_OPTIONS: SelectOption[] = [
+  { value: 'pass',    label: 'Pass' },
+  { value: 'fail',    label: 'Fail' },
+  { value: 'pending', label: 'Pending' },
+];
+
+export const ASSESSMENT_RESULT_BADGES: Record<AssessmentResult, BadgeStyle> = {
+  pass:    { label: 'Pass',    class: BADGE_CLASS.green },
+  fail:    { label: 'Fail',    class: BADGE_CLASS.red },
+  pending: { label: 'Pending', class: BADGE_CLASS.muted },
+};
+
+export const ASSESSMENT_GRADE_OPTIONS: SelectOption[] = [
+  { value: 'A+', label: 'A+' },
+  { value: 'A',  label: 'A' },
+  { value: 'B+', label: 'B+' },
+  { value: 'B',  label: 'B' },
+  { value: 'C',  label: 'C' },
+  { value: 'D',  label: 'D' },
+  { value: 'E',  label: 'E' },
+  { value: 'F',  label: 'F' },
+];
+
+// ── Recommender category ───────────────────────────────────────────
+
+export type RecommenderCategory = 'management' | 'vip' | 'parent' | 'staff' | 'other';
+
+export const RECOMMENDER_CATEGORY_OPTIONS: SelectOption[] = [
+  { value: 'management', label: 'Management' },
+  { value: 'vip',        label: 'VIP' },
+  { value: 'parent',     label: 'Parent' },
+  { value: 'staff',      label: 'Staff' },
+  { value: 'other',      label: 'Other' },
+];
+
+export const RECOMMENDER_CATEGORY_BADGES: Record<RecommenderCategory, BadgeStyle> = {
+  management: { label: 'Management', class: BADGE_CLASS.purple },
+  vip:        { label: 'VIP',        class: BADGE_CLASS.orange },
+  parent:     { label: 'Parent',     class: BADGE_CLASS.blue },
+  staff:      { label: 'Staff',      class: BADGE_CLASS.green },
+  other:      { label: 'Other',      class: BADGE_CLASS.muted },
+};
+
 export const RELATION_TYPE_OPTIONS: SelectOption[] = [
   { value: 'father',         label: 'Father' },
   { value: 'mother',         label: 'Mother' },

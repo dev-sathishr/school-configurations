@@ -9,21 +9,29 @@
     </div>
   } @else {
     <!-- Tab bar -->
-    <div class="mb-6 border-b border-muted/30">
-      <nav class="-mb-px flex gap-1">
-        @for (tab of visibleTabs; track tab.key) {
-          <button
-            type="button"
-            (click)="setTab(tab.key)"
-            class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2"
-            [class.border-primary]="currentTab?.key === tab.key"
-            [class.text-primary]="currentTab?.key === tab.key"
-            [class.border-transparent]="currentTab?.key !== tab.key"
-            [class.text-muted-foreground]="currentTab?.key !== tab.key">
-            {{ tab.label }}
-          </button>
-        }
-      </nav>
+    <div class="border-border mb-6 flex overflow-x-auto border-b border-muted/30 scrollbar-none">
+      @for (tab of visibleTabs; track tab.key) {
+        @let disabled = isTabDisabled(tab.key);
+        <button
+          type="button"
+          (click)="setTab(tab.key)"
+          [disabled]="disabled"
+          [title]="disabled ? (tab.key === 'enquiry' ? 'Save the student profile first' : 'Create at least one enquiry first') : ''"
+          class="shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-xs font-semibold transition-colors"
+          [class.border-primary]="currentTab?.key === tab.key && !disabled"
+          [class.text-primary]="currentTab?.key === tab.key && !disabled"
+          [class.border-transparent]="currentTab?.key !== tab.key || disabled"
+          [class.text-muted-foreground]="currentTab?.key !== tab.key && !disabled"
+          [class.text-muted-foreground\/40]="disabled"
+          [class.cursor-not-allowed]="disabled">
+          {{ tab.label }}
+          @if (disabled) {
+            <svg class="ml-1.5 inline-block h-3 w-3 align-[-2px]" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 1a4 4 0 00-4 4v3H5a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2v-7a2 2 0 00-2-2h-1V5a4 4 0 00-4-4zm2 7V5a2 2 0 10-4 0v3h4z" clip-rule="evenodd" />
+            </svg>
+          }
+        </button>
+      }
     </div>
 
     <!-- Tab content -->
@@ -32,7 +40,20 @@
     }
 
     @if (currentTab?.key === 'enquiry') {
-      <app-enquiry-list [profileId]="recordId" [profileName]="studentName" [profileRegNo]="studentRegNo" [profilePhotoUrl]="studentPhotoUrl" [readonly]="mode === 'view'" />
+      <app-enquiry-list [profileId]="recordId" [profileName]="studentName" [profileRegNo]="studentRegNo" [profilePhotoUrl]="studentPhotoUrl" [readonly]="mode === 'view'"
+        (countChanged)="refreshEnquiryCount()" />
+    }
+
+    @if (currentTab?.key === 'recommendation') {
+      <app-recommendation-list [profileId]="recordId" [profileName]="studentName" [profileRegNo]="studentRegNo" [profilePhotoUrl]="studentPhotoUrl" [readonly]="mode === 'view'" />
+    }
+
+    @if (currentTab?.key === 'assessment') {
+      <app-assessment-list [profileId]="recordId" [profileName]="studentName" [profileRegNo]="studentRegNo" [profilePhotoUrl]="studentPhotoUrl" [readonly]="mode === 'view'" />
+    }
+
+    @if (currentTab?.key === 'registration') {
+      <app-registration-list [profileId]="recordId" [profileName]="studentName" [profileRegNo]="studentRegNo" [profilePhotoUrl]="studentPhotoUrl" [readonly]="mode === 'view'" />
     }
   }
 </div>

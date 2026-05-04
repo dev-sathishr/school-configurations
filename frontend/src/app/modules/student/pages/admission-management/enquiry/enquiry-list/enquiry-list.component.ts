@@ -1,4 +1,4 @@
-import { Component, computed, inject, Input, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, OnInit, Output, signal, ViewChild } from '@angular/core';
 import { API } from '../../../../../../core/api/endpoints';
 import { ENQUIRY_STATUS_BADGES } from '../../../../../../core/constants/enums';
 import { PermissionService } from '../../../../../../core/services/permission.service';
@@ -19,6 +19,7 @@ export class EnquiryListComponent implements OnInit {
   @Input() profileRegNo = '';
   @Input() profilePhotoUrl = '';
   @Input() readonly = false;
+  @Output() countChanged = new EventEmitter<void>();
   @ViewChild(TableComponent) table!: TableComponent;
 
   readonly ps = inject(PermissionService);
@@ -91,5 +92,6 @@ export class EnquiryListComponent implements OnInit {
   onSaved(): void {
     this.modalVisible = false;
     this.table?.reloadCurrentPage();
+    this.countChanged.emit();
   }
 }

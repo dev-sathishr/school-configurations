@@ -46,6 +46,7 @@ export class FormFieldComponent {
   @Input() asyncLabelKey = 'name';
   @Input() asyncExtraKey = '';
   @Output() extraChange = new EventEmitter<string>();
+  @Output() itemSelected = new EventEmitter<any>();
   @Input() initialLabel = '';
 
   private _readOnly = false;

@@ -50,4 +50,9 @@ async function checkUnique(req, resp) {
   return res.success(resp, { data: result.data });
 }
 
-module.exports = wrap({ getAll, getById, create, update, remove, removeMultiple, importRows, checkUnique });
+async function getDropdown(req, resp) {
+  const result = await userService.getDropdown(req.query);
+  return res.success(resp, { data: result.data });
+}
+
+module.exports = wrap({ getAll, getById, create, update, remove, removeMultiple, importRows, checkUnique, getDropdown });

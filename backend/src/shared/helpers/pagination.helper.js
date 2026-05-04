@@ -24,6 +24,7 @@ async function paginate(options, query = {}) {
     joins = '',
     searchColumns = [],
     filterableColumns = [],
+    exactColumns = [],   // UUID / foreign-key columns that need = not ILIKE
     sortableColumns = [],
     defaultSortBy = `${alias}.created_at`,
     defaultSortOrder = 'DESC',
@@ -84,12 +85,15 @@ async function paginate(options, query = {}) {
   const columnFilters = query.filter || {};
   for (const [column, value] of Object.entries(columnFilters)) {
     if (value === undefined || value === null || value === '') continue;
-    if (!filterableColumns.includes(column)) continue;
+    if (!filterableColumns.includes(column) && !exactColumns.includes(column)) continue;
 
     if (value === 'true') {
       conditions.push(`${column} = true`);
     } else if (value === 'false') {
       conditions.push(`${column} = false`);
+    } else if (exactColumns.includes(column)) {
+      params.push(value);
+      conditions.push(`${column} = $${params.length}`);
     } else {
       params.push(`%${value}%`);
       conditions.push(`${column} ILIKE $${params.length}`);

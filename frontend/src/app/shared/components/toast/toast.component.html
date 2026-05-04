@@ -1,12 +1,12 @@
 <!-- Top-right toasts (CRUD operations) -->
-<div class="pointer-events-none fixed right-4 top-4 z-[100] flex flex-col gap-2">
+<div class="pointer-events-none fixed right-4 top-4 z-[2000] flex flex-col gap-2">
   @for (toast of topToasts(); track toast.id) {
     <ng-container *ngTemplateOutlet="toastTpl; context: { $implicit: toast }"></ng-container>
   }
 </div>
 
 <!-- Bottom-right toasts (notifications, like Teams) -->
-<div class="pointer-events-none fixed bottom-4 right-4 z-[100] flex flex-col-reverse gap-2">
+<div class="pointer-events-none fixed bottom-4 right-4 z-[2000] flex flex-col-reverse gap-2">
   @for (toast of bottomToasts(); track toast.id) {
     <ng-container *ngTemplateOutlet="toastTpl; context: { $implicit: toast }"></ng-container>
   }

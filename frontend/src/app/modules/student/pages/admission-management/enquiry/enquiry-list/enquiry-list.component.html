@@ -23,7 +23,8 @@
     @if (!readonly && ps.canCreate('ENQUIRY')) {
       <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button"
         (buttonClick)="openCreate()">
-        + New Enquiry
+        <span class="mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">+</span>
+        New Enquiry
       </app-button>
     }
   </div>
@@ -68,9 +69,9 @@
         }
       </div>
     }
-    @if (enquiryForm?.nextEnquiryNo || enquiryForm?.enquiryNo) {
+    @if (enquiryForm?.nextEnquiryNo() || enquiryForm?.enquiryNo()) {
       <span class="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[11px] font-semibold text-primary tracking-wide">
-        {{ enquiryForm.enquiryNo || enquiryForm.nextEnquiryNo }}
+        {{ enquiryForm.enquiryNo() || enquiryForm.nextEnquiryNo() }}
       </span>
     }
   </div>

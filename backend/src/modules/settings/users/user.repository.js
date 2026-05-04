@@ -21,7 +21,8 @@ async function findAll(query, viewOwnUserId) {
     selectFields: SELECT_FIELDS,
     joins: JOINS,
     searchColumns: ['u.full_name', 'u.username', 'u.email', 'u.phone'],
-    filterableColumns: ['u.username', 'u.full_name', 'u.email', 'u.phone', 'u.group_id', 'u.is_active'],
+    filterableColumns: ['u.username', 'u.full_name', 'u.email', 'u.phone', 'u.is_active'],
+    exactColumns: ['u.group_id'],
     sortableColumns: ['u.username', 'u.full_name', 'u.email', 'u.phone', 'g.name', 'u.is_active', 'u.created_at', 'u.last_login'],
     defaultSortBy: 'u.created_at',
     defaultSortOrder: 'DESC',
@@ -150,6 +151,19 @@ async function saveUserLocations(userId, locationIds, defaultLocationId, created
   }
 }
 
+async function getDropdown(query) {
+  const search = query.search ? `%${query.search}%` : null;
+  const result = await db.query(`
+    SELECT u.id, u.username, u.full_name, u.email, u.phone_code, u.phone
+    FROM settings.users u
+    WHERE u.deleted_at IS NULL AND u.is_active = true
+      ${search ? 'AND (LOWER(u.full_name) LIKE LOWER($1) OR LOWER(u.username) LIKE LOWER($1) OR u.phone LIKE $1)' : ''}
+    ORDER BY u.full_name
+    LIMIT 50
+  `, search ? [search] : []);
+  return result.rows;
+}
+
 async function checkUniqueField(field, value, excludeId = null) {
   const allowed = ['email', 'phone'];
   if (!allowed.includes(field)) throw new Error('Invalid field');
@@ -160,4 +174,4 @@ async function checkUniqueField(field, value, excludeId = null) {
   return result.rows[0] || null;
 }
 
-module.exports = { findAll, findById, findByUsername, findByUsernameActive, create, update, softDelete, softDeleteMultiple, updateLastLogin, findProfileById, getUserLocations, saveUserLocations, checkUniqueField };
+module.exports = { findAll, findById, findByUsername, findByUsernameActive, create, update, softDelete, softDeleteMultiple, updateLastLogin, findProfileById, getUserLocations, saveUserLocations, checkUniqueField, getDropdown };

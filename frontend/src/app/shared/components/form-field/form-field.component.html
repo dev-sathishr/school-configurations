@@ -27,6 +27,7 @@
         [value]="control?.value || ''"
         (valueChange)="onSelectChange($event)"
         (extraChange)="extraChange.emit($event)"
+        (itemSelected)="itemSelected.emit($event)"
         (closed)="onSelectClosed()"
         [placeholder]="selectPlaceholder || 'Select...'"
         [hasError]="hasError"

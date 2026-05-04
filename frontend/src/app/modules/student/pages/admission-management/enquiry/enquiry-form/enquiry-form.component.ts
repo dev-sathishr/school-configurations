@@ -31,9 +31,9 @@ export class EnquiryFormComponent implements OnChanges {
   saving            = false;
   errorMessage      = '';
   academicYearLabel = '';
-  nextEnquiryNo    = '';
+  readonly nextEnquiryNo = signal('');
   codeLoading      = false;
-  enquiryNo        = '';
+  readonly enquiryNo = signal('');
   private skipCodeFetch = false;
 
   readonly recordLocation = signal<{ id: string; name: string; code: string } | null>(null);
@@ -45,8 +45,9 @@ export class EnquiryFormComponent implements OnChanges {
   constructor(private fb: FormBuilder, private cs: CommonService, private cdr: ChangeDetectorRef) {}
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (!this.form) this.form = this.buildForm();
     if (changes['enquiryId'] || changes['profileId']) {
-      this.init();
+      queueMicrotask(() => this.init());
     }
   }
 
@@ -55,9 +56,9 @@ export class EnquiryFormComponent implements OnChanges {
     this.saving        = false;
     this.errorMessage  = '';
     this.academicYearLabel = '';
-    this.nextEnquiryNo = '';
+    this.nextEnquiryNo.set('');
     this.codeLoading   = false;
-    this.enquiryNo     = '';
+    this.enquiryNo.set('');
     this.recordLocation.set(null);
     if (!this.form) {
       this.form = this.buildForm();
@@ -112,14 +113,14 @@ export class EnquiryFormComponent implements OnChanges {
             current_curriculum: d.current_curriculum?.id ?? d.current_curriculum ?? '',
             contact_no:         { code: d.contact_code || '+91', number: d.contact_no || '' },
           });
-          this.enquiryNo = d.enquiry_no || '';
+          this.enquiryNo.set(d.enquiry_no || '');
           if (d.location?.id) {
             this.recordLocation.set({ id: d.location.id, name: d.location.name || '', code: d.location.code || '' });
           }
           if (d.academic_year?.label) {
             this.academicYearLabel = d.academic_year.label;
-            this.cdr.detectChanges();
           }
+          this.cdr.detectChanges();
         },
         error: () => {},
       });
@@ -157,7 +158,7 @@ export class EnquiryFormComponent implements OnChanges {
     this.cdr.detectChanges();
     this.cs.getService({ url: API.studentEnquiries.nextCode(this.profileId), params: locationId ? { location_id: locationId } : {} }).subscribe({
       next: (res: any) => {
-        this.nextEnquiryNo = res?.data?.code || '';
+        this.nextEnquiryNo.set(res?.data?.code || '');
         this.codeLoading = false;
         this.cdr.detectChanges();
       },
