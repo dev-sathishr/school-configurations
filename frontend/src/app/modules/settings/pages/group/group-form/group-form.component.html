@@ -62,43 +62,63 @@
                 <!-- Modules with Permissions -->
                 @if (menu.selected && menu.modules.length > 0) {
                   <div class="border-muted/20 border-t">
-                    <!-- Header Row (dynamic columns) -->
-                    <div class="text-muted-foreground hidden items-center gap-2 bg-muted/10 px-4 py-2 text-xs font-medium sm:flex">
+                    <!-- Header Row (desktop only — dynamic columns with per-permission Select All checkbox) -->
+                    <div class="text-muted-foreground bg-muted/10 hidden items-end gap-2 px-4 py-2 text-xs font-medium sm:flex">
                       <div class="min-w-0 flex-1">Module</div>
                       @for (pt of permissionTypes; track pt.id) {
-                        <div class="w-20 text-center">{{ pt.name }}</div>
+                        <label class="flex w-20 cursor-pointer flex-col items-center gap-1 select-none">
+                          <span>{{ pt.name }}</span>
+                          <input type="checkbox" [checked]="isAllCheckedForPermission(menu, pt.id)"
+                            (change)="toggleAllForPermission(menu, pt.id)"
+                            class="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300" />
+                        </label>
                       }
                       <div class="w-20 text-center">All</div>
                     </div>
 
+                    <!-- Mobile-only per-permission Select All bar -->
+                    <div class="bg-muted/10 border-muted/20 flex flex-wrap items-center gap-3 border-t px-4 py-2 sm:hidden">
+                      <span class="text-muted-foreground w-full text-[11px] font-medium">Select all by permission:</span>
+                      @for (pt of permissionTypes; track pt.id) {
+                        <label class="flex cursor-pointer items-center gap-1.5 select-none">
+                          <input type="checkbox" [checked]="isAllCheckedForPermission(menu, pt.id)"
+                            (change)="toggleAllForPermission(menu, pt.id)"
+                            class="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300" />
+                          <span class="text-[11px]">{{ pt.name }}</span>
+                        </label>
+                      }
+                    </div>
+
                     @for (mod of menu.modules; track mod.module_id) {
-                      <div class="border-muted/10 flex flex-wrap items-center gap-2 border-t px-4 py-3 sm:flex-nowrap">
-                        <!-- Module name -->
-                        <div class="min-w-0 flex-1">
-                          <span class="text-foreground text-sm">{{ mod.module_name }}</span>
+                      <div class="border-muted/10 flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:flex-nowrap sm:items-center">
+                        <!-- Module name (full width on mobile, flex-1 on desktop) -->
+                        <div class="min-w-0 sm:flex-1">
+                          <span class="text-foreground text-sm break-words">{{ mod.module_name }}</span>
                           <span class="text-muted-foreground ml-1 text-xs">({{ mod.module_code }})</span>
                         </div>
 
-                        <!-- Permission checkboxes (dynamic) -->
-                        @for (pt of permissionTypes; track pt.id) {
-                          <label class="flex w-20 cursor-pointer items-center justify-center gap-1.5 rounded py-1.5 transition-colors select-none"
-                            [class.bg-green-50]="mod.permissions[pt.id]" [class.dark:bg-green-950/30]="mod.permissions[pt.id]">
-                            <input type="checkbox" [checked]="mod.permissions[pt.id]"
-                              (change)="mod.permissions[pt.id] = !mod.permissions[pt.id]; onPermissionChange(menu)"
-                              class="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300" />
-                            <span class="text-xs sm:hidden">{{ pt.name }}</span>
-                          </label>
-                        }
+                        <!-- Checkbox row (wraps on mobile) -->
+                        <div class="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                          @for (pt of permissionTypes; track pt.id) {
+                            <label class="flex min-w-[72px] cursor-pointer items-center justify-center gap-1.5 rounded px-2 py-1.5 transition-colors select-none sm:w-20 sm:min-w-0 sm:px-0"
+                              [class.bg-green-50]="mod.permissions[pt.id]" [class.dark:bg-green-950/30]="mod.permissions[pt.id]">
+                              <input type="checkbox" [checked]="mod.permissions[pt.id]"
+                                (change)="mod.permissions[pt.id] = !mod.permissions[pt.id]; onPermissionChange(menu)"
+                                class="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300" />
+                              <span class="text-xs sm:hidden">{{ pt.name }}</span>
+                            </label>
+                          }
 
-                        <!-- Select All button -->
-                        <button type="button" (click)="toggleAllForModule(mod, menu)"
-                          class="w-20 rounded px-2 py-1.5 text-center text-xs transition-colors"
-                          [class.bg-primary/10]="isAllCheckedForModule(mod)"
-                          [class.text-primary]="isAllCheckedForModule(mod)"
-                          [class.bg-muted/30]="!isAllCheckedForModule(mod)"
-                          [class.text-muted-foreground]="!isAllCheckedForModule(mod)">
-                          {{ isAllCheckedForModule(mod) ? 'Clear' : 'All' }}
-                        </button>
+                          <!-- Select All button (row-wise) -->
+                          <button type="button" (click)="toggleAllForModule(mod, menu)"
+                            class="min-w-[72px] rounded px-2 py-1.5 text-center text-xs transition-colors sm:w-20 sm:min-w-0"
+                            [class.bg-primary/10]="isAllCheckedForModule(mod)"
+                            [class.text-primary]="isAllCheckedForModule(mod)"
+                            [class.bg-muted/30]="!isAllCheckedForModule(mod)"
+                            [class.text-muted-foreground]="!isAllCheckedForModule(mod)">
+                            {{ isAllCheckedForModule(mod) ? 'Clear' : 'All' }}
+                          </button>
+                        </div>
                       </div>
                     }
                   </div>

@@ -185,4 +185,16 @@ export class GroupFormComponent extends FormPageBase {
     const count = vals.filter(Boolean).length;
     return count > 0 && count < vals.length;
   }
+
+  toggleAllForPermission(menu: MenuTree, permissionTypeId: string): void {
+    const allChecked = this.isAllCheckedForPermission(menu, permissionTypeId);
+    for (const mod of menu.modules) {
+      mod.permissions[permissionTypeId] = !allChecked;
+    }
+    this.onPermissionChange(menu);
+  }
+
+  isAllCheckedForPermission(menu: MenuTree, permissionTypeId: string): boolean {
+    return menu.modules.length > 0 && menu.modules.every(m => m.permissions[permissionTypeId]);
+  }
 }
