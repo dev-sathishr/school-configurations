@@ -192,6 +192,21 @@ export class TableComponent implements OnInit, OnDestroy {
     row.selected = !row.selected;
   }
 
+  /**
+   * Double-click a row to drill in: prefers edit if the user has permission,
+   * otherwise falls back to view. Single-click selection from the click handler
+   * still fires; we just suppress text selection on the dblclick itself.
+   */
+  onRowDoubleClick(row: any, event: MouseEvent) {
+    event.preventDefault();
+    window.getSelection?.()?.removeAllRanges();
+    if (this.canEdit) {
+      this.onEdit.emit(row);
+    } else if (this.canView) {
+      this.onView.emit(row);
+    }
+  }
+
   editSelected() {
     if (this.isSingleSelected) {
       this.onEdit.emit(this.selectedRows[0]);

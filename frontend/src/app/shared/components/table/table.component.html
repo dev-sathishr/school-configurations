@@ -68,6 +68,7 @@
                   class="hover:bg-card/50 cursor-pointer"
                   [class.bg-primary/5]="row.selected"
                   (click)="toggleRow(row)"
+                  (dblclick)="onRowDoubleClick(row, $event)"
                   app-table-row
                   [user]="row"
                   [columns]="effectiveColumns"></tr>
