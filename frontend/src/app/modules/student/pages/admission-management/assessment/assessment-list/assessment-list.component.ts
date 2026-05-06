@@ -6,6 +6,7 @@ import {
   STATUS_BADGES,
   statusLabel,
 } from '../../../../../../core/constants/enums';
+import { LocationContextService } from '../../../../../../core/services/location-context.service';
 import { PermissionService } from '../../../../../../core/services/permission.service';
 import { TableComponent } from '../../../../../../shared/components/table/table.component';
 import { ButtonComponent } from '../../../../../../shared/components/button/button.component';
@@ -26,7 +27,8 @@ export class AssessmentListComponent implements OnInit {
   @Input() readonly       = false;
   @ViewChild(TableComponent) table!: TableComponent;
 
-  readonly ps = inject(PermissionService);
+  readonly ps           = inject(PermissionService);
+  readonly locationCtx  = inject(LocationContextService);
 
   apiUrl    = '';
   deleteUrl = '';
@@ -37,7 +39,7 @@ export class AssessmentListComponent implements OnInit {
   modalViewMode = false;
 
   private readonly _profileId = signal('');
-  readonly extraParams = computed(() => ({ profile_id: this._profileId() }));
+  readonly extraParams = computed(() => ({ profile_id: this._profileId(), ...this.locationCtx.scopeExtraParams() }));
 
   columns: ColumnConfig[] = [
     { key: 'assessment_no',  label: 'Assessment No', sortable: true },

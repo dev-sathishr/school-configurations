@@ -17,7 +17,12 @@
       <div class="bg-background border-muted/30 rounded-lg border p-5">
         <h4 class="text-foreground mb-4 text-sm font-semibold">Module Information</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="true" [submitted]="submitted" placeholder="e.g. Settings" />
+          <div>
+            <app-form-field [formGroup]="form" controlName="name" label="Name" [required]="!editMode" [submitted]="submitted" placeholder="e.g. Settings" [readonly]="editMode" />
+            @if (editMode) {
+              <p class="text-muted-foreground mt-1 text-[11px]">Name is used internally by the system and cannot be changed after creation.</p>
+            }
+          </div>
           <app-form-field [formGroup]="form" controlName="display_name" label="Display Name" [required]="true" [submitted]="submitted" placeholder="e.g. SETTINGS" />
           <app-form-field [formGroup]="form" controlName="icon" label="Icon" placeholder="e.g. assets/icons/heroicons/outline/cog.svg" />
         </div>

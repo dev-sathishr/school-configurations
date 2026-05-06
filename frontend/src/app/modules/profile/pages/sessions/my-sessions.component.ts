@@ -4,6 +4,7 @@ import { TableComponent } from '../../../../shared/components/table/table.compon
 import { ColumnConfig } from '../../../../shared/components/table/services/table-filter.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { LoaderComponent } from '../../../../shared/components/loader/loader.component';
+import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { CommonService } from '../../../../shared/services/common/common.service';
 import { API } from '../../../../core/api/endpoints';
 import { SESSION_STATUS_BADGES } from '../../../../core/constants/enums';
@@ -41,6 +42,17 @@ interface RecentSession {
   ua_summary?: string;
 }
 
+interface ActiveDevice {
+  id: string;
+  ua_summary: string | null;
+  user_agent: string | null;
+  ip_address: string | null;
+  location_label: string | null;
+  login_at: string;
+  last_activity_at: string | null;
+  revoking?: boolean;
+}
+
 interface Totals {
   total_sessions: number;
   total_seconds: number;
@@ -67,7 +79,7 @@ const ACTION_COLORS: Record<string, string> = {
 @Component({
   selector: 'app-my-sessions',
   templateUrl: './my-sessions.component.html',
-  imports: [CommonModule, DatePipe, TableComponent, ButtonComponent, LoaderComponent],
+  imports: [CommonModule, DatePipe, TableComponent, ButtonComponent, LoaderComponent, ModalComponent],
 })
 export class MySessionsComponent implements OnInit {
   @ViewChild(TableComponent) table!: TableComponent;
@@ -111,22 +123,79 @@ export class MySessionsComponent implements OnInit {
 
   activeTab: 'sessions' | 'activity' = 'sessions';
 
-  revoking = false;
+  // ── Devices modal ─────────────────────────────────────────────────────────
 
-  async askRevokeOthers(): Promise<void> {
-    if (this.revoking) return;
+  devicesModalVisible = false;
+  devicesLoading = false;
+  devices: ActiveDevice[] = [];
+  revokingAll = false;
+
+  openDevicesModal(): void {
+    this.devicesModalVisible = true;
+    this.loadDevices();
+  }
+
+  closeDevicesModal(): void {
+    this.devicesModalVisible = false;
+    this.devices = [];
+  }
+
+  private loadDevices(): void {
+    this.devicesLoading = true;
+    this.cs.getService({ url: API.sessions.mine, params: { active: 'true', size: 100 } }).subscribe({
+      next: (res: any) => {
+        this.devices = (res?.data ?? []).map((s: any) => ({
+          id: s.id,
+          ua_summary: s.ua_summary || s.user_agent || null,
+          user_agent: s.user_agent,
+          ip_address: s.ip_address || null,
+          location_label: s.location_label || null,
+          login_at: s.login_at,
+          last_activity_at: s.last_activity_at,
+          revoking: false,
+        }));
+        this.devicesLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.devicesLoading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  revokeDevice(device: ActiveDevice): void {
+    if (device.revoking) return;
+    device.revoking = true;
+    this.cs.postService({ url: API.sessions.revokeOwn(device.id), payload: {} }).subscribe({
+      next: () => {
+        this.cs.showToastr({ type: 'success', message: 'Device signed out' });
+        this.devices = this.devices.filter(d => d.id !== device.id);
+        this.cdr.detectChanges();
+        this.table?.reloadCurrentPage();
+      },
+      error: (err: any) => {
+        device.revoking = false;
+        this.cs.showToastr({ type: 'error', message: err?.error?.message || 'Failed to sign out device' });
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  async revokeAllOthers(): Promise<void> {
+    if (this.revokingAll) return;
     const ok = await this.confirm.ask({
-      title: 'Sign out other devices?',
-      message: 'Every active session for your account except this browser will be revoked. You will stay signed in here.',
-      confirmText: 'Sign out others',
+      title: 'Sign out all other devices?',
+      message: 'Every active session except this browser will be revoked immediately.',
+      confirmText: 'Sign out all',
       cancelText: 'Cancel',
       tone: 'danger',
     });
-    if (!ok || this.revoking) return;
+    if (!ok) return;
 
-    this.revoking = true;
+    this.revokingAll = true;
     this.cs.postService({ url: API.sessions.revokeOthers, payload: {} })
-      .pipe(finalize(() => { this.revoking = false; }))
+      .pipe(finalize(() => { this.revokingAll = false; this.cdr.detectChanges(); }))
       .subscribe({
         next: (res: any) => {
           const count = res?.data?.revoked_count ?? 0;
@@ -134,6 +203,7 @@ export class MySessionsComponent implements OnInit {
             type: 'success',
             message: count > 0 ? `Signed out ${count} other device(s)` : 'No other active sessions',
           });
+          this.closeDevicesModal();
           setTimeout(() => this.table?.reloadCurrentPage(), 0);
         },
         error: (err: any) => {

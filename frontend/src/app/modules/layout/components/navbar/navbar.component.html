@@ -51,6 +51,7 @@
                     @for (item of searchResults(); track item.route) {
                       <li
                         (click)="selectResult(item)"
+                        [title]="item.label + '  ' + item.route"
                         class="text-muted-foreground hover:bg-card hover:text-primary mx-1 inline-flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors">
                         @if (item.icon) {
                           <svg-icon [src]="item.icon" [svgClass]="'h-4 w-4 shrink-0 text-muted-foreground/70'"></svg-icon>

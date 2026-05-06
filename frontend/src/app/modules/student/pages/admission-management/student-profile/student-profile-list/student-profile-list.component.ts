@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { API } from '../../../../../../core/api/endpoints';
 import { PROFILE_STATUS_BADGES, GENDER_LABELS } from '../../../../../../core/constants/enums';
+import { LocationContextService } from '../../../../../../core/services/location-context.service';
 import { BaseListComponent } from '../../../../../../shared/components/base-list/base-list.component';
 import { BreadcrumbComponent } from '../../../../../../shared/components/breadcrumb/breadcrumb.component';
 import { ButtonComponent } from '../../../../../../shared/components/button/button.component';
@@ -14,6 +15,8 @@ import { ColumnConfig } from '../../../../../../shared/components/table/services
   imports: [BreadcrumbComponent, ButtonComponent, HasPermissionDirective, TableComponent],
 })
 export class StudentProfileListComponent extends BaseListComponent {
+  readonly locationCtx = inject(LocationContextService);
+
   apiUrl = API.studentProfiles.base;
   override deleteUrl = API.studentProfiles.deleteMultiple;
   routeBase = '/student/admission';

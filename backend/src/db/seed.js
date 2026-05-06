@@ -73,7 +73,7 @@ async function seed() {
       const result = await client.query(
         `INSERT INTO settings.users (username, password, full_name, email, phone_code, phone, is_active)
          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-        ['superadmin', hashedPassword, 'Super Admin', 'admin@shaanthied.com', '+91', '9876500001', true]
+        ['superadmin', hashedPassword, 'Super Admin', 'superadmin@shaanthied.com', '+91', '9876500001', true]
       );
       adminId = result.rows[0].id;
       console.log('Default super admin user created');
@@ -494,7 +494,7 @@ async function seed() {
       // Super admin & admin: all locations; teacher: Main Campus only
       const userLocationMappings = [
         { username: 'superadmin', locations: ['MAIN', 'EAST', 'SPORT'], default: 'MAIN' },
-        { username: 'admin', locations: ['MAIN', 'EAST', 'SPORT'], default: 'MAIN' },
+        { username: 'admin', locations: ['EAST'], default: 'EAST' },
         { username: 'teacher', locations: ['MAIN'], default: 'MAIN' },
       ];
 

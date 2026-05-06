@@ -4,7 +4,7 @@ const {
   getAll, getMine, getById, getOnline,
   getMyAnalytics, getAdminAnalytics, getUserAnalyticsById,
   exportSessions, getRetention, setRetention, purge,
-  revoke, revokeOthers, logActivity, trackAction,
+  revoke, revokeOwn, revokeOthers, logActivity, trackAction,
 } = require('./session.controller');
 const { authenticate, authorizeModule, checkModuleView } = require('../../../shared/middleware/auth.middleware');
 
@@ -25,6 +25,7 @@ router.get('/me/analytics', getMyAnalytics);
 router.post('/activity', logActivity);
 router.post('/action', trackAction);
 router.post('/me/revoke-others', revokeOthers);
+router.post('/me/:id/revoke', revokeOwn);
 
 // Admin-scoped endpoints.
 router.get('/online', checkModuleView('SESSIONS'), getOnline);

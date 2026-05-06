@@ -1,6 +1,7 @@
 const db = require('../../../config/database');
 const { paginate } = require('../../../shared/helpers/pagination.helper');
 const repoHelper = require('../../../shared/helpers/repo.helper');
+const { applyLocationScope } = require('../../../shared/helpers/location-scope.helper');
 
 const TABLE = 'student.enquiries';
 
@@ -65,8 +66,8 @@ const JOINS = `
   LEFT JOIN master.curriculum cu ON cu.id::text = eq.current_curriculum AND cu.deleted_at IS NULL
 `;
 
-async function findAll(profileId, query) {
-  const clauses = [`eq.student_profile_id = $1`];
+async function findAll(profileId, query, scope) {
+  const clauses = [`eq.student_profile_id = ?`];
   const params  = [profileId];
 
   // Convenience flag used by the recommendation form's enquiry dropdown:
@@ -77,11 +78,15 @@ async function findAll(profileId, query) {
   if (String(query.active) === 'true') {
     if (query.include_id) {
       params.push(query.include_id);
-      clauses.push(`(eq.status IN ('open', 'follow_up') OR eq.id = $${params.length})`);
+      clauses.push(`(eq.status IN ('open', 'follow_up') OR eq.id = ?)`);
     } else {
       clauses.push(`eq.status IN ('open', 'follow_up')`);
     }
   }
+
+  const loc = applyLocationScope({ column: 'eq.location_id', scope, requested: query.location_ids });
+  if (loc.empty) return { data: [], pagination: { page: 1, size: 10, total_count: 0, total_pages: 0 } };
+  if (loc.clause) { clauses.push(loc.clause); params.push(...loc.params); }
 
   return paginate({
     table: TABLE,

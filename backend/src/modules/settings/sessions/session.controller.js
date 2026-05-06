@@ -33,6 +33,14 @@ async function revokeOthers(req, resp) {
   return res.success(resp, { data: result.data }, `${result.data.revoked_count} session(s) signed out`);
 }
 
+// Self-service: a user can revoke any of their own sessions (not just "others").
+// They cannot revoke their current session — that's what logout is for.
+async function revokeOwn(req, resp) {
+  const result = await sessionService.revokeOwn(req.params.id, req.user.id, req.user.session_id);
+  if (result.error) return res.handleError(resp, result);
+  return res.success(resp, { data: result.data }, 'Session revoked');
+}
+
 async function trackAction(req, resp) {
   const result = await sessionService.trackAction(req.user.session_id, req.body);
   if (result.error) return res.handleError(resp, result);
@@ -95,5 +103,5 @@ module.exports = wrap({
   getAll, getMine, getById, getOnline,
   getMyAnalytics, getAdminAnalytics, getUserAnalyticsById,
   exportSessions, getRetention, setRetention, purge,
-  revoke, revokeOthers, logActivity, trackAction,
+  revoke, revokeOthers, revokeOwn, logActivity, trackAction,
 });

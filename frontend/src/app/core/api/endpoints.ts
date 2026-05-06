@@ -223,6 +223,7 @@ export const API = {
     mine: '/sessions/me',
     online: '/sessions/online',
     revoke: (id: string) => `/sessions/${id}/revoke`,
+    revokeOwn: (id: string) => `/sessions/me/${id}/revoke`,
     revokeOthers: '/sessions/me/revoke-others',
     activity: '/sessions/activity',
     action: '/sessions/action',

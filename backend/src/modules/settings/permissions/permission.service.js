@@ -34,10 +34,8 @@ async function update(id, body, userId) {
   const version = getExpectedUpdatedAt(body);
   if (version.error) return version;
 
-  if (body.code && body.code.toLowerCase() !== current.code.toLowerCase()) {
-    const duplicate = await permissionRepo.findByCodeActive(body.code);
-    if (duplicate) return { error: 'conflict', message: 'Permission code already exists' };
-  }
+  // code is immutable after creation — ignore any value sent by the client
+  body = { ...body, code: current.code };
 
   const permission = await permissionRepo.update(id, body, current, userId, version.data);
   const stale = toConflictIfStale(permission);

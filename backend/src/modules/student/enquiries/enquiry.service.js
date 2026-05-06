@@ -67,7 +67,8 @@ async function assertProfileExists(profileId) {
 async function getAll(profileId, query, userId) {
   const check = await assertProfileExists(profileId);
   if (check.error) return check;
-  return enquiryRepo.findAll(profileId, query);
+  const scope = await getUserLocationScope(userId);
+  return enquiryRepo.findAll(profileId, query, scope);
 }
 
 async function getById(profileId, id, userId) {

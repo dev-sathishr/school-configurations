@@ -1,6 +1,7 @@
 import { Component, computed, inject, Input, OnInit, signal, ViewChild } from '@angular/core';
 import { API } from '../../../../../../core/api/endpoints';
 import { RECOMMENDER_CATEGORY_BADGES, STATUS_BADGES, statusLabel } from '../../../../../../core/constants/enums';
+import { LocationContextService } from '../../../../../../core/services/location-context.service';
 import { PermissionService } from '../../../../../../core/services/permission.service';
 import { TableComponent } from '../../../../../../shared/components/table/table.component';
 import { ButtonComponent } from '../../../../../../shared/components/button/button.component';
@@ -21,7 +22,8 @@ export class RecommendationListComponent implements OnInit {
   @Input() readonly       = false;
   @ViewChild(TableComponent) table!: TableComponent;
 
-  readonly ps = inject(PermissionService);
+  readonly ps           = inject(PermissionService);
+  readonly locationCtx  = inject(LocationContextService);
 
   apiUrl    = '';
   deleteUrl = '';
@@ -32,7 +34,7 @@ export class RecommendationListComponent implements OnInit {
   modalViewMode = false;
 
   private readonly _profileId = signal('');
-  readonly extraParams = computed(() => ({ profile_id: this._profileId() }));
+  readonly extraParams = computed(() => ({ profile_id: this._profileId(), ...this.locationCtx.scopeExtraParams() }));
 
   columns: ColumnConfig[] = [
     { key: 'recommender_name',     label: 'Recommender',   sortable: true },

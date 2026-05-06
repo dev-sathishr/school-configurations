@@ -25,6 +25,17 @@ async function revoke(id, revokedBy) {
   return { data: { id } };
 }
 
+/** Self-service revoke: user can revoke any of their own sessions except the current one. */
+async function revokeOwn(id, userId, currentSessionId) {
+  const session = await sessionRepo.findById(id);
+  if (!session) return { error: 'notFound', message: 'Session not found' };
+  if (session.user_id !== userId) return { error: 'forbidden', message: 'You can only revoke your own sessions' };
+  if (session.id === currentSessionId) return { error: 'badRequest', message: 'Use logout to end your current session' };
+  if (session.revoked_at || session.logout_at) return { error: 'badRequest', message: 'Session is already inactive' };
+  await sessionRepo.revoke(id, userId);
+  return { data: { id } };
+}
+
 /** Sign out every other active session for this user. The current session
  *  is kept alive so the caller doesn't get kicked out mid-click. */
 async function revokeOthers(userId, currentSessionId) {
@@ -101,5 +112,5 @@ async function purge() {
 module.exports = {
   getAll, getById, getOnline, getUserAnalytics, getAdminAnalytics,
   exportSessions, getRetention, setRetention, purge,
-  revoke, revokeOthers, logActivity, trackAction,
+  revoke, revokeOwn, revokeOthers, logActivity, trackAction,
 };

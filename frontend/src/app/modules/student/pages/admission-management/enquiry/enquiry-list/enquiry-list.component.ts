@@ -1,6 +1,7 @@
 import { Component, computed, EventEmitter, inject, Input, OnInit, Output, signal, Signal, ViewChild } from '@angular/core';
 import { API } from '../../../../../../core/api/endpoints';
 import { ENQUIRY_STATUS_BADGES } from '../../../../../../core/constants/enums';
+import { LocationContextService } from '../../../../../../core/services/location-context.service';
 import { PermissionService } from '../../../../../../core/services/permission.service';
 import { TableComponent } from '../../../../../../shared/components/table/table.component';
 import { ButtonComponent } from '../../../../../../shared/components/button/button.component';
@@ -23,7 +24,8 @@ export class EnquiryListComponent implements OnInit {
   @ViewChild(TableComponent) table!: TableComponent;
   @ViewChild(EnquiryFormComponent) enquiryForm?: EnquiryFormComponent;
 
-  readonly ps = inject(PermissionService);
+  readonly ps           = inject(PermissionService);
+  readonly locationCtx  = inject(LocationContextService);
 
   apiUrl    = '';
   deleteUrl = '';
@@ -41,7 +43,7 @@ export class EnquiryListComponent implements OnInit {
   submitForm(): void { this.enquiryForm?.onSubmit(); }
 
   private readonly _profileId = signal('');
-  readonly extraParams = computed(() => ({ profile_id: this._profileId() }));
+  readonly extraParams = computed(() => ({ profile_id: this._profileId(), ...this.locationCtx.scopeExtraParams() }));
 
   columns: ColumnConfig[] = [
     { key: 'enquiry_no',       label: 'Enquiry No',  sortable: true },
