@@ -1413,6 +1413,8 @@ async function migrate() {
         ADD COLUMN IF NOT EXISTS current_class VARCHAR(100);
       ALTER TABLE student.enquiries
         ADD COLUMN IF NOT EXISTS current_curriculum VARCHAR(100);
+      ALTER TABLE student.enquiries
+        ADD COLUMN IF NOT EXISTS location_id UUID REFERENCES settings.locations(id);
 
       CREATE INDEX IF NOT EXISTS idx_enquiries_profile
         ON student.enquiries (student_profile_id)

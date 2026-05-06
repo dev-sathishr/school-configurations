@@ -18,8 +18,9 @@
             [recordLocation]="recordLocation()" />
 
           <app-form-field [formGroup]="form" controlName="academic_year_id" label="Academic Year"
-            fieldType="async-select" [asyncUrl]="academicYearUrl" asyncLabelKey="label"
-            [initialLabel]="academicYearLabel" selectPlaceholder="Select year" [required]="true" [submitted]="submitted" />
+            fieldType="select" [options]="academicYearOptions"
+            [selectPlaceholder]="academicYearsLoading ? 'Loading...' : 'Select year'"
+            [required]="true" [submitted]="submitted" />
 
           <app-form-field [formGroup]="form" controlName="enquiry_date" label="Date"
             fieldType="date" [required]="true" [submitted]="submitted" [max]="todayDate" />

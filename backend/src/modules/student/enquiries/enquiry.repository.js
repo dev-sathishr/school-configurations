@@ -35,7 +35,7 @@ const SELECT_FIELDS = `
   eq.created_at,
   eq.updated_at,
   json_build_object('id', sp.id, 'full_name', sp.full_name) AS student_profile,
-  CASE WHEN sp.location_id IS NOT NULL
+  CASE WHEN eq.location_id IS NOT NULL
     THEN json_build_object('id', loc.id, 'name', loc.name, 'code', loc.code)
     ELSE NULL
   END AS location,
@@ -57,7 +57,7 @@ const SELECT_FIELDS = `
 
 const JOINS = `
   LEFT JOIN student.student_profiles sp ON sp.id = eq.student_profile_id
-  LEFT JOIN settings.locations loc ON loc.id = sp.location_id
+  LEFT JOIN settings.locations loc ON loc.id = eq.location_id
   LEFT JOIN settings.users cb ON cb.id = eq.created_by
   LEFT JOIN settings.users ub ON ub.id = eq.updated_by
   LEFT JOIN academic.academic_years ay ON ay.id = eq.academic_year_id
@@ -113,23 +113,24 @@ async function findById(id, profileId) {
 async function create(profileId, data, userId) {
   const result = await db.query(`
     INSERT INTO ${TABLE} (
-      student_profile_id, enquiry_no, academic_year_id, enquiry_date,
+      student_profile_id, enquiry_no, location_id, academic_year_id, enquiry_date,
       enquired_by, relation_type, contact_code, contact_no,
       enquired_class, current_school, current_class, current_curriculum,
       status, notes,
       created_by, updated_by
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$16
     )
     RETURNING id
   `, [
     profileId,
     data.enquiry_no,
-    data.academic_year_id || null,
+    data.location_id         || null,
+    data.academic_year_id    || null,
     data.enquiry_date,
     data.enquired_by,
     data.relation_type,
-    data.contact_code || '+91',
+    data.contact_code        || '+91',
     data.contact_no,
     data.enquired_class,
     data.current_school      || null,
@@ -145,24 +146,26 @@ async function create(profileId, data, userId) {
 async function update(id, profileId, data, userId) {
   await db.query(`
     UPDATE ${TABLE} SET
-      academic_year_id   = $1,
-      enquiry_date       = $2,
-      enquired_by        = $3,
-      relation_type      = $4,
-      contact_code       = $5,
-      contact_no         = $6,
-      enquired_class     = $7,
-      current_school     = $8,
-      current_class      = $9,
-      current_curriculum = $10,
-      status             = $11,
-      notes              = $12,
-      updated_by         = $13,
+      location_id        = $1,
+      academic_year_id   = $2,
+      enquiry_date       = $3,
+      enquired_by        = $4,
+      relation_type      = $5,
+      contact_code       = $6,
+      contact_no         = $7,
+      enquired_class     = $8,
+      current_school     = $9,
+      current_class      = $10,
+      current_curriculum = $11,
+      status             = $12,
+      notes              = $13,
+      updated_by         = $14,
       updated_at         = NOW()
-    WHERE id = $14
-      AND student_profile_id = $15
+    WHERE id = $15
+      AND student_profile_id = $16
       AND deleted_at IS NULL
   `, [
+    data.location_id         || null,
     data.academic_year_id    || null,
     data.enquiry_date,
     data.enquired_by,

@@ -96,7 +96,7 @@ async function create(profileId, body, userId) {
 
   // Generate enquiry_no via sequence (falls back to timestamp if no sequence configured)
   const scope = await getUserLocationScope(userId);
-  const locationId = check.profile.location_id;
+  const locationId = normalized.location_id || check.profile.location_id;
   const seqResult = await generateNextCode('ENQUIRY', locationId).catch(() => null);
   const enquiry_no = seqResult?.code || `ENQ-${Date.now()}`;
 

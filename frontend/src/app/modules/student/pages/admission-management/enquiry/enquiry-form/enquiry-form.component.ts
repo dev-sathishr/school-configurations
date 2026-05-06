@@ -4,7 +4,7 @@ import { API } from '../../../../../../core/api/endpoints';
 import { ENQUIRY_STATUS_OPTIONS, RELATION_TYPE_OPTIONS } from '../../../../../../core/constants/enums';
 import { LocationContextService } from '../../../../../../core/services/location-context.service';
 import { CommonService } from '../../../../../../shared/services/common/common.service';
-import { FormFieldComponent } from '../../../../../../shared/components/form-field/form-field.component';
+import { FormFieldComponent, SelectOption } from '../../../../../../shared/components/form-field/form-field.component';
 import { LocationFieldComponent } from '../../../../../../shared/components/location-field/location-field.component';
 import * as V from '../../../../../../shared/validators/common';
 
@@ -27,18 +27,19 @@ export class EnquiryFormComponent implements OnChanges {
   private readonly locationCtx = inject(LocationContextService);
 
   form!: FormGroup;
-  submitted         = false;
-  saving            = false;
-  errorMessage      = '';
-  academicYearLabel = '';
+  submitted          = false;
+  saving             = false;
+  errorMessage       = '';
   readonly nextEnquiryNo = signal('');
-  codeLoading      = false;
+  codeLoading        = false;
   readonly enquiryNo = signal('');
   private skipCodeFetch = false;
 
+  academicYearOptions: SelectOption[] = [];
+  academicYearsLoading = false;
+
   readonly recordLocation = signal<{ id: string; name: string; code: string } | null>(null);
 
-  readonly academicYearUrl     = API.academicYears.dropdown;
   readonly relationTypeOptions = RELATION_TYPE_OPTIONS;
   readonly statusOptions       = ENQUIRY_STATUS_OPTIONS;
 
@@ -55,11 +56,12 @@ export class EnquiryFormComponent implements OnChanges {
     this.submitted     = false;
     this.saving        = false;
     this.errorMessage  = '';
-    this.academicYearLabel = '';
     this.nextEnquiryNo.set('');
     this.codeLoading   = false;
     this.enquiryNo.set('');
     this.recordLocation.set(null);
+    this.academicYearOptions = [];
+
     if (!this.form) {
       this.form = this.buildForm();
     } else {
@@ -87,28 +89,22 @@ export class EnquiryFormComponent implements OnChanges {
 
       if (this.profileId) this.fetchNextCode();
 
-      this.cs.getService({ url: API.academicYears.dropdown }).subscribe({
-        next: (res: any) => {
-          const years = res?.data ?? [];
-          const defaultYear = years.find((y: any) => y.is_default);
-          if (defaultYear) {
-            this.form.patchValue({ academic_year_id: defaultYear.id });
-            this.academicYearLabel = defaultYear.label;
-            this.cdr.detectChanges();
-          }
-        },
-      });
+      const locationId = this.form.get('location_id')?.value;
+      if (locationId) this.loadAcademicYears(locationId, null);
     }
 
     if (this.enquiryId && this.profileId) {
       this.cs.getService({ url: API.studentEnquiries.detail(this.profileId, this.enquiryId) }).subscribe({
         next: (res: any) => {
           const d = res?.data ?? res;
+          const academicYearId = d.academic_year?.id ?? '';
+          const locationId     = d.location?.id ?? '';
+
           this.form.patchValue({
             ...d,
             enquiry_date:       d.enquiry_date ? d.enquiry_date.slice(0, 10) : '',
-            location_id:        d.location?.id        ?? '',
-            academic_year_id:   d.academic_year?.id   ?? '',
+            location_id:        locationId,
+            academic_year_id:   academicYearId,
             enquired_class:     d.enquired_class?.id   ?? d.enquired_class   ?? '',
             current_curriculum: d.current_curriculum?.id ?? d.current_curriculum ?? '',
             contact_no:         { code: d.contact_code || '+91', number: d.contact_no || '' },
@@ -117,9 +113,9 @@ export class EnquiryFormComponent implements OnChanges {
           if (d.location?.id) {
             this.recordLocation.set({ id: d.location.id, name: d.location.name || '', code: d.location.code || '' });
           }
-          if (d.academic_year?.label) {
-            this.academicYearLabel = d.academic_year.label;
-          }
+
+          if (locationId) this.loadAcademicYears(locationId, academicYearId);
+
           this.cdr.detectChanges();
         },
         error: () => {},
@@ -127,10 +123,35 @@ export class EnquiryFormComponent implements OnChanges {
     }
   }
 
+  private loadAcademicYears(locationId: string, preserveId: string | null): void {
+    this.academicYearsLoading = true;
+    this.cdr.detectChanges();
+    this.cs.getService({ url: API.academicYears.dropdown, params: { location_id: locationId } }).subscribe({
+      next: (res: any) => {
+        const years: any[] = res?.data ?? [];
+        this.academicYearOptions = years.map(y => ({ value: y.id, label: y.label }));
+
+        if (preserveId && years.some(y => y.id === preserveId)) {
+          this.form.patchValue({ academic_year_id: preserveId }, { emitEvent: false });
+        } else {
+          const defaultYear = years.find(y => y.is_default);
+          this.form.patchValue({ academic_year_id: defaultYear?.id ?? '' }, { emitEvent: false });
+        }
+
+        this.academicYearsLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.academicYearsLoading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
   private buildForm(): FormGroup {
     const form = this.fb.group({
       location_id:        ['', Validators.required],
-      academic_year_id:   [''],
+      academic_year_id:   ['', Validators.required],
       enquiry_date:       [this.todayDate, Validators.required],
       relation_type:      ['', Validators.required],
       enquired_by:        ['', V.NAME],
@@ -144,9 +165,9 @@ export class EnquiryFormComponent implements OnChanges {
     });
 
     form.get('location_id')!.valueChanges.subscribe((locId: string | null) => {
-      if (!this.enquiryId && !this.skipCodeFetch && locId && this.profileId) {
-        this.fetchNextCode();
-      }
+      if (this.skipCodeFetch) return;
+      if (locId && this.profileId && !this.enquiryId) this.fetchNextCode();
+      if (locId) this.loadAcademicYears(locId, null);
     });
 
     return form;

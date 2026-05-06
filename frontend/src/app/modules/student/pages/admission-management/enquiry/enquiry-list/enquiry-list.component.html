@@ -69,23 +69,25 @@
         }
       </div>
     }
-    @if (enquiryForm?.nextEnquiryNo() || enquiryForm?.enquiryNo()) {
+    @if (formNextEnquiryNo?.() || formEnquiryNo?.()) {
       <span class="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[11px] font-semibold text-primary tracking-wide">
-        {{ enquiryForm.enquiryNo() || enquiryForm.nextEnquiryNo() }}
+        {{ formEnquiryNo?.() || formNextEnquiryNo?.() }}
       </span>
     }
   </div>
 
-  <app-enquiry-form
-    #enquiryForm
-    [profileId]="profileId"
-    [profileName]="profileName"
-    [profileRegNo]="profileRegNo"
-    [profilePhotoUrl]="profilePhotoUrl"
-    [enquiryId]="modalEnquiryId"
-    [viewMode]="modalViewMode"
-    (saved)="onSaved()"
-    (cancelled)="closeModal()" />
+  @if (modalVisible) {
+    <app-enquiry-form
+      #enquiryForm
+      [profileId]="profileId"
+      [profileName]="profileName"
+      [profileRegNo]="profileRegNo"
+      [profilePhotoUrl]="profilePhotoUrl"
+      [enquiryId]="modalEnquiryId"
+      [viewMode]="modalViewMode"
+      (saved)="onSaved()"
+      (cancelled)="closeModal()" />
+  }
 
   <div modal-footer class="flex justify-end gap-3">
     <app-button impact="light" tone="light" shape="rounded" size="medium" type="button"
@@ -94,8 +96,8 @@
     </app-button>
     @if (!modalViewMode) {
       <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button"
-        [loading]="enquiryForm.saving"
-        (buttonClick)="enquiryForm.onSubmit()">
+        [loading]="formSaving"
+        (buttonClick)="submitForm()">
         {{ modalEnquiryId ? 'Update' : 'Submit' }}
       </app-button>
     }
