@@ -1,0 +1,81 @@
+@if (loading) {
+  <app-loader size="large" text="Loading..." />
+}
+
+@if (!loading && config) {
+  @if (!embedded) {
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <app-breadcrumb />
+      <app-button
+        *appHasPermission="[moduleCode, 'CREATE']"
+        impact="bold" tone="primary" shape="rounded" size="medium"
+        (buttonClick)="openNew()">
+        <span class="flex items-center gap-1.5">
+          <span class="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-base font-bold leading-none">+</span>
+          Add {{ config.label }}
+        </span>
+      </app-button>
+    </div>
+  }
+
+  <app-table
+    [apiUrl]="apiUrl"
+    [deleteUrl]="deleteUrl"
+    [columns]="columns"
+    [displayKeyMap]="displayKeyMap"
+    [rowTransform]="rowTransform"
+    [extraParams]="config.is_location_scoped ? locationCtx.scopeExtraParams() : {}"
+    [canEdit]="ps.canEdit(moduleCode)"
+    [canDelete]="ps.canDelete(moduleCode)"
+    [canView]="ps.canView(moduleCode)"
+    [canImport]="ps.canImport(moduleCode)"
+    [canExport]="ps.canExport(moduleCode)"
+    (onEdit)="openEdit($event)"
+    (onView)="openView($event)" />
+}
+
+@if (!loading && notFound) {
+  <div class="mb-6"><app-breadcrumb /></div>
+  <div class="flex h-64 items-center justify-center text-muted-foreground">
+    Module not found.
+  </div>
+}
+
+<app-modal
+  [visible]="modalVisible"
+  [title]="modalTitle"
+  [size]="modalSize"
+  [draggable]="true"
+  (onClose)="closeModal()">
+
+  @if (modalVisible && config) {
+    <app-dynamic-form
+      #embedForm
+      [embedMode]="true"
+      [embedSlug]="config.slug"
+      [embedId]="modalEditId"
+      [embedViewMode]="modalViewMode"
+      (saved)="onModalSaved()"
+      (cancelled)="closeModal()" />
+  }
+
+  <div modal-footer class="flex justify-end gap-3">
+    <app-button impact="light" tone="light" shape="rounded" size="medium" type="button"
+      (buttonClick)="closeModal()">
+      {{ formIsViewMode ? 'Back' : 'Cancel' }}
+    </app-button>
+    @if (formIsViewMode) {
+      <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button"
+        (buttonClick)="formSwitchToEdit()">
+        Edit
+      </app-button>
+    } @else {
+      <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button"
+        [loading]="formIsSaving"
+        [disabled]="formIsSaving"
+        (buttonClick)="formSubmit()">
+        {{ formIsEditMode ? 'Update' : 'Create' }}
+      </app-button>
+    }
+  </div>
+</app-modal>

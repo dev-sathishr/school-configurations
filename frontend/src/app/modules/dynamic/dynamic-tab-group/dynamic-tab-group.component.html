@@ -1,0 +1,63 @@
+@if (loading) {
+  <app-loader size="large" text="Loading..." />
+}
+
+@if (!loading && notFound) {
+  <div class="mb-6"><app-breadcrumb /></div>
+  <div class="flex h-64 items-center justify-center text-muted-foreground">Module not found.</div>
+}
+
+@if (!loading && config && childConfigs.length > 0) {
+  <div class="mx-auto max-w-6xl">
+
+    <!-- Breadcrumb + Add button in one row -->
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <app-breadcrumb />
+      <app-button
+        *appHasPermission="[parentModuleCode, 'CREATE']"
+        impact="bold" tone="primary" shape="rounded" size="medium"
+        (buttonClick)="triggerNew()">
+        <span class="flex items-center gap-1.5">
+          <span class="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-base font-bold leading-none">+</span>
+          New {{ activeChildLabel }}
+        </span>
+      </app-button>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="border-b border-border mb-4 flex">
+      @for (child of childConfigs; track child.slug; let i = $index) {
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="activeTab === i"
+          (click)="selectTab(i)"
+          class="px-5 py-2.5 text-xs font-semibold transition-colors focus:outline-none"
+          [class.border-b-2]="activeTab === i"
+          [class.border-primary]="activeTab === i"
+          [class.text-primary]="activeTab === i"
+          [class.text-muted-foreground]="activeTab !== i">
+          {{ child.plural_label || child.label }}
+        </button>
+      }
+    </div>
+
+    <!-- Tab panels -->
+    @for (child of childConfigs; track child.slug; let i = $index) {
+      @if (activeTab === i) {
+        @if (child.display_mode === 'modal') {
+          <app-dynamic-modal-list
+            [slugOverride]="child.slug"
+            [moduleCodeOverride]="parentModuleCode"
+            [embedded]="true" />
+        } @else {
+          <app-dynamic-page-list
+            [slugOverride]="child.slug"
+            [moduleCodeOverride]="parentModuleCode"
+            [embedded]="true" />
+        }
+      }
+    }
+
+  </div>
+}

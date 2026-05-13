@@ -10,7 +10,7 @@
     "db:migrate": "node src/db/migrate.js",
     "db:seed": "node src/db/seed.js",
     "db:reset": "npm run db:clean && npm run db:migrate && npm run db:seed",
-    "db:fresh": "npm run db:reset && npm run dev"
+    "db:fresh": "npm run db:reset && npx kill-port 3001 && npm run dev"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

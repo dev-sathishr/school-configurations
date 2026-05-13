@@ -4,7 +4,7 @@ const repoHelper = require('../../../shared/helpers/repo.helper');
 
 const TABLE = 'settings.groups';
 
-const SELECT_FIELDS = `g.id, g.name, g.code, g.person_type, g.description, g.is_active,
+const SELECT_FIELDS = `g.id, g.name, g.code, g.description, g.is_active,
   g.created_by, g.updated_by, g.created_at, g.updated_at,
   cb.full_name AS created_by_name, ub.full_name AS updated_by_name,
   COALESCE(mc.menu_count, 0) AS menu_count,
@@ -71,7 +71,7 @@ async function getDropdown(query) {
   return paginate({
     table: 'settings.groups',
     alias: 'g',
-    selectFields: 'g.id, g.name, g.person_type',
+    selectFields: 'g.id, g.name',
     searchColumns: ['g.name'],
     filterableColumns: [],
     sortableColumns: ['g.name'],
@@ -88,11 +88,11 @@ async function create(data, userId) {
     await client.query('BEGIN');
 
     const result = await client.query(`
-      INSERT INTO settings.groups (name, code, person_type, description, is_active, created_by, updated_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, name, code, person_type, description, is_active, created_at
+      INSERT INTO settings.groups (name, code, description, is_active, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id
     `, [
-      data.name, data.code, data.person_type || 'staff', data.description || null,
+      data.name, data.code, data.description || null,
       data.is_active !== undefined ? data.is_active : true,
       userId, userId,
     ]);
@@ -123,14 +123,13 @@ async function update(id, data, current, userId, expectedUpdatedAt) {
 
     const result = await client.query(`
       UPDATE settings.groups SET
-        name = $1, code = $2, person_type = $3, description = $4, is_active = $5,
-        updated_by = $6, updated_at = NOW()
-      WHERE id = $7
-        AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $8::timestamptz)
+        name = $1, code = $2, description = $3, is_active = $4,
+        updated_by = $5, updated_at = NOW()
+      WHERE id = $6
+        AND date_trunc('milliseconds', updated_at) = date_trunc('milliseconds', $7::timestamptz)
     `, [
       data.name || current.name,
       data.code || current.code,
-      data.person_type || current.person_type || 'staff',
       data.description !== undefined ? (data.description || null) : current.description,
       data.is_active !== undefined ? data.is_active : current.is_active,
       userId, id, expectedUpdatedAt,
@@ -164,7 +163,6 @@ async function syncMenuAccess(client, groupId, menuIds, userId) {
     'UPDATE settings.group_modules SET deleted_at = NOW(), deleted_by = $1 WHERE group_id = $2 AND deleted_at IS NULL',
     [userId, groupId]
   );
-
   for (const menuId of menuIds) {
     await client.query(
       'INSERT INTO settings.group_modules (group_id, menu_id, created_by) VALUES ($1, $2, $3)',
@@ -174,12 +172,10 @@ async function syncMenuAccess(client, groupId, menuIds, userId) {
 }
 
 async function syncPermissions(client, groupId, permissions, userId) {
-  // permissions is an array of { module_id, permission_id }
   await client.query(
     'UPDATE settings.group_permissions SET deleted_at = NOW(), deleted_by = $1 WHERE group_id = $2 AND deleted_at IS NULL',
     [userId, groupId]
   );
-
   for (const perm of permissions) {
     await client.query(
       'INSERT INTO settings.group_permissions (group_id, module_id, permission_id, created_by) VALUES ($1, $2, $3, $4)',

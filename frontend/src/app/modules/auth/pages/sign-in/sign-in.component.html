@@ -7,34 +7,34 @@
   <div class="text-left">
     <div class="mb-4">
       <app-form-field [formGroup]="form" controlName="username" label="Username"
-        [required]="true" [submitted]="submitted" placeholder="Enter username" />
+        [required]="true" [submitted]="submitted()" placeholder="Enter username" />
     </div>
 
     <div class="mb-4">
       <app-form-field [formGroup]="form" controlName="password" label="Password"
-        [fieldType]="passwordTextType ? 'text' : 'password'"
-        [required]="true" [submitted]="submitted" placeholder="Enter password" />
+        [fieldType]="passwordTextType() ? 'text' : 'password'"
+        [required]="true" [submitted]="submitted()" placeholder="Enter password" />
       <button type="button" (click)="togglePasswordTextType()"
         class="text-muted-foreground hover:text-foreground mt-1.5 flex items-center gap-1.5 text-xs transition-colors ltr:ml-auto rtl:mr-auto">
         <svg-icon
-          [src]="!passwordTextType ? 'assets/icons/heroicons/outline/eye.svg' : 'assets/icons/heroicons/outline/eye-off.svg'"
+          [src]="!passwordTextType() ? 'assets/icons/heroicons/outline/eye.svg' : 'assets/icons/heroicons/outline/eye-off.svg'"
           [svgClass]="'h-3.5 w-3.5'">
         </svg-icon>
-        {{ passwordTextType ? 'Hide password' : 'Show password' }}
+        {{ passwordTextType() ? 'Hide password' : 'Show password' }}
       </button>
     </div>
   </div>
 
   <!-- Error Message -->
-  @if (errorMessage) {
+  @if (errorMessage()) {
     <div class="rounded-md bg-red-50 p-3 text-sm text-red-600">
-      {{ errorMessage }}
+      {{ errorMessage() }}
     </div>
   }
 
   <!-- Submit Button -->
   <div>
-    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" [loading]="loading" [disabled]="loading">
+    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" [loading]="loading()" [disabled]="loading()">
       Sign in
     </app-button>
   </div>

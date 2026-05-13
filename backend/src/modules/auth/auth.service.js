@@ -140,7 +140,8 @@ async function getMyPermissions(userId) {
   if (!user) return { error: 'notFound', message: 'User not found' };
   if (!user.group_id) return { data: { menus: [] } };
 
-  // All users: menus/modules based on group_modules and group_permissions
+  // Menus with modules: derived from group_permissions → modules → menu_modules → menus
+  // Dashboard-style menus (no modules): still read from group_modules
   const result = await db.query(`
     SELECT m.id AS menu_id, m.name AS menu_name, m.display_name AS menu_code, m.description AS menu_description,
       m.icon AS menu_icon, m.route_path AS menu_route_path, m.display_order AS menu_order,
@@ -148,14 +149,29 @@ async function getMyPermissions(userId) {
       mod.icon AS module_icon, mod.route_path AS module_route_path, mm.display_order AS module_order,
       mod.enforce_edit_lock AS module_enforce_edit_lock, mod.description AS module_description,
       p.code AS permission_code
+    FROM settings.group_permissions gp
+    JOIN settings.permissions p ON gp.permission_id = p.id AND p.deleted_at IS NULL
+    JOIN settings.modules mod ON gp.module_id = mod.id AND mod.deleted_at IS NULL AND mod.is_active = true
+    JOIN settings.menu_modules mm ON mm.module_id = mod.id AND mm.deleted_at IS NULL
+    JOIN settings.menus m ON mm.menu_id = m.id AND m.deleted_at IS NULL AND m.is_active = true
+    WHERE gp.group_id = $1 AND gp.deleted_at IS NULL
+
+    UNION
+
+    SELECT m.id AS menu_id, m.name AS menu_name, m.display_name AS menu_code, m.description AS menu_description,
+      m.icon AS menu_icon, m.route_path AS menu_route_path, m.display_order AS menu_order,
+      NULL AS module_id, NULL AS module_name, NULL AS module_display_name, NULL AS module_code,
+      NULL AS module_icon, NULL AS module_route_path, NULL AS module_order,
+      NULL AS module_enforce_edit_lock, NULL AS module_description,
+      NULL AS permission_code
     FROM settings.group_modules gm
     JOIN settings.menus m ON gm.menu_id = m.id AND m.deleted_at IS NULL AND m.is_active = true
-    LEFT JOIN settings.menu_modules mm ON m.id = mm.menu_id AND mm.deleted_at IS NULL
-    LEFT JOIN settings.modules mod ON mm.module_id = mod.id AND mod.deleted_at IS NULL
-    LEFT JOIN settings.group_permissions gp ON gp.group_id = gm.group_id AND gp.module_id = mm.module_id AND gp.deleted_at IS NULL
-    LEFT JOIN settings.permissions p ON gp.permission_id = p.id AND p.deleted_at IS NULL
     WHERE gm.group_id = $1 AND gm.deleted_at IS NULL
-    ORDER BY m.display_order ASC, mm.display_order ASC
+      AND NOT EXISTS (
+        SELECT 1 FROM settings.menu_modules mm2 WHERE mm2.menu_id = m.id AND mm2.deleted_at IS NULL
+      )
+
+    ORDER BY menu_order ASC, module_order ASC
   `, [user.group_id]);
 
   const menuMap = new Map();

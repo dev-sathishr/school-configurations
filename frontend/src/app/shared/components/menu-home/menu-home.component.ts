@@ -1,5 +1,7 @@
 import { Component, effect, inject, signal, untracked } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map, merge, startWith } from 'rxjs';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { PermissionService, ModulePermissions } from '../../../core/services/permission.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
@@ -21,6 +23,27 @@ export class MenuHomeComponent {
   private prefs = inject(UserPreferencesService);
   private ps = inject(PermissionService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  private firstSegment = () =>
+    this.router.url.split('?')[0].split('/').filter(Boolean)[0] ?? '';
+
+  // Derives the active top-level segment reactively.
+  // - Dynamic (:menu) routes: paramMap re-emits on every menu change → correct.
+  // - Static named routes (engine, dashboard): paramMap never re-emits because
+  //   there is no :menu param, so we also listen to NavigationEnd and read the
+  //   URL directly. merge() + startWith() fires once on mount, then on every nav.
+  private menuSegment = toSignal(
+    merge(
+      this.route.parent!.paramMap.pipe(map(p => p.get('menu') || this.firstSegment())),
+      this.router.events.pipe(
+        filter(e => e instanceof NavigationEnd),
+        map(() => this.firstSegment()),
+        startWith(this.firstSegment()),
+      ),
+    ),
+    { initialValue: this.firstSegment() }
+  );
 
   menuName = signal<string>('');
   menuDescription = signal<string>('');
@@ -32,8 +55,12 @@ export class MenuHomeComponent {
       const pinned = this.prefs.favorites().pinnedMenus;
       const usage = untracked(() => this.prefs.usage().modules);
 
-      const currentUrl = this.router.url.split('?')[0];
-      const currentMenu = menus.find(m => m.route_path && currentUrl.startsWith(m.route_path));
+      const segment = this.menuSegment();
+      const currentMenu = menus.find(m => {
+        if (!m.route_path) return false;
+        const tail = m.route_path.split('/').filter(Boolean).pop() ?? '';
+        return tail.toLowerCase() === segment.toLowerCase();
+      });
       if (!currentMenu) return;
 
       this.menuName.set(currentMenu.name);

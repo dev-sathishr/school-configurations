@@ -1,0 +1,22 @@
+@if (loading) {
+  <app-loader size="large" text="Loading..." />
+}
+
+@if (!loading && notFound) {
+  <div class="mb-6"><app-breadcrumb /></div>
+  <div class="flex h-64 items-center justify-center text-muted-foreground">Module not found.</div>
+}
+
+@if (!loading && config) {
+  @switch (config.display_mode) {
+    @case ('modal') {
+      <app-dynamic-modal-list />
+    }
+    @case ('tab-group') {
+      <app-dynamic-tab-group />
+    }
+    @default {
+      <app-dynamic-page-list />
+    }
+  }
+}

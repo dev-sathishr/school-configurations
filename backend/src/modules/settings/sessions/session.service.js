@@ -65,7 +65,9 @@ async function trackAction(sessionId, body) {
   if (!ACTION_TYPES.has(actionType)) return { data: {} };
   const routePath = String(body?.route_path || '').slice(0, 200);
   const moduleCode = body?.module_code ? String(body.module_code).slice(0, 50) : null;
-  const recordId = body?.record_id || null;
+  const rawRecordId = body?.record_id || null;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const recordId = rawRecordId && UUID_RE.test(String(rawRecordId)) ? String(rawRecordId) : null;
   const resource = body?.resource ? String(body.resource).slice(0, 100) : null;
   await sessionRepo.logAction(sessionId, { module_code: moduleCode, route_path: routePath, action_type: actionType, record_id: recordId, resource });
   return { data: {} };

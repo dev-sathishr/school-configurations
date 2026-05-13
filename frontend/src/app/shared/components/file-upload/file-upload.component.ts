@@ -1,7 +1,6 @@
 import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AngularSvgIconModule } from 'angular-svg-icon';
-import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { API } from '../../../core/api/endpoints';
 
@@ -249,6 +248,7 @@ export interface UploadedFile {
   `,
 })
 export class FileUploadComponent implements OnChanges, OnDestroy {
+  @Input() fieldKey = '';
   @Input() entityType = '';
   @Input() entityId = '';
   @Input() fileType = 'document';
@@ -273,6 +273,7 @@ export class FileUploadComponent implements OnChanges, OnDestroy {
   currentFile: UploadedFile | null = null;
   pendingFile: File | null = null;
   pendingPreview: string | null = null;
+  pendingBase64: string | null = null;
   uploading = false;
   showPreview = false;
   dragOver = false;
@@ -294,11 +295,7 @@ export class FileUploadComponent implements OnChanges, OnDestroy {
       this.cdr.detectChanges();
     }
     if ((changes['entityId'] || changes['entityType']) && this.entityType && this.entityId) {
-      if (this.pendingFile) {
-        this.uploadToServer(this.pendingFile);
-        this.pendingFile = null;
-        this.pendingPreview = null;
-      } else if (!this.initialFileProvided) {
+      if (!this.initialFileProvided) {
         this.loadExistingFile();
       }
     }
@@ -442,6 +439,12 @@ export class FileUploadComponent implements OnChanges, OnDestroy {
     this.stopStream();
   }
 
+  get pendingFileData(): { file_data: string; file_name: string; mime_type: string; size: number } | null {
+    if (!this.pendingFile || !this.pendingBase64) return null;
+    const base64 = this.pendingBase64.includes(',') ? this.pendingBase64.split(',')[1] : this.pendingBase64;
+    return { file_data: base64, file_name: this.pendingFile.name, mime_type: this.pendingFile.type, size: this.pendingFile.size };
+  }
+
   private handleFile(file: File): void {
     this.errorMessage = '';
 
@@ -450,65 +453,27 @@ export class FileUploadComponent implements OnChanges, OnDestroy {
       return;
     }
 
-    if (this.entityId) {
-      this.uploadToServer(file);
-    } else {
-      this.pendingFile = file;
+    this.pendingFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      this.pendingBase64 = result;
       if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.pendingPreview = e.target?.result as string;
-          this.cdr.detectChanges();
-        };
-        reader.readAsDataURL(file);
-      } else {
-        this.pendingPreview = null;
-        this.cdr.detectChanges();
+        this.pendingPreview = result;
       }
-    }
+      this.cdr.detectChanges();
+    };
+    reader.readAsDataURL(file);
   }
 
-  private uploadToServer(file: File): void {
-    this.uploading = true;
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('entity_type', this.entityType);
-    formData.append('entity_id', this.entityId);
-    formData.append('file_type', this.fileType);
-
-    this.http.post<any>(`${this.apiUrl}${API.files.upload}`, formData).subscribe({
-      next: (res) => {
-        this.currentFile = res.file;
-        this.uploading = false;
-        this.fileUploaded.emit(res.file);
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.uploading = false;
-        this.errorMessage = err.error?.message || 'Upload failed';
-        this.cdr.detectChanges();
-      },
-    });
-  }
-
-  uploadPendingFile(entityId: string): Observable<any> | null {
-    if (!this.pendingFile) return null;
-
-    const formData = new FormData();
-    formData.append('file', this.pendingFile);
-    formData.append('entity_type', this.entityType);
-    formData.append('entity_id', entityId);
-    formData.append('file_type', this.fileType);
-
+  clearPending(): void {
     this.pendingFile = null;
     this.pendingPreview = null;
-
-    return this.http.post<any>(`${this.apiUrl}${API.files.upload}`, formData);
+    this.pendingBase64 = null;
   }
 
   removePending(): void {
-    this.pendingFile = null;
-    this.pendingPreview = null;
+    this.clearPending();
     this.cdr.detectChanges();
   }
 

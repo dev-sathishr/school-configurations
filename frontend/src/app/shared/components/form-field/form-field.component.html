@@ -35,7 +35,7 @@
       </app-select-dropdown>
     } @else if (fieldType === 'textarea') {
       <textarea [formControlName]="controlName" [rows]="rows" [placeholder]="placeholder"
-        [attr.maxlength]="maxLength"
+        [attr.maxlength]="resolvedMaxLength"
         [ngClass]="{ 'border-red-500!': hasError }"
         class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none"></textarea>
     } @else if (fieldType === 'phone') {
@@ -49,7 +49,7 @@
         [siblingControlName]="siblingControlName" />
     } @else {
       <input [type]="fieldType" [formControlName]="controlName" [placeholder]="placeholder"
-        [attr.maxlength]="maxLength"
+        [attr.maxlength]="resolvedMaxLength"
         [attr.min]="min"
         [attr.max]="max"
         [attr.readonly]="isReadOnly ? true : null"

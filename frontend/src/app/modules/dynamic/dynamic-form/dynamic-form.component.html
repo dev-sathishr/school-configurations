@@ -1,0 +1,164 @@
+@if (configLoading) {
+  <app-loader size="large" text="Loading..." />
+}
+
+@if (!configLoading && notFound) {
+  @if (!embedMode) { <div class="mb-6"><app-breadcrumb /></div> }
+  <div class="flex h-64 items-center justify-center text-muted-foreground">Module not found.</div>
+}
+
+@if (!configLoading && config) {
+  <div [class]="embedMode ? '' : 'mx-auto max-w-5xl'">
+    @if (!embedMode) { <div class="mb-6"><app-breadcrumb /></div> }
+
+    @if (errorMessage) {
+      <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div>
+    }
+    @if (loading) {
+      <app-loader size="large" [text]="'Loading ' + config!.label + '...'" />
+    }
+
+    @if (!loading) {
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="space-y-4">
+        <fieldset [disabled]="viewMode" class="space-y-4">
+
+          @if (config!.is_location_scoped) {
+            <div [class]="embedMode ? '' : 'bg-background border-muted/30 rounded-lg border p-4'">
+              <div class="grid grid-cols-12 items-center gap-4">
+                <div [class]="locationFieldColSpan">
+                  <app-location-field [formGroup]="form" [submitted]="submitted" [recordLocation]="recordLocation()" />
+                </div>
+              </div>
+            </div>
+          }
+
+          @for (section of groupedSections; track section.title) {
+
+            @if (sectionIsAddressOnly(section)) {
+              @for (field of section.fields; track field.field_name) {
+                @if (!field.is_hidden && field.field_type === 'address') {
+                  <app-address
+                    [addresses]="getAddresses(field.field_name)"
+                    [addressTypes]="getAddressTypes(field)"
+                    [errorMessage]="addressErrors[field.field_name] || ''"
+                    (addressesChange)="onAddressesChange(field.field_name, $event)" />
+                }
+              }
+
+            } @else if (sectionIsRelationOnly(section)) {
+              @for (field of section.fields; track field.field_name) {
+                @if (!field.is_hidden && field.field_type === 'relation-widget') {
+                  <div [class]="embedMode ? '' : 'bg-background border-muted/30 rounded-lg border p-4'">
+                    @if (section.title) {
+                      <h4 class="text-foreground mb-2 text-sm font-semibold">
+                        {{ section.title }}
+                        @if (isRequired(field)) { <span class="text-red-500">*</span> }
+                      </h4>
+                    }
+                    <app-relation-widget
+                      [config]="getRelationConfig(field)"
+                      [fieldName]="field.field_name"
+                      [parentId]="getRelationParentId(field)"
+                      [helpText]="field.help_text || 'Select items and choose one as the default.'"
+                      [required]="isRequired(field)"
+                      [readonly]="viewMode"
+                      [errorMessage]="getRelationError(field.field_name)"
+                      (valueChange)="onRelationChange(field.field_name)" />
+                  </div>
+                }
+              }
+
+            } @else {
+              <div [class]="embedMode ? '' : 'bg-background border-muted/30 rounded-lg border p-4'">
+                @if (section.title) {
+                  <h4 class="text-foreground mb-3 text-sm font-semibold">{{ section.title }}</h4>
+                }
+                @if (sectionHasFileField(section)) {
+                  <div class="flex gap-6">
+                    <div class="flex-shrink-0">
+                      @for (field of sectionFileFields(section); track field.field_name) {
+                        <app-file-upload
+                          [fieldKey]="field.field_name"
+                          [entityType]="getFileEntityType(field)"
+                          [entityId]="editId || ''"
+                          [fileType]="getFileType(field)"
+                          [label]="field.field_label"
+                          [displayStyle]="getFileDisplayStyle(field)"
+                          [initialFile]="getFileField(field.field_name)" />
+                      }
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="grid grid-cols-12 items-center gap-4">
+                        @for (field of sectionNonFileFields(section); track field.field_name) {
+                          <ng-container *ngTemplateOutlet="fieldBlock; context: { field: field }" />
+                        }
+                      </div>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="grid grid-cols-12 items-center gap-4">
+                    @for (field of section.fields; track field.field_name) {
+                      @if (!field.is_hidden) {
+                        <ng-container *ngTemplateOutlet="fieldBlock; context: { field: field }" />
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+          }
+
+        </fieldset>
+
+        @if (!embedMode) {
+          <div class="flex justify-end gap-3">
+            <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">Cancel</app-button>
+            @if (viewMode) {
+              @if (ps.canEdit(config!.slug.toUpperCase())) {
+                <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">Edit</app-button>
+              }
+            }
+            @if (!viewMode) {
+              <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving" [disabled]="saving">
+                {{ editMode ? 'Update' : 'Save' }}
+              </app-button>
+            }
+          </div>
+        }
+      </form>
+    }
+  </div>
+}
+
+<!-- Reusable field block template -->
+<ng-template #fieldBlock let-field="field">
+  @if (isStandardField(field)) {
+    <div [class]="getColSpan(field)">
+      <app-form-field
+        [formGroup]="form"
+        [controlName]="field.field_name"
+        [label]="field.field_label"
+        [fieldType]="getFieldType(field)"
+        [options]="getOptions(field)"
+        [asyncUrl]="getDropdownUrl(field)"
+        [initialLabel]="getInitialLabel(field.field_name)"
+        [placeholder]="field.help_text || ''"
+        [required]="isRequired(field)"
+        [submitted]="submitted"
+        [readonly]="viewMode"
+        [uppercase]="getTransform(field) === 'uppercase'"
+        [titlecase]="getTransform(field) === 'titlecase'" />
+    </div>
+  }
+
+  @if (field.field_type === 'address') {
+    <div class="col-span-full">
+      <app-address
+        [addresses]="getAddresses(field.field_name)"
+        [addressTypes]="getAddressTypes(field)"
+        [errorMessage]="addressErrors[field.field_name] || ''"
+        (addressesChange)="onAddressesChange(field.field_name, $event)" />
+    </div>
+  }
+</ng-template>

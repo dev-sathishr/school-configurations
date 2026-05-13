@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AngularSvgIconModule } from 'angular-svg-icon';
@@ -11,20 +11,20 @@ import { AuthService } from '../../../../core/services/auth.service';
   selector: 'app-sign-in',
   templateUrl: './sign-in.component.html',
   styleUrls: ['./sign-in.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, ReactiveFormsModule, AngularSvgIconModule, ButtonComponent, FormFieldComponent],
 })
 export class SignInComponent implements OnInit {
   form!: FormGroup;
-  submitted = false;
-  passwordTextType!: boolean;
-  loading = false;
-  errorMessage = '';
+  submitted = signal(false);
+  passwordTextType = signal(false);
+  loading = signal(false);
+  errorMessage = signal('');
 
   constructor(
     private readonly _formBuilder: FormBuilder,
     private readonly _router: Router,
     private readonly _authService: AuthService,
-    private readonly _cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -43,32 +43,29 @@ export class SignInComponent implements OnInit {
   }
 
   togglePasswordTextType() {
-    this.passwordTextType = !this.passwordTextType;
+    this.passwordTextType.update((v) => !v);
   }
 
   onSubmit() {
-    this.submitted = true;
-    this.errorMessage = '';
+    this.submitted.set(true);
+    this.errorMessage.set('');
 
-    if (this.form.invalid || this.loading) {
+    if (this.form.invalid || this.loading()) {
       return;
     }
 
-    this.loading = true;
+    this.loading.set(true);
     const { username, password } = this.form.value;
 
-    // Best-effort geolocation — don't block login if the user denies or the
-    // browser has no permission. The session record just won't have lat/lng,
-    // which the monitor UI handles.
     this.resolveGeolocation().then((context) => {
       this._authService.login(username, password, context)
-        .pipe(finalize(() => { this.loading = false; this._cdr.detectChanges(); }))
+        .pipe(finalize(() => this.loading.set(false)))
         .subscribe({
           next: () => {
             this._router.navigate(['/']);
           },
           error: (err) => {
-            this.errorMessage = err.error?.message || 'Login failed. Please try again.';
+            this.errorMessage.set(err.error?.message || 'Login failed. Please try again.');
           },
         });
     });
@@ -77,7 +74,6 @@ export class SignInComponent implements OnInit {
   private resolveGeolocation(): Promise<{ latitude?: number; longitude?: number }> {
     if (!navigator?.geolocation) return Promise.resolve({});
     return new Promise((resolve) => {
-      // 5s timeout — a slow GPS shouldn't make the user wait indefinitely.
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
         () => resolve({}),

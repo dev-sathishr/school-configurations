@@ -12,9 +12,24 @@ export class ModuleAccessGuard implements CanActivate {
   ) {}
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean | UrlTree {
-    const single = route.data['moduleCode'] as string | undefined;
     const many = route.data['moduleCodes'] as string[] | undefined;
-    const moduleCodes = many?.length ? many : (single ? [single] : []);
+    const explicit = route.data['moduleCode'] as string | undefined;
+
+    let moduleCodes: string[];
+
+    if (many?.length) {
+      moduleCodes = many;
+    } else if (explicit) {
+      moduleCodes = [explicit.toUpperCase()];
+    } else {
+      // No explicit code — resolve by matching the current URL path against
+      // permitted module route_paths (e.g. /engine/meta → ENGINE_META).
+      // This handles dynamic :menu/:slug routes where the slug alone ('meta')
+      // would not score high enough against a compound code ('ENGINE_META').
+      const urlPath = state.url.split('?')[0];
+      const matched = this.resolveModuleCodeByUrl(urlPath);
+      moduleCodes = matched ? [matched] : [];
+    }
 
     if (moduleCodes.length === 0) return true;
 
@@ -28,5 +43,15 @@ export class ModuleAccessGuard implements CanActivate {
         from: state.url,
       },
     });
+  }
+
+  /** Find the module whose route_path is a prefix of (or equal to) the current URL. */
+  private resolveModuleCodeByUrl(urlPath: string): string | null {
+    const allModules = this.permissionService.getAllModules();
+    // Prefer longer (more specific) matches first
+    const sorted = allModules
+      .filter(m => m.route_path && urlPath.startsWith(m.route_path))
+      .sort((a, b) => b.route_path.length - a.route_path.length);
+    return sorted[0]?.code ?? null;
   }
 }

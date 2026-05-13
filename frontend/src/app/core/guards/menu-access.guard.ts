@@ -12,8 +12,9 @@ export class MenuAccessGuard implements CanActivate {
   ) {}
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean | UrlTree {
-    const menuCode = route.data['menuCode'] as string;
-    if (!menuCode) return true;
+    // Prefer an explicit menuCode in route data; fall back to resolving by URL segment.
+    const menuCode = (route.data['menuCode'] as string) || this.resolveMenuCodeFromUrl(route);
+    if (!menuCode) return true; // unknown segment — let child guards decide
 
     if (this.permissionService.hasMenuAccess(menuCode)) {
       return true;
@@ -26,5 +27,18 @@ export class MenuAccessGuard implements CanActivate {
         from: state.url,
       },
     });
+  }
+
+  /** Match the first URL segment against permitted menu route_paths. */
+  private resolveMenuCodeFromUrl(route: ActivatedRouteSnapshot): string | null {
+    const segment = route.paramMap.get('menu') ?? route.url[0]?.path ?? '';
+    if (!segment) return null;
+
+    const match = this.permissionService.menus.find((m) => {
+      const tail = (m.route_path ?? '').split('/').filter(Boolean).pop() ?? '';
+      return tail.toLowerCase() === segment.toLowerCase();
+    });
+
+    return match?.code ?? null;
   }
 }

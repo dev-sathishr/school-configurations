@@ -4,17 +4,19 @@ import { AuthGuard } from './core/guards/auth.guard';
 
 const routes: Routes = [
   {
-    path: '',
-    loadChildren: () => import('./modules/layout/layout.module').then((m) => m.LayoutModule),
-    canActivate: [AuthGuard],
-  },
-  {
     path: 'auth',
     loadChildren: () => import('./modules/auth/auth.module').then((m) => m.AuthModule),
   },
   {
     path: 'errors',
     loadChildren: () => import('./modules/error/error.module').then((m) => m.ErrorModule),
+  },
+  {
+    // Must come after named siblings so 'auth' and 'errors' are never swallowed
+    // by the layout's :menu wildcard.
+    path: '',
+    loadChildren: () => import('./modules/layout/layout.module').then((m) => m.LayoutModule),
+    canActivate: [AuthGuard],
   },
   { path: '**', redirectTo: 'errors/404' },
 ];

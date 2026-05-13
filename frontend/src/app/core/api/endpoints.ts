@@ -99,123 +99,6 @@ export const API = {
     import: '/locations/import',
     checkUnique: '/locations/check-unique',
   },
-  employeeCategories: {
-    base: '/employee-categories',
-    detail: (id: string) => `/employee-categories/${id}`,
-    dropdown: '/employee-categories/dropdown',
-    deleteMultiple: '/employee-categories/delete-multiple',
-    import: '/employee-categories/import',
-  },
-  employeeGroups: {
-    base: '/employee-groups',
-    detail: (id: string) => `/employee-groups/${id}`,
-    dropdown: '/employee-groups/dropdown',
-    deleteMultiple: '/employee-groups/delete-multiple',
-    import: '/employee-groups/import',
-  },
-  designations: {
-    base: '/designations',
-    detail: (id: string) => `/designations/${id}`,
-    dropdown: '/designations/dropdown',
-    deleteMultiple: '/designations/delete-multiple',
-    import: '/designations/import',
-  },
-  employees: {
-    base: '/employees',
-    detail: (id: string) => `/employees/${id}`,
-    nextCode: '/employees/next-code',
-    checkUnique: '/employees/check-unique',
-    dropdown: '/employees/dropdown',
-    linkable: '/employees/linkable',
-    deleteMultiple: '/employees/delete-multiple',
-    import: '/employees/import',
-  },
-  employeePayroll: {
-    base: (employeeId: string) => `/employees/${employeeId}/payroll`,
-    detail: (employeeId: string, id: string) => `/employees/${employeeId}/payroll/${id}`,
-    rejoin: (employeeId: string) => `/employees/${employeeId}/payroll/rejoin`,
-  },
-  employeeBankAccounts: {
-    base: (employeeId: string) => `/employees/${employeeId}/bank-accounts`,
-    activate: (employeeId: string, id: string) => `/employees/${employeeId}/bank-accounts/${id}/activate`,
-    detail: (employeeId: string, id: string) => `/employees/${employeeId}/bank-accounts/${id}`,
-  },
-  employeeQualifications: {
-    base:   (employeeId: string) => `/employees/${employeeId}/qualifications`,
-    detail: (employeeId: string, id: string) => `/employees/${employeeId}/qualifications/${id}`,
-  },
-  employeeExperience: {
-    base:   (employeeId: string) => `/employees/${employeeId}/experience`,
-    detail: (employeeId: string, id: string) => `/employees/${employeeId}/experience/${id}`,
-  },
-  employeeDocuments: {
-    base:   (employeeId: string) => `/employees/${employeeId}/documents`,
-    detail: (employeeId: string, id: string) => `/employees/${employeeId}/documents/${id}`,
-  },
-  employeeFamilyInfo: {
-    base:   (employeeId: string) => `/employees/${employeeId}/family`,
-    detail: (employeeId: string, id: string) => `/employees/${employeeId}/family/${id}`,
-  },
-  studentFamilyInfo: {
-    base:          (profileId: string) => `/student-profiles/${profileId}/family`,
-    detail:        (profileId: string, id: string) => `/student-profiles/${profileId}/family/${id}`,
-    globalSearch:  '/student-profiles/relations/search',
-  },
-  ifsc: {
-    lookup: (code: string) => `/ifsc/${code}`,
-  },
-  // ── Master ────────────────────────────────────────────────────────
-  sequenceCodes: {
-    base: '/sequence-codes',
-    detail: (id: string) => `/sequence-codes/${id}`,
-    dropdown: '/sequence-codes/dropdown',
-    deleteMultiple: '/sequence-codes/delete-multiple',
-  },
-  sequenceControls: {
-    base: '/sequence-controls',
-    detail: (id: string) => `/sequence-controls/${id}`,
-    deleteMultiple: '/sequence-controls/delete-multiple',
-  },
-  documentTypes: {
-    base: '/document-types',
-    detail: (id: string) => `/document-types/${id}`,
-    dropdown: '/document-types/dropdown',
-    deleteMultiple: '/document-types/delete-multiple',
-  },
-  feeCategories: {
-    base: '/fee-categories',
-    detail: (id: string) => `/fee-categories/${id}`,
-    dropdown: '/fee-categories/dropdown',
-    deleteMultiple: '/fee-categories/delete-multiple',
-  },
-  curriculums: {
-    base: '/curriculums',
-    detail: (id: string) => `/curriculums/${id}`,
-    dropdown: '/curriculums/dropdown',
-    deleteMultiple: '/curriculums/delete-multiple',
-  },
-
-  // ── Academic ──────────────────────────────────────────────────────
-  classes: {
-    base: '/classes',
-    detail: (id: string) => `/classes/${id}`,
-    dropdown: '/classes/dropdown',
-    deleteMultiple: '/classes/delete-multiple',
-    import: '/classes/import',
-  },
-  classLevels: {
-    base: '/class-levels',
-    detail: (id: string) => `/class-levels/${id}`,
-    byClass: (classGeneralId: string) => `/class-levels?class_general_id=${classGeneralId}`,
-    deleteMultiple: '/class-levels/delete-multiple',
-  },
-  academicYears: {
-    base: '/academic-years',
-    detail: (id: string) => `/academic-years/${id}`,
-    deleteMultiple: '/academic-years/delete-multiple',
-    dropdown: '/academic-years/dropdown',
-  },
-
   // ── Sessions ─────────────────────────────────────────────────────
   sessions: {
     base: '/sessions',
@@ -242,42 +125,6 @@ export const API = {
     markRead: (id: string) => `/notifications/${id}/read`,
     markAllRead: '/notifications/read-all',
     stream: '/notifications/stream',
-  },
-
-  // ── Student ───────────────────────────────────────────────────────
-  studentProfiles: {
-    base: '/student-profiles',
-    detail: (id: string) => `/student-profiles/${id}`,
-    deleteMultiple: '/student-profiles/delete-multiple',
-  },
-  studentEnquiries: {
-    base: (profileId: string) => `/student-profiles/${profileId}/enquiries`,
-    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/enquiries/${id}`,
-    deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/enquiries/delete-multiple`,
-    nextCode: (profileId: string) => `/student-profiles/${profileId}/enquiries/next-code`,
-  },
-  recommenders: {
-    base: '/recommenders',
-    detail: (id: string) => `/recommenders/${id}`,
-    dropdown: '/recommenders/dropdown',
-    deleteMultiple: '/recommenders/delete-multiple',
-  },
-  studentRecommendations: {
-    base: (profileId: string) => `/student-profiles/${profileId}/recommendations`,
-    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/recommendations/${id}`,
-    deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/recommendations/delete-multiple`,
-  },
-  studentAssessments: {
-    base: (profileId: string) => `/student-profiles/${profileId}/assessments`,
-    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/assessments/${id}`,
-    deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/assessments/delete-multiple`,
-    nextCode: (profileId: string) => `/student-profiles/${profileId}/assessments/next-code`,
-  },
-  studentRegistrations: {
-    base: (profileId: string) => `/student-profiles/${profileId}/registrations`,
-    detail: (profileId: string, id: string) => `/student-profiles/${profileId}/registrations/${id}`,
-    deleteMultiple: (profileId: string) => `/student-profiles/${profileId}/registrations/delete-multiple`,
-    nextCode: (profileId: string) => `/student-profiles/${profileId}/registrations/next-code`,
   },
 
   // ── Chat ─────────────────────────────────────────────────────────
@@ -308,5 +155,27 @@ export const API = {
   pincode: {
     lookup: (pincode: string) => `/pincode/${pincode}`,
   },
+
+  // ── DocType Engine ────────────────────────────────────────────────
+  engineMeta: {
+    base: '/engine/meta',
+    detail: (slug: string) => `/engine/meta/${slug}`,
+    dropdown: '/engine/meta/dropdown',
+    fields: (slug: string) => `/engine/meta/${slug}/fields`,
+    field: (slug: string, id: number) => `/engine/meta/${slug}/fields/${id}`,
+  },
+  engineRecords: {
+    base: (slug: string) => `/engine/records/${slug}`,
+    detail: (slug: string, id: string) => `/engine/records/${slug}/${id}`,
+    dropdown: (slug: string) => `/engine/records/${slug}/dropdown`,
+    deleteMultiple: (slug: string) => `/engine/records/${slug}/delete-multiple`,
+    checkUnique: (slug: string) => `/engine/records/${slug}/check-unique`,
+  },
+  engineRelations: {
+    get:    (junctionTable: string, parentId: string) => `/engine/relations/${encodeURIComponent(junctionTable)}/${parentId}`,
+    save:   (junctionTable: string, parentId: string) => `/engine/relations/${encodeURIComponent(junctionTable)}/${parentId}`,
+    matrix: (junctionTable: string, parentId: string) => `/engine/relations/${encodeURIComponent(junctionTable)}/${parentId}/matrix`,
+  },
+
 } as const;
 

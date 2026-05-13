@@ -1,0 +1,40 @@
+@if (loading) {
+  <app-loader size="large" text="Loading..." />
+}
+
+@if (!loading && config) {
+  @if (!embedded) {
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <app-breadcrumb />
+      <app-button
+        *appHasPermission="[moduleCode, 'CREATE']"
+        impact="bold" tone="primary" shape="rounded" size="medium"
+        (buttonClick)="addNew()">
+        <span class="flex items-center gap-1.5">
+          <span class="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-base font-bold leading-none">+</span>
+          Add {{ config.label }}
+        </span>
+      </app-button>
+    </div>
+  }
+
+  <app-table
+    [apiUrl]="apiUrl"
+    [deleteUrl]="deleteUrl"
+    [columns]="columns"
+    [displayKeyMap]="displayKeyMap"
+    [rowTransform]="rowTransform"
+    [extraParams]="config.is_location_scoped ? locationCtx.scopeExtraParams() : {}"
+    [canEdit]="ps.canEdit(moduleCode)"
+    [canDelete]="ps.canDelete(moduleCode)"
+    [canView]="ps.canView(moduleCode)"
+    [canImport]="ps.canImport(moduleCode)"
+    [canExport]="ps.canExport(moduleCode)"
+    (onEdit)="editSelected($event)"
+    (onView)="viewSelected($event)" />
+}
+
+@if (!loading && notFound) {
+  @if (!embedded) { <div class="mb-6"><app-breadcrumb /></div> }
+  <div class="flex h-64 items-center justify-center text-muted-foreground">Module not found.</div>
+}

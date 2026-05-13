@@ -1,11 +1,10 @@
-import { enableProdMode, importProvidersFrom } from '@angular/core';
+import { enableProdMode, importProvidersFrom, provideZonelessChangeDetection } from '@angular/core';
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { BrowserModule, bootstrapApplication } from '@angular/platform-browser';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { AppRoutingModule } from './app/app-routing.module';
 import { AppComponent } from './app/app.component';
 import { environment } from './environments/environment';
-import { provideZonelessChangeDetection } from '@angular/core';
 import { AuthInterceptor } from './app/core/interceptor/auth.interceptor';
 import { LoadingInterceptor } from './app/core/interceptor/loading.interceptor';
 import { ActionTrackingInterceptor } from './app/core/interceptor/action-tracking.interceptor';

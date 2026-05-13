@@ -94,6 +94,22 @@ export class FormFieldComponent {
     return this.control?.status === 'PENDING';
   }
 
+  /** Resolved maxlength: explicit @Input wins, otherwise read from the control's maxlength validator. */
+  get resolvedMaxLength(): number | null {
+    if (this.maxLength !== null) return this.maxLength;
+    const validator = this.control?.validator;
+    if (!validator) return null;
+    // Call the validator with a fake max-length control to extract the requiredLength
+    const result = validator({ value: 'x'.repeat(99999) } as any);
+    return result?.['maxlength']?.requiredLength ?? null;
+  }
+
+  /** Characters typed so far — used for the live counter hint. */
+  get currentLength(): number {
+    const val = this.control?.value;
+    return typeof val === 'string' ? val.length : 0;
+  }
+
   // Select bridge
   onSelectChange(value: string): void {
     this.control?.setValue(value);

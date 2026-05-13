@@ -15,43 +15,13 @@ const routes: Routes = [
     path: 'dashboard',
     component: LayoutComponent,
     canActivate: [MenuAccessGuard],
-    data: { menuCode: 'DASHBOARD' },
     loadChildren: () => import('../dashboard/dashboard.module').then((m) => m.DashboardModule),
   },
   {
-    path: 'academic',
+    path: 'engine',
     component: LayoutComponent,
     canActivate: [MenuAccessGuard],
-    data: { menuCode: 'ACADEMIC' },
-    loadChildren: () => import('../academic/academic.module').then((m) => m.AcademicModule),
-  },
-  {
-    path: 'employee',
-    component: LayoutComponent,
-    canActivate: [MenuAccessGuard],
-    data: { menuCode: 'EMPLOYEE' },
-    loadChildren: () => import('../employee/employee.module').then((m) => m.EmployeeModule),
-  },
-  {
-    path: 'student',
-    component: LayoutComponent,
-    canActivate: [MenuAccessGuard],
-    data: { menuCode: 'STUDENT' },
-    loadChildren: () => import('../student/student.module').then((m) => m.StudentModule),
-  },
-  {
-    path: 'master',
-    component: LayoutComponent,
-    canActivate: [MenuAccessGuard],
-    data: { menuCode: 'MASTER' },
-    loadChildren: () => import('../master/master.module').then((m) => m.MasterModule),
-  },
-  {
-    path: 'settings',
-    component: LayoutComponent,
-    canActivate: [MenuAccessGuard],
-    data: { menuCode: 'SETTINGS' },
-    loadChildren: () => import('../settings/settings.module').then((m) => m.SettingsModule),
+    loadChildren: () => import('../engine/engine.routes').then((m) => m.engineRoutes),
   },
   {
     path: 'profile',
@@ -59,11 +29,20 @@ const routes: Routes = [
     loadChildren: () => import('../profile/profile.module').then((m) => m.ProfileModule),
   },
   {
+    // Catches every top-level menu segment dynamically (e.g. /settings, /academic, /finance …).
+    // MenuAccessGuard resolves the menu by matching the URL segment against permitted route_paths —
+    // no hardcoded path→code mapping needed here.
+    path: ':menu',
+    component: LayoutComponent,
+    canActivate: [MenuAccessGuard],
+    loadChildren: () => import('../dynamic/dynamic.module').then((m) => m.DynamicModule),
+  },
+  {
     path: '',
     canActivate: [DefaultRedirectGuard],
     children: [],
   },
-  { path: '**', redirectTo: 'error/404' },
+  { path: '**', redirectTo: 'errors/404' },
 ];
 
 @NgModule({

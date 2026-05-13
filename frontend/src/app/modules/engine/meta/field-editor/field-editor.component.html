@@ -1,0 +1,187 @@
+<div [formGroup]="form">
+  <div class="mb-3 flex items-center justify-between">
+    <h5 class="text-foreground text-sm font-semibold">Fields</h5>
+    @if (!viewMode) {
+      <app-button type="button" impact="light" tone="primary" shape="rounded" size="small" (buttonClick)="addRow()">
+        + Add Field
+      </app-button>
+    }
+  </div>
+
+  @if (rows.length === 0) {
+    <div class="border-muted/30 rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+      No fields yet. Click "Add Field" to define the first field.
+    </div>
+  }
+
+  <div formArrayName="rows" class="space-y-3">
+    @for (row of rows.controls; track i; let i = $index) {
+      <div
+        [formGroupName]="i"
+        draggable="true"
+        (dragstart)="onDragStart(i)"
+        (dragover)="onDragOver($event, i)"
+        (drop)="onDrop(i)"
+        (dragend)="onDragEnd()"
+        [class]="'bg-muted/5 border-muted/30 rounded-lg border p-4 transition-opacity'
+          + (dragIndex === i ? ' opacity-40' : '')
+          + (dragOverIndex === i && dragIndex !== i ? ' !border-primary ring-1 ring-primary' : '')">
+
+        <div class="mb-3 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            @if (!viewMode) {
+              <span class="cursor-grab text-muted-foreground active:cursor-grabbing">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>
+                  <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+                  <circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+                </svg>
+              </span>
+            }
+            <span class="text-muted-foreground text-xs font-medium">Field {{ i + 1 }}</span>
+          </div>
+          @if (!viewMode) {
+            <button type="button" (click)="removeRow(i)"
+              class="text-xs text-red-500 transition-colors hover:text-red-700">Remove</button>
+          }
+        </div>
+
+        <!-- Row 1: name, label, type, section -->
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+          <app-form-field [formGroup]="asGroup(row)" controlName="field_name" label="Field Name"
+            fieldType="text" placeholder="e.g. course_name" [required]="true" />
+          <app-form-field [formGroup]="asGroup(row)" controlName="field_label" label="Label"
+            fieldType="text" placeholder="e.g. Course Name" [required]="true" />
+          <app-form-field [formGroup]="asGroup(row)" controlName="field_type" label="Type"
+            fieldType="select" [options]="fieldTypeOptions" [required]="true" />
+          <app-form-field [formGroup]="asGroup(row)" controlName="section_name" label="Section"
+            fieldType="text" placeholder="e.g. Basic Info" />
+        </div>
+
+        <!-- Colspan selector -->
+        <div class="mt-3">
+          <p class="mb-1.5 text-xs font-medium text-muted-foreground">Width (out of 12)</p>
+          @if (isFullSpanType(i)) {
+            <span class="inline-flex items-center rounded-md bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">
+              Full row
+            </span>
+          } @else {
+            <div class="inline-flex overflow-hidden rounded-md border border-border">
+              @for (opt of colSpanOptions; track opt.value) {
+                <button
+                  type="button"
+                  [disabled]="viewMode"
+                  (click)="setColSpan(i, opt.value)"
+                  [class]="'flex flex-col items-center border-r border-border px-3 py-1 text-xs leading-tight transition-colors last:border-r-0'
+                    + (asGroup(row).get('col_span')?.value === opt.value
+                        ? ' bg-primary text-primary-foreground'
+                        : ' text-foreground hover:bg-muted/40')">
+                  <span class="font-semibold">{{ opt.value }}</span>
+                  <span class="opacity-70">{{ opt.hint }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Row 2: type-specific options -->
+        @if (fieldTypeAt(i) === 'select') {
+          <div class="mt-3">
+            <app-form-field [formGroup]="asGroup(row)" controlName="select_options" label="Options (JSON)"
+              fieldType="textarea" placeholder='[{"value":"a","label":"A"},{"value":"b","label":"B"}]' />
+          </div>
+        }
+        @if (fieldTypeAt(i) === 'async-select') {
+          <div class="mt-3">
+            <app-form-field [formGroup]="asGroup(row)" controlName="ref_doctype_slug" label="Linked DocType Slug"
+              fieldType="text" placeholder="e.g. course" />
+          </div>
+        }
+        @if (isFile(i)) {
+          <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <app-form-field [formGroup]="asGroup(row)" controlName="file_display_style" label="Display Style"
+              fieldType="select" [options]="fileDisplayStyleOptions" [required]="true" />
+          </div>
+        }
+        @if (isAddress(i)) {
+          <div class="mt-3">
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Allowed Address Types</label>
+            <div class="flex flex-wrap gap-4">
+              @for (opt of addressTypeOptions; track opt.value) {
+                <label class="flex cursor-pointer items-center gap-2 text-sm">
+                  <input type="checkbox"
+                    class="accent-primary h-4 w-4"
+                    [disabled]="viewMode"
+                    [checked]="asGroup(row).get('address_types')?.value?.includes(opt.value)"
+                    (change)="toggleAddressType(i, opt.value, $any($event.target).checked)" />
+                  {{ opt.label }}
+                </label>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Relation widget config -->
+        @if (isRelationWidget(i)) {
+          <div class="mt-3 space-y-3">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <app-form-field [formGroup]="asGroup(row)" controlName="rw_source_table"  label="Source Table"   fieldType="text" placeholder="e.g. settings.locations" [required]="true" />
+              <app-form-field [formGroup]="asGroup(row)" controlName="rw_junction_table" label="Junction Table" fieldType="text" placeholder="e.g. settings.user_locations" [required]="true" />
+              <app-form-field [formGroup]="asGroup(row)" controlName="rw_parent_key"    label="Parent Key"     fieldType="text" placeholder="e.g. user_id" [required]="true" />
+              <app-form-field [formGroup]="asGroup(row)" controlName="rw_child_key"     label="Child Key"      fieldType="text" placeholder="e.g. location_id" [required]="true" />
+              <app-form-field [formGroup]="asGroup(row)" controlName="rw_label_field"   label="Label Field"    fieldType="text" placeholder="e.g. name" />
+              <app-form-field [formGroup]="asGroup(row)" controlName="rw_sub_field"     label="Sub Field"      fieldType="text" placeholder="e.g. code" />
+            </div>
+            <label class="flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" formControlName="rw_has_default" class="accent-primary h-4 w-4" [disabled]="viewMode" />
+              Has Default (user can mark one item as default)
+            </label>
+          </div>
+        }
+
+        <!-- Row 3: min/max length + transform — only for text-like types -->
+        @if (isTextLike(i)) {
+          <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <app-form-field [formGroup]="asGroup(row)" controlName="min_length" label="Min Length"
+              fieldType="number" placeholder="e.g. 3" />
+            <app-form-field [formGroup]="asGroup(row)" controlName="max_length" label="Max Length"
+              fieldType="number" placeholder="e.g. 100" />
+            <app-form-field [formGroup]="asGroup(row)" controlName="transform" label="Transform"
+              fieldType="select" [options]="transformOptions" />
+          </div>
+        }
+
+        <!-- Row 4: help text -->
+        <div class="mt-3">
+          <app-form-field [formGroup]="asGroup(row)" controlName="help_text" label="Help Text"
+            fieldType="text" placeholder="Optional hint shown below the field" />
+        </div>
+
+        <!-- Row 5: toggles -->
+        <div class="mt-3 flex flex-wrap gap-5">
+          <label class="flex cursor-pointer items-center gap-2 text-sm">
+            <input type="checkbox" formControlName="is_required" class="accent-primary h-4 w-4" [disabled]="viewMode" />
+            {{ isAddress(i) ? 'Required (at least one)' : 'Required' }}
+          </label>
+          @if (!isFile(i) && !isAddress(i) && !isRelationWidget(i)) {
+            <label class="flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" formControlName="is_unique" class="accent-primary h-4 w-4" [disabled]="viewMode" />
+              Unique
+            </label>
+            <label class="flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" formControlName="is_searchable" class="accent-primary h-4 w-4" [disabled]="viewMode" />
+              Searchable
+            </label>
+          }
+          @if (!isAddress(i) && !isRelationWidget(i)) {
+            <label class="flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" formControlName="show_in_list" class="accent-primary h-4 w-4" [disabled]="viewMode" />
+              {{ isFile(i) ? 'Show avatar in list' : 'Show in list' }}
+            </label>
+          }
+        </div>
+
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,111 @@
+<div class="mx-auto max-w-4xl">
+  <div class="mb-6"><app-breadcrumb /></div>
+
+  @if (errorMessage) { <div class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{{ errorMessage }}</div> }
+  @if (loading) { <app-loader size="large" text="Loading DocType..." /> }
+
+  @if (!loading) {
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="space-y-6">
+    <fieldset [disabled]="viewMode" class="space-y-6">
+
+      <!-- DocType Info -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">DocType Info</h4>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <app-form-field [formGroup]="form" controlName="label"        label="Name"        fieldType="text"     placeholder="e.g. Document Type" [required]="true" [submitted]="submitted" />
+          <app-form-field [formGroup]="form" controlName="plural_label" label="Plural Name" fieldType="text"     placeholder="e.g. Document Types" [required]="true" [submitted]="submitted" />
+          <app-form-field [formGroup]="form" controlName="slug"         label="Slug"        fieldType="text"     placeholder="e.g. document-types" [required]="true" [submitted]="submitted" [readonly]="editMode || viewMode" />
+          <app-form-field [formGroup]="form" controlName="icon"         label="Icon"        fieldType="text"     placeholder="e.g. folder" />
+          <div class="md:col-span-2">
+            <app-form-field [formGroup]="form" controlName="description" label="Description" fieldType="textarea" placeholder="Brief description of this DocType" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Display Settings -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Display Settings</h4>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+          <!-- Display Mode -->
+          <app-form-field [formGroup]="form" controlName="display_mode"
+            label="Display Mode" fieldType="select"
+            [options]="displayModeOptions"
+            placeholder="Select display mode" />
+
+          <!-- Modal Size — only when modal -->
+          @if (isModal) {
+            <app-form-field [formGroup]="form" controlName="modal_size"
+              label="Modal Size" fieldType="select"
+              [options]="modalSizeOptions"
+              placeholder="Select size" />
+          }
+
+          <!-- Tab Children — only when tab-group -->
+          @if (isTabGroup) {
+            <div class="md:col-span-2">
+              <label class="text-foreground mb-1 block text-sm font-medium">
+                Child DocType Slugs
+              </label>
+              <input type="text"
+                class="border-muted bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                [value]="tabChildrenRaw()"
+                [disabled]="viewMode"
+                (input)="tabChildrenRaw.set($any($event.target).value)"
+                placeholder="e.g. sequence-codes, sequence-controls" />
+              <p class="text-muted-foreground mt-1 text-xs">Comma-separated slugs — each becomes a tab (in order)</p>
+              @if (tabChildren().length > 0) {
+                <div class="mt-2 flex flex-wrap gap-2">
+                  @for (slug of tabChildren(); track slug) {
+                    <span class="bg-primary/10 text-primary rounded px-2 py-0.5 text-xs font-medium">{{ slug }}</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="bg-background border-muted/30 rounded-lg border p-5">
+        <h4 class="text-foreground mb-4 text-sm font-semibold">Options</h4>
+        <div class="flex flex-wrap gap-6">
+          <app-form-field [formGroup]="form" controlName="is_location_scoped" label="Location Scoped"   fieldType="checkbox" />
+          <app-form-field [formGroup]="form" controlName="auto_create_table"  label="Auto Create Table" fieldType="checkbox" />
+          <app-form-field [formGroup]="form" controlName="is_active"          label="Active"            fieldType="checkbox" />
+        </div>
+      </div>
+
+      <!-- Fields — hidden for tab-group (no own fields) -->
+      @if (!isTabGroup) {
+        <div class="bg-background border-muted/30 rounded-lg border p-5">
+          <app-field-editor
+            [fields]="fields"
+            [viewMode]="viewMode"
+            (fieldsChange)="fields = $event; fieldError = ''" />
+          @if (fieldError) { <p class="mt-2 text-xs text-red-500">{{ fieldError }}</p> }
+        </div>
+      }
+
+    </fieldset>
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-3">
+      <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">Cancel</app-button>
+
+      @if (viewMode) {
+        @if (ps.canEdit('ENGINE_META')) {
+          <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">Edit</app-button>
+        }
+      }
+
+      @if (!viewMode) {
+        <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="submit" [loading]="saving" [disabled]="saving">
+          {{ editMode ? 'Update' : 'Save' }}
+        </app-button>
+      }
+    </div>
+  </form>
+  }
+</div>
