@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { BreadcrumbComponent } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { LoaderComponent } from '../../../shared/components/loader/loader.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
-import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { DoctypeConfigService, DoctypeConfig } from '../doctype-config.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { DynamicPageListComponent } from '../dynamic-page-list/dynamic-page-list.component';
@@ -14,7 +13,7 @@ import { DynamicModalListComponent } from '../dynamic-modal-list/dynamic-modal-l
   selector: 'app-dynamic-tab-group',
   templateUrl: './dynamic-tab-group.component.html',
   imports: [CommonModule, BreadcrumbComponent, LoaderComponent, ButtonComponent,
-    HasPermissionDirective, DynamicPageListComponent, DynamicModalListComponent],
+    DynamicPageListComponent, DynamicModalListComponent],
 })
 export class DynamicTabGroupComponent implements OnInit {
   @ViewChildren(DynamicModalListComponent) modalLists!: QueryList<DynamicModalListComponent>;
@@ -23,14 +22,14 @@ export class DynamicTabGroupComponent implements OnInit {
   private readonly route         = inject(ActivatedRoute);
   private readonly cdr           = inject(ChangeDetectorRef);
   private readonly doctypeConfig = inject(DoctypeConfigService);
-  private readonly ps            = inject(PermissionService);
+  readonly ps                    = inject(PermissionService);
 
   config: DoctypeConfig | null = null;
   childConfigs: DoctypeConfig[] = [];
-  loading          = true;
-  notFound         = false;
-  activeTab        = 0;
-  parentModuleCode = '';
+  childModuleCodes: string[] = [];
+  loading  = true;
+  notFound = false;
+  activeTab = 0;
 
   get activeChild(): DoctypeConfig | null {
     return this.childConfigs[this.activeTab] ?? null;
@@ -40,9 +39,19 @@ export class DynamicTabGroupComponent implements OnInit {
     return this.activeChild?.label ?? '';
   }
 
+  get activeChildModuleCode(): string {
+    return this.childModuleCodes[this.activeTab] ?? '';
+  }
+
+  get visibleChildConfigs(): { config: DoctypeConfig; moduleCode: string; originalIndex: number }[] {
+    return this.childConfigs
+      .map((c, i) => ({ config: c, moduleCode: this.childModuleCodes[i] ?? '', originalIndex: i }))
+      .filter(({ moduleCode }) => this.ps.hasAnyPermission(moduleCode));
+  }
+
   triggerNew(): void {
     const child = this.activeChild;
-    if (!child) return;
+    if (!child || !this.ps.canCreate(this.activeChildModuleCode)) return;
     if (child.display_mode === 'modal') {
       this.modalLists.find(c => c.slugOverride === child.slug)?.openNew();
     } else {
@@ -50,17 +59,19 @@ export class DynamicTabGroupComponent implements OnInit {
     }
   }
 
-  private resolveModuleCode(slug: string): string {
-    for (const menu of this.ps.menus) {
-      const mod = menu.modules.find((m: any) => m.route_path?.endsWith(`/${slug}`));
-      if (mod?.name) return mod.name;
-    }
-    return slug.toUpperCase().replace(/-/g, '_');
+  private resolveChildModuleCode(childSlug: string): string {
+    const allModules = this.ps.menus.flatMap((m: any) => m.modules);
+    const match = allModules.find((m: any) =>
+      m.name?.toUpperCase() === childSlug.toUpperCase().replace(/-/g, '_') ||
+      m.display_name?.toUpperCase() === childSlug.toUpperCase().replace(/-/g, '_') ||
+      m.name?.toUpperCase().replace(/[\s_]+/g, '') === childSlug.toUpperCase().replace(/[-_]+/g, '')
+    );
+    if (match) return match.name;
+    return childSlug.toUpperCase().replace(/-/g, '_');
   }
 
   ngOnInit(): void {
     const slug = this.route.snapshot.params['slug'] as string;
-    this.parentModuleCode = this.resolveModuleCode(slug);
     this.doctypeConfig.get(slug).subscribe({
       next: (doc) => {
         if (!doc) { this.notFound = true; this.loading = false; this.cdr.detectChanges(); return; }
@@ -77,6 +88,8 @@ export class DynamicTabGroupComponent implements OnInit {
               loaded++;
               if (loaded === children.length) {
                 this.childConfigs = this.childConfigs.filter(Boolean);
+                this.childModuleCodes = this.childConfigs.map(c => this.resolveChildModuleCode(c.slug));
+                this.activeTab = this.visibleChildConfigs[0]?.originalIndex ?? 0;
                 this.loading = false;
                 this.cdr.detectChanges();
               }
@@ -85,6 +98,8 @@ export class DynamicTabGroupComponent implements OnInit {
               loaded++;
               if (loaded === children.length) {
                 this.childConfigs = this.childConfigs.filter(Boolean);
+                this.childModuleCodes = this.childConfigs.map(c => this.resolveChildModuleCode(c.slug));
+                this.activeTab = this.visibleChildConfigs[0]?.originalIndex ?? 0;
                 this.loading = false;
                 this.cdr.detectChanges();
               }

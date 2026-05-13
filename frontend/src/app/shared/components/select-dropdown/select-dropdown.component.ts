@@ -345,10 +345,24 @@ export class SelectDropdownComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private loadSelectedLabel(value: string): void {
-    this.cs.getService({ url: this.asyncUrl, params: { page: 1, size: 1000 } }).subscribe({
+    // Derive the detail URL from the dropdown URL: .../dropdown → .../{id}
+    const detailUrl = this.asyncUrl.replace(/\/dropdown$/, `/${value}`);
+    this.cs.getService({ url: detailUrl }).subscribe({
       next: (res: any) => {
-        const match = (res.data || []).find((item: any) => item[this.asyncValueKey] === value);
-        if (match) { this._selectedLabel = match[this.asyncLabelKey]; this.cdr.detectChanges(); }
+        const item = res?.data ?? res;
+        if (item) {
+          this._selectedLabel = item[this.asyncLabelKey] ?? '';
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {
+        // Fallback: search by page if detail URL doesn't exist
+        this.cs.getService({ url: this.asyncUrl, params: { page: 1, size: 10, search: value } }).subscribe({
+          next: (res: any) => {
+            const match = (res.data || []).find((item: any) => item[this.asyncValueKey] === value);
+            if (match) { this._selectedLabel = match[this.asyncLabelKey]; this.cdr.detectChanges(); }
+          },
+        });
       },
     });
   }

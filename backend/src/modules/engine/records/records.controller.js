@@ -53,7 +53,7 @@ async function checkUnique(req, resp) {
 async function getDropdown(req, resp) {
   const result = await recordsService.getDropdown(req.params.slug, req.query);
   if (result.error) return res.handleError(resp, result);
-  return res.success(resp, { data: result.data });
+  return res.success(resp, { data: result.data, pagination: result.pagination });
 }
 
 module.exports = wrap({ getAll, getById, create, update, remove, removeMultiple, checkUnique, getDropdown });

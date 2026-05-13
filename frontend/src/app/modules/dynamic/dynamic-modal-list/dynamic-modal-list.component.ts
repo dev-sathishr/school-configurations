@@ -168,5 +168,5 @@ export class DynamicModalListComponent implements OnInit {
   get formIsEditMode(): boolean  { return this.embedForm?.isEditMode  ?? false; }
   get formIsSaving():  boolean   { return this.embedForm?.isSaving    ?? false; }
   formSubmit():        void      { this.embedForm?.submitForm(); }
-  formSwitchToEdit():  void      { this.embedForm?.switchToEditMode(); }
+  formSwitchToEdit():  void      { this.modalViewMode = false; this.embedForm?.switchToEditMode(); this.cdr.detectChanges(); }
 }

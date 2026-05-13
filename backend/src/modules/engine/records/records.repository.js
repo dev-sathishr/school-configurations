@@ -207,27 +207,41 @@ async function checkUnique(slugOrDoc, fieldName, value, excludeId) {
 
 async function getDropdown(slugOrDoc, query, labelField) {
   const table = tableName(slugOrDoc);
-  const slug = typeof slugOrDoc === 'object' ? slugOrDoc.slug : slugOrDoc;
   const label = labelField ? `"${labelField}"` : `id::text`;
   const search = query.search ? `%${query.search}%` : null;
 
+  const page = Math.max(1, parseInt(query.page) || 1);
+  const size = Math.min(100, Math.max(1, parseInt(query.size) || 10));
+  const offset = (page - 1) * size;
+
+  const params = [];
+  let where = `deleted_at IS NULL AND is_active = true`;
   if (search && labelField) {
-    const res = await db.query(
-      `SELECT id, id::text AS value, ${label} AS name FROM ${table}
-       WHERE deleted_at IS NULL AND is_active = true
-         AND LOWER(${label}::text) LIKE LOWER($1)
-       ORDER BY ${label} LIMIT 50`,
-      [search]
-    );
-    return res.rows;
+    params.push(search);
+    where += ` AND LOWER(${label}::text) LIKE LOWER($${params.length})`;
   }
 
-  const res = await db.query(
-    `SELECT id, id::text AS value, ${label} AS name FROM ${table}
-     WHERE deleted_at IS NULL AND is_active = true
-     ORDER BY ${label} LIMIT 50`
+  // total count
+  const countRes = await db.query(
+    `SELECT COUNT(*) FROM ${table} WHERE ${where}`,
+    params
   );
-  return res.rows;
+  const total_count = parseInt(countRes.rows[0].count, 10);
+  const total_pages = Math.max(1, Math.ceil(total_count / size));
+
+  params.push(size, offset);
+  const dataRes = await db.query(
+    `SELECT id, id::text AS value, ${label} AS name FROM ${table}
+     WHERE ${where}
+     ORDER BY ${label}
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+
+  return {
+    data: dataRes.rows,
+    pagination: { page, size, total_count, total_pages },
+  };
 }
 
 // Coerce JS value to the right type for PG

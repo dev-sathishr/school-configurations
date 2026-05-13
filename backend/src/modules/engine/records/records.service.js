@@ -251,8 +251,8 @@ async function getDropdown(slug, query) {
   const labelField = fields.find(f => ['text', 'email'].includes(f.field_type) && f.is_searchable)
     || fields[0];
 
-  const rows = await recordsRepo.getDropdown(doc, query, labelField?.field_name);
-  return { data: rows };
+  const result = await recordsRepo.getDropdown(doc, query, labelField?.field_name);
+  return { data: result.data, pagination: result.pagination };
 }
 
 module.exports = {

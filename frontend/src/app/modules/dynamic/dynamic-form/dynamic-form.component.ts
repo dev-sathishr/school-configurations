@@ -363,7 +363,15 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
 
   /** Called by the modal footer buttons when in embedMode */
   submitForm(): void { this.onSubmit(); }
-  switchToEditMode(): void { this.switchToEdit(); }
+  switchToEditMode(): void {
+    if (this.embedMode) {
+      this.viewMode = false;
+      this.editMode = true;
+      this.cdr.detectChanges();
+    } else {
+      this.switchToEdit();
+    }
+  }
   get isViewMode(): boolean { return this.viewMode; }
   get isSaving(): boolean { return this.saving; }
   get isEditMode(): boolean { return this.editMode; }

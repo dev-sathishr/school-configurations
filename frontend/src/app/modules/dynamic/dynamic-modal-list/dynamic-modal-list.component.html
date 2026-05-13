@@ -62,9 +62,9 @@
   <div modal-footer class="flex justify-end gap-3">
     <app-button impact="light" tone="light" shape="rounded" size="medium" type="button"
       (buttonClick)="closeModal()">
-      {{ formIsViewMode ? 'Back' : 'Cancel' }}
+      {{ modalViewMode ? 'Back' : 'Cancel' }}
     </app-button>
-    @if (formIsViewMode) {
+    @if (modalViewMode) {
       <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button"
         (buttonClick)="formSwitchToEdit()">
         Edit
@@ -74,7 +74,7 @@
         [loading]="formIsSaving"
         [disabled]="formIsSaving"
         (buttonClick)="formSubmit()">
-        {{ formIsEditMode ? 'Update' : 'Create' }}
+        {{ modalEditId ? 'Update' : 'Create' }}
       </app-button>
     }
   </div>
