@@ -622,7 +622,7 @@ async function migrate() {
         field_type      VARCHAR(32) NOT NULL
                         CHECK (field_type IN (
                           'text','email','url','number','date',
-                          'select','async-select','textarea','checkbox','phone','password','file','address','relation-widget'
+                          'select','async-select','textarea','checkbox','phone','password','file','address','relation-widget','child-table','naming-series'
                         )),
         display_order   INTEGER NOT NULL DEFAULT 0,
         col_span        INTEGER NOT NULL DEFAULT 6 CHECK (col_span BETWEEN 1 AND 12),
@@ -659,6 +659,28 @@ async function migrate() {
       ALTER TABLE engine.doctype_fields
         ADD COLUMN IF NOT EXISTS col_span INTEGER NOT NULL DEFAULT 6
           CHECK (col_span BETWEEN 1 AND 12);
+    `).catch(() => {});
+    await client.query(`
+      ALTER TABLE engine.doctype_fields
+        ADD COLUMN IF NOT EXISTS fetch_from VARCHAR(128);
+    `).catch(() => {});
+    await client.query(`
+      ALTER TABLE engine.doctype_fields
+        ADD COLUMN IF NOT EXISTS depends_on TEXT;
+    `).catch(() => {});
+    // Update field_type CHECK constraint to include new types
+    await client.query(`
+      ALTER TABLE engine.doctype_fields
+        DROP CONSTRAINT IF EXISTS doctype_fields_field_type_check
+    `).catch(() => {});
+    await client.query(`
+      ALTER TABLE engine.doctype_fields
+        ADD CONSTRAINT doctype_fields_field_type_check
+        CHECK (field_type IN (
+          'text','email','url','number','date',
+          'select','async-select','textarea','checkbox','phone','password',
+          'file','address','relation-widget','child-table','naming-series'
+        ))
     `).catch(() => {});
 
     // ── Master schema ───────────────────────────────────────────────────
@@ -700,6 +722,57 @@ async function migrate() {
         deleted_by        UUID REFERENCES settings.users(id),
         CONSTRAINT uq_sequence_control_code_location UNIQUE (sequence_code_id, location_id)
       );
+    `);
+
+    // ── Workflow ─────────────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS engine.workflow_defs (
+        id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        doctype_slug  VARCHAR(63) NOT NULL UNIQUE,
+        states        JSONB NOT NULL DEFAULT '[]',
+        is_active     BOOLEAN NOT NULL DEFAULT true,
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by    UUID REFERENCES settings.users(id),
+        updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_by    UUID REFERENCES settings.users(id),
+        deleted_at    TIMESTAMPTZ,
+        deleted_by    UUID REFERENCES settings.users(id)
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS engine.workflow_transitions (
+        id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        workflow_id   UUID NOT NULL REFERENCES engine.workflow_defs(id),
+        from_state    VARCHAR(64) NOT NULL,
+        to_state      VARCHAR(64) NOT NULL,
+        action_label  VARCHAR(64) NOT NULL,
+        allowed_roles TEXT[] NOT NULL DEFAULT '{}',
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by    UUID REFERENCES settings.users(id),
+        updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_by    UUID REFERENCES settings.users(id),
+        deleted_at    TIMESTAMPTZ,
+        deleted_by    UUID REFERENCES settings.users(id)
+      )
+    `);
+
+    // ── Print Formats ────────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS engine.print_formats (
+        id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        doctype_slug  VARCHAR(63) NOT NULL,
+        name          VARCHAR(128) NOT NULL,
+        html_template TEXT NOT NULL DEFAULT '',
+        is_default    BOOLEAN NOT NULL DEFAULT false,
+        is_active     BOOLEAN NOT NULL DEFAULT true,
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by    UUID REFERENCES settings.users(id),
+        updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_by    UUID REFERENCES settings.users(id),
+        deleted_at    TIMESTAMPTZ,
+        deleted_by    UUID REFERENCES settings.users(id)
+      )
     `);
 
     console.log('Migration completed successfully');

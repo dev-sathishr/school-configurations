@@ -139,6 +139,33 @@
           </div>
         }
 
+        <!-- Child table config — pick which DocType provides the rows -->
+        @if (isChildTable(i)) {
+          <div class="mt-3">
+            <app-form-field [formGroup]="asGroup(row)" controlName="ref_doctype_slug"
+              label="Child DocType Slug" fieldType="text"
+              placeholder="e.g. fee_schedule_item" [required]="true" />
+            <p class="mt-1 text-xs text-muted-foreground">
+              This must be an existing DocType whose rows will be embedded in the parent form.
+            </p>
+          </div>
+        }
+
+        <!-- Naming series config — pick which sequence code to use -->
+        @if (isNamingSeries(i)) {
+          <div class="mt-3">
+            <app-form-field [formGroup]="asGroup(row)" controlName="ref_doctype_slug"
+              label="Sequence Code" fieldType="async-select"
+              asyncUrl="/engine/records/sequence-code-options"
+              asyncValueKey="value" asyncLabelKey="label"
+              [initialLabel]="asGroup(row).get('ref_doctype_slug')?.value"
+              placeholder="Select sequence code" [required]="true" [submitted]="false" />
+            <p class="mt-1 text-xs text-muted-foreground">
+              Auto-generated on save using the selected sequence (e.g. ADMISSION → ADM-2025-0001).
+            </p>
+          </div>
+        }
+
         <!-- Row 3: min/max length + transform — only for text-like types -->
         @if (isTextLike(i)) {
           <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -157,29 +184,53 @@
             fieldType="text" placeholder="Optional hint shown below the field" />
         </div>
 
-        <!-- Row 5: toggles -->
-        <div class="mt-3 flex flex-wrap gap-5">
-          <label class="flex cursor-pointer items-center gap-2 text-sm">
-            <input type="checkbox" formControlName="is_required" class="accent-primary h-4 w-4" [disabled]="viewMode" />
-            {{ isAddress(i) ? 'Required (at least one)' : 'Required' }}
-          </label>
-          @if (!isFile(i) && !isAddress(i) && !isRelationWidget(i)) {
+        <!-- Field intelligence: fetch_from + depends_on -->
+        @if (!isChildTable(i) && !isAddress(i) && !isRelationWidget(i)) {
+          <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div>
+              <app-form-field [formGroup]="asGroup(row)" controlName="fetch_from"
+                label="Fetch From" fieldType="text"
+                placeholder="e.g. student_id.full_name" />
+              <p class="mt-1 text-xs text-muted-foreground">
+                Auto-fill this field when a linked field changes. Format: <code>linked_field.source_field</code>
+              </p>
+            </div>
+            <div>
+              <app-form-field [formGroup]="asGroup(row)" controlName="depends_on"
+                label="Depends On" fieldType="text"
+                placeholder="e.g. doc.type === 'advance'" />
+              <p class="mt-1 text-xs text-muted-foreground">
+                Show this field only when the expression is truthy. Use <code>doc.field_name</code>
+              </p>
+            </div>
+          </div>
+        }
+
+        <!-- Row 5: toggles (hidden for child-table and naming-series) -->
+        @if (!isChildTable(i) && !isNamingSeries(i)) {
+          <div class="mt-3 flex flex-wrap gap-5">
             <label class="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" formControlName="is_unique" class="accent-primary h-4 w-4" [disabled]="viewMode" />
-              Unique
+              <input type="checkbox" formControlName="is_required" class="accent-primary h-4 w-4" [disabled]="viewMode" />
+              {{ isAddress(i) ? 'Required (at least one)' : 'Required' }}
             </label>
-            <label class="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" formControlName="is_searchable" class="accent-primary h-4 w-4" [disabled]="viewMode" />
-              Searchable
-            </label>
-          }
-          @if (!isAddress(i) && !isRelationWidget(i)) {
-            <label class="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" formControlName="show_in_list" class="accent-primary h-4 w-4" [disabled]="viewMode" />
-              {{ isFile(i) ? 'Show avatar in list' : 'Show in list' }}
-            </label>
-          }
-        </div>
+            @if (!isFile(i) && !isAddress(i) && !isRelationWidget(i)) {
+              <label class="flex cursor-pointer items-center gap-2 text-sm">
+                <input type="checkbox" formControlName="is_unique" class="accent-primary h-4 w-4" [disabled]="viewMode" />
+                Unique
+              </label>
+              <label class="flex cursor-pointer items-center gap-2 text-sm">
+                <input type="checkbox" formControlName="is_searchable" class="accent-primary h-4 w-4" [disabled]="viewMode" />
+                Searchable
+              </label>
+            }
+            @if (!isAddress(i) && !isRelationWidget(i)) {
+              <label class="flex cursor-pointer items-center gap-2 text-sm">
+                <input type="checkbox" formControlName="show_in_list" class="accent-primary h-4 w-4" [disabled]="viewMode" />
+                {{ isFile(i) ? 'Show avatar in list' : 'Show in list' }}
+              </label>
+            }
+          </div>
+        }
 
       </div>
     }

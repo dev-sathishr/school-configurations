@@ -36,7 +36,7 @@
 
             @if (sectionIsAddressOnly(section)) {
               @for (field of section.fields; track field.field_name) {
-                @if (!field.is_hidden && field.field_type === 'address') {
+                @if (!field.is_hidden && !isHiddenByCondition(field) && field.field_type === 'address') {
                   <app-address
                     [addresses]="getAddresses(field.field_name)"
                     [addressTypes]="getAddressTypes(field)"
@@ -47,7 +47,7 @@
 
             } @else if (sectionIsRelationOnly(section)) {
               @for (field of section.fields; track field.field_name) {
-                @if (!field.is_hidden && field.field_type === 'relation-widget') {
+                @if (!field.is_hidden && !isHiddenByCondition(field) && field.field_type === 'relation-widget') {
                   <div [class]="embedMode ? '' : 'bg-background border-muted/30 rounded-lg border p-4'">
                     @if (section.title) {
                       <h4 class="text-foreground mb-2 text-sm font-semibold">
@@ -98,11 +98,31 @@
                 } @else {
                   <div class="grid grid-cols-12 items-center gap-4">
                     @for (field of section.fields; track field.field_name) {
-                      @if (!field.is_hidden) {
+                      @if (!field.is_hidden && !isHiddenByCondition(field)) {
                         <ng-container *ngTemplateOutlet="fieldBlock; context: { field: field }" />
                       }
                     }
                   </div>
+                }
+
+                <!-- Child table fields — rendered below the grid, full-width -->
+                @for (field of section.fields; track field.field_name) {
+                  @if (!field.is_hidden && !isHiddenByCondition(field) && field.field_type === 'child-table') {
+                    <div class="mt-4">
+                      @if (getChildMeta(field); as meta) {
+                        <app-child-table
+                          [parentSlug]="config!.slug"
+                          [parentId]="editId || null"
+                          [fieldName]="field.field_name"
+                          [childMeta]="meta"
+                          [viewMode]="viewMode"
+                          [submitted]="submitted"
+                          (rowsChange)="onChildRowsChange(field.field_name, $event)" />
+                      } @else {
+                        <app-loader [inline]="true" [text]="'Loading ' + field.field_label + '...'" />
+                      }
+                    </div>
+                  }
                 }
               </div>
             }
@@ -111,9 +131,37 @@
 
         </fieldset>
 
+        <!-- Workflow state + actions -->
+        @if (viewMode && workflowState) {
+          <div class="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/5 px-4 py-3">
+            <span class="text-xs font-medium text-muted-foreground">Status:</span>
+            <span [class]="'inline-flex rounded-full px-3 py-1 text-xs font-semibold ' + getWorkflowStateBadgeClass(workflowState)">
+              {{ workflowState }}
+            </span>
+            @for (action of workflowActions; track action.action_label) {
+              <app-button
+                type="button"
+                impact="light"
+                tone="primary"
+                shape="rounded"
+                size="small"
+                [loading]="transitioningAction === action.action_label"
+                [disabled]="!!transitioningAction"
+                (buttonClick)="doTransition(action)">
+                {{ action.action_label }}
+              </app-button>
+            }
+          </div>
+        }
+
         @if (!embedMode) {
           <div class="flex justify-end gap-3">
             <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="cancel()">Cancel</app-button>
+            @if (viewMode && editId) {
+              <app-button impact="light" tone="light" shape="rounded" size="medium" type="button" (buttonClick)="printRecord()">
+                🖨 Print
+              </app-button>
+            }
             @if (viewMode) {
               @if (ps.canEdit(config!.slug.toUpperCase())) {
                 <app-button impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="switchToEdit()">Edit</app-button>
@@ -146,9 +194,26 @@
         [placeholder]="field.help_text || ''"
         [required]="isRequired(field)"
         [submitted]="submitted"
-        [readonly]="viewMode"
+        [readonly]="viewMode || !!field.fetch_from"
         [uppercase]="getTransform(field) === 'uppercase'"
         [titlecase]="getTransform(field) === 'titlecase'" />
+    </div>
+  }
+
+  @if (isNamingSeries(field) && !isHiddenByCondition(field)) {
+    <div [class]="getColSpan(field)">
+      <label class="mb-1 block text-xs font-medium text-muted-foreground">{{ field.field_label }}</label>
+      @if (editMode || viewMode) {
+        <p class="font-mono text-sm font-semibold text-foreground">{{ getNamingSeriesValue(field) || '—' }}</p>
+      } @else {
+        <div class="flex items-center gap-2 rounded-md border border-dashed border-border bg-muted/10 px-3 py-2">
+          <span class="font-mono text-sm text-muted-foreground">{{ getNamingSeriesPreview(field) }}</span>
+          <span class="text-xs text-muted-foreground/60">(auto-generated)</span>
+        </div>
+      }
+      @if (field.help_text) {
+        <p class="mt-0.5 text-xs text-muted-foreground">{{ field.help_text }}</p>
+      }
     </div>
   }
 

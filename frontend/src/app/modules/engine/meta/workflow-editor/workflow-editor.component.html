@@ -1,0 +1,192 @@
+@if (loading) {
+  <div class="py-8 text-center text-sm text-muted-foreground">Loading workflow...</div>
+}
+
+@if (!loading) {
+  <div class="space-y-6">
+
+    <!-- Header row -->
+    <div class="flex items-center justify-between">
+      <p class="text-sm text-muted-foreground">
+        Define states and allowed transitions for records of this DocType.
+      </p>
+      <div class="flex items-center gap-3">
+        @if (hasWorkflow) {
+          <label class="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+            <input type="checkbox" [(ngModel)]="isActive" class="accent-primary h-4 w-4" />
+            Active
+          </label>
+          <app-button type="button" impact="light" tone="danger" shape="rounded" size="small" (buttonClick)="deleteWorkflow()">
+            Delete Workflow
+          </app-button>
+        }
+      </div>
+    </div>
+
+    <!-- ── States ── -->
+    <div class="rounded-lg border border-border overflow-hidden">
+      <div class="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/20">
+        <h5 class="text-sm font-semibold text-foreground">States</h5>
+        <app-button type="button" impact="light" tone="primary" shape="rounded" size="small" (buttonClick)="addState()">
+          + Add State
+        </app-button>
+      </div>
+
+      @if (states.length === 0) {
+        <div class="py-8 text-center text-sm text-muted-foreground">
+          No states yet. Add at least one initial state to enable the workflow.
+        </div>
+      }
+
+      @if (states.length > 0) {
+        <!-- Column headers -->
+        <div class="grid grid-cols-[2fr_2fr_1.5fr_1fr_auto_auto] gap-3 border-b border-border/50 bg-muted/10 px-4 py-2">
+          <span class="text-xs font-medium text-muted-foreground">State Name (key)</span>
+          <span class="text-xs font-medium text-muted-foreground">Display Label</span>
+          <span class="text-xs font-medium text-muted-foreground">Color</span>
+          <span class="text-xs font-medium text-muted-foreground">Preview</span>
+          <span class="text-xs font-medium text-muted-foreground w-16 text-center">Flags</span>
+          <span class="w-8"></span>
+        </div>
+
+        @for (state of states; track state.name; let i = $index) {
+          <div class="grid grid-cols-[2fr_2fr_1.5fr_1fr_auto_auto] gap-3 border-b border-border/50 px-4 py-2.5 last:border-0 items-center">
+
+            <!-- Name -->
+            <input type="text" [(ngModel)]="state.name"
+              class="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="e.g. draft" />
+
+            <!-- Label -->
+            <input type="text" [(ngModel)]="state.label"
+              class="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="e.g. Draft" />
+
+            <!-- Color — shared select dropdown -->
+            <app-select-dropdown
+              [options]="colorOptions"
+              [value]="state.color"
+              (valueChange)="setStateColor(i, $event)"
+              [showSearch]="false"
+              placeholder="Color" />
+
+            <!-- Preview badge -->
+            <div class="flex items-center">
+              <span [class]="'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ' + colorClass(state.color)">
+                {{ state.label || state.name || '—' }}
+              </span>
+            </div>
+
+            <!-- Flags -->
+            <div class="flex flex-col gap-1.5 w-16">
+              <label class="flex cursor-pointer items-center gap-1.5 text-xs text-foreground">
+                <input type="radio" [name]="'initial_' + slug" [checked]="state.is_initial" (change)="setInitial(i)"
+                  class="accent-primary h-3.5 w-3.5" />
+                Initial
+              </label>
+              <label class="flex cursor-pointer items-center gap-1.5 text-xs text-foreground">
+                <input type="checkbox" [(ngModel)]="state.is_final" class="accent-primary h-3.5 w-3.5" />
+                Final
+              </label>
+            </div>
+
+            <!-- Remove -->
+            <div class="w-8 flex justify-center">
+              <button type="button" (click)="removeState(i)"
+                class="rounded p-1 text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                </svg>
+              </button>
+            </div>
+
+          </div>
+        }
+      }
+    </div>
+
+    <!-- ── Transitions ── -->
+    <div class="rounded-lg border border-border overflow-hidden">
+      <div class="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/20">
+        <h5 class="text-sm font-semibold text-foreground">Transitions</h5>
+        <app-button type="button" impact="light" tone="primary" shape="rounded" size="small" (buttonClick)="addTransition()">
+          + Add Transition
+        </app-button>
+      </div>
+
+      @if (transitions.length === 0) {
+        <div class="py-8 text-center text-sm text-muted-foreground">
+          No transitions yet. Add transitions to allow state changes.
+        </div>
+      }
+
+      @if (transitions.length > 0) {
+        <!-- Column headers -->
+        <div class="grid grid-cols-[1.5fr_1.5fr_2fr_2fr_auto] gap-3 border-b border-border/50 bg-muted/10 px-4 py-2">
+          <span class="text-xs font-medium text-muted-foreground">From State</span>
+          <span class="text-xs font-medium text-muted-foreground">To State</span>
+          <span class="text-xs font-medium text-muted-foreground">Button Label</span>
+          <span class="text-xs font-medium text-muted-foreground">Allowed Roles (codes)</span>
+          <span class="w-8"></span>
+        </div>
+
+        @for (tr of transitions; track trackTransition(i); let i = $index) {
+          <div class="grid grid-cols-[1.5fr_1.5fr_2fr_2fr_auto] gap-3 border-b border-border/50 px-4 py-2.5 last:border-0 items-center">
+
+            <!-- From State -->
+            <app-select-dropdown
+              [options]="stateOptions"
+              [value]="tr.from_state"
+              (valueChange)="setFromState(i, $event)"
+              [showSearch]="false"
+              placeholder="— any —" />
+
+            <!-- To State -->
+            <app-select-dropdown
+              [options]="stateOptions"
+              [value]="tr.to_state"
+              (valueChange)="setToState(i, $event)"
+              [showSearch]="false"
+              placeholder="— select —" />
+
+            <!-- Action Label -->
+            <input type="text" [(ngModel)]="tr.action_label"
+              class="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="e.g. Submit for Review" />
+
+            <!-- Allowed Roles -->
+            <input type="text"
+              [value]="tr.allowed_roles.join(', ')"
+              (blur)="updateAllowedRoles(i, $any($event.target).value)"
+              class="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="ADMIN, TEACHER" />
+
+            <!-- Remove -->
+            <div class="w-8 flex justify-center">
+              <button type="button" (click)="removeTransition(i)"
+                class="rounded p-1 text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                </svg>
+              </button>
+            </div>
+
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Save -->
+    <div class="flex justify-end">
+      <app-button type="button" impact="bold" tone="primary" shape="rounded" size="medium"
+        [loading]="saving" (buttonClick)="save()">
+        {{ hasWorkflow ? 'Update Workflow' : 'Save Workflow' }}
+      </app-button>
+    </div>
+
+  </div>
+}

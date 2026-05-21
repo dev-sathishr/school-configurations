@@ -216,7 +216,7 @@ async function seedDoctypes() {
         ADD CONSTRAINT doctype_fields_field_type_check
         CHECK (field_type IN (
           'text','email','url','number','date',
-          'select','async-select','textarea','checkbox','phone','password','file','address','relation-widget'
+          'select','async-select','textarea','checkbox','phone','password','file','address','relation-widget','child-table','naming-series'
         ))
     `);
 
@@ -339,13 +339,53 @@ async function seedDoctypes() {
     console.error('Seed failed:', err);
   } finally {
     client.release();
-    // Only end the pool when running standalone, not when called from seed.js
-    if (require.main === module) await pool.end();
+  }
+}
+
+const DEFAULT_SEQUENCE_CODES = [
+  { code: 'ADMISSION',   name: 'Admission Number',   description: 'Auto-number for student admissions' },
+  { code: 'STUDENT',     name: 'Student ID',          description: 'Auto-number for student records' },
+  { code: 'ENQUIRY',     name: 'Enquiry Number',      description: 'Auto-number for enquiries' },
+  { code: 'FEE',         name: 'Fee Receipt Number',  description: 'Auto-number for fee receipts' },
+  { code: 'EMPLOYEE',    name: 'Employee ID',         description: 'Auto-number for employee records' },
+];
+
+async function seedSequenceCodes() {
+  const client = await pool.connect();
+  try {
+    const adminRes = await client.query(`SELECT id FROM settings.users WHERE username = 'superadmin' LIMIT 1`);
+    const adminId = adminRes.rows[0]?.id;
+    if (!adminId) { console.log('superadmin not found — skipping sequence codes'); return; }
+
+    for (const s of DEFAULT_SEQUENCE_CODES) {
+      const existing = await client.query(
+        `SELECT id FROM master.sequence_codes WHERE UPPER(code) = UPPER($1) AND deleted_at IS NULL`, [s.code]
+      );
+      if (existing.rows.length > 0) {
+        console.log(`Sequence code "${s.code}" already exists — skipping`);
+        continue;
+      }
+      await client.query(
+        `INSERT INTO master.sequence_codes (code, name, is_active, created_by, updated_by)
+         VALUES ($1, $2, true, $3, $3)`,
+        [s.code, s.name, adminId]
+      );
+      console.log(`Sequence code "${s.code}" created`);
+    }
+    console.log('\nDefault sequence codes seeded.');
+    console.log('NOTE: Add per-location sequence_controls via the Sequence menu to activate auto-numbering.');
+  } catch (err) {
+    console.error('Sequence seed failed:', err);
+  } finally {
+    client.release();
   }
 }
 
 async function run() {
   await seedDoctypes();
+  await seedSequenceCodes();
+  // Only end the pool when running standalone, not when called from seed.js
+  if (require.main === module) await pool.end();
 }
 
 // Allow running standalone: node seed-doctypes.js

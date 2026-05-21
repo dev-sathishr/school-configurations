@@ -1,0 +1,116 @@
+@if (loading) {
+  <div class="py-8 text-center text-sm text-muted-foreground">Loading print formats...</div>
+}
+
+@if (!loading) {
+  <div class="space-y-4">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <p class="text-sm text-muted-foreground">
+        Define HTML templates for printing records. Use <code class="rounded bg-muted px-1 text-xs">{{ '{{' }} doc.field_name {{ '}}' }}</code> to insert field values.
+      </p>
+      @if (!showForm) {
+        <app-button type="button" impact="light" tone="primary" shape="rounded" size="small" (buttonClick)="openNew()">
+          + New Print Format
+        </app-button>
+      }
+    </div>
+
+    <!-- Existing formats list -->
+    @if (!showForm && formats.length === 0) {
+      <div class="rounded-lg border border-dashed border-muted/40 py-8 text-center text-sm text-muted-foreground">
+        No print formats yet. Click "New Print Format" to create one.
+      </div>
+    }
+
+    @if (!showForm) {
+      @for (pf of formats; track pf.id) {
+        <div class="flex items-center justify-between rounded-lg border border-border bg-muted/5 px-4 py-3">
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-muted-foreground">
+              <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-foreground">{{ pf.name }}</p>
+              @if (pf.is_default) {
+                <span class="text-xs text-primary font-medium">Default</span>
+              }
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <app-button type="button" impact="light" tone="primary" shape="rounded" size="small" (buttonClick)="openEdit(pf)">
+              Edit
+            </app-button>
+            <app-button type="button" impact="light" tone="danger" shape="rounded" size="small" (buttonClick)="confirmDelete(pf.id)">
+              Delete
+            </app-button>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- Editor form -->
+    @if (showForm) {
+      <div class="rounded-lg border border-border bg-muted/5 p-4 space-y-4" [formGroup]="form">
+
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <app-form-field [formGroup]="form" controlName="name" label="Format Name"
+            fieldType="text" placeholder="e.g. Admission Letter" [required]="true" [submitted]="submitted" />
+          <div class="flex items-end pb-1">
+            <label class="flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" formControlName="is_default" class="accent-primary h-4 w-4" />
+              Set as default format
+            </label>
+          </div>
+        </div>
+
+        <!-- Field variable helper -->
+        @if (fieldNames.length > 0) {
+          <div>
+            <p class="mb-1.5 text-xs font-medium text-muted-foreground">Insert field variable:</p>
+            <div class="flex flex-wrap gap-1.5">
+              @for (name of fieldNames; track name) {
+                <button type="button"
+                  (click)="insertVariable(name)"
+                  class="rounded border border-border bg-background px-2 py-0.5 font-mono text-xs text-foreground hover:bg-muted/40 transition-colors">
+                  {{ name }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- HTML template textarea -->
+        <div>
+          <label class="mb-1 block text-xs font-medium text-muted-foreground">
+            HTML Template <span class="text-red-500">*</span>
+          </label>
+          <textarea formControlName="html_template" rows="18" spellcheck="false"
+            class="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+            placeholder="Write your HTML here..."></textarea>
+          @if (submitted && f['html_template']?.errors?.['required']) {
+            <p class="mt-0.5 text-xs text-red-500">Template is required</p>
+          }
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <app-button type="button" impact="light" tone="light" shape="rounded" size="medium" (buttonClick)="cancelForm()">Cancel</app-button>
+          <app-button type="button" impact="bold" tone="primary" shape="rounded" size="medium" [loading]="saving" (buttonClick)="save()">
+            {{ editingId ? 'Update' : 'Create' }}
+          </app-button>
+        </div>
+      </div>
+    }
+
+  </div>
+}
+
+<!-- Delete confirmation -->
+@if (confirmDeleteId) {
+  <app-confirm-dialog
+    message="Delete this print format? This cannot be undone."
+    confirmLabel="Delete"
+    (confirmed)="onDeleteConfirmed()"
+    (cancelled)="confirmDeleteId = null" />
+}

@@ -110,7 +110,7 @@ async function create(slugOrDoc, fields, data, userId) {
   const vals = [userId, userId];
 
   for (const f of fields) {
-    if (f.field_type === 'address' || f.field_type === 'file' || f.field_type === 'relation-widget') continue;
+    if (['address', 'file', 'relation-widget', 'child-table'].includes(f.field_type)) continue;
     // location_id and is_active are handled as system columns below
     if (f.field_name === 'location_id' || f.field_name === 'is_active') continue;
     if (f.field_type === 'phone') {
@@ -145,7 +145,7 @@ async function update(slugOrDoc, id, fields, data, userId) {
   const vals = [userId];
 
   for (const f of fields) {
-    if (f.field_type === 'address' || f.field_type === 'file' || f.field_type === 'relation-widget') continue;
+    if (['address', 'file', 'relation-widget', 'child-table'].includes(f.field_type)) continue;
     // location_id and is_active are handled as system columns below
     if (f.field_name === 'location_id' || f.field_name === 'is_active') continue;
     if (f.field_type === 'phone') {

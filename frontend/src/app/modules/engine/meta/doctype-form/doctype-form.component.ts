@@ -7,6 +7,8 @@ import { LoaderComponent } from '../../../../shared/components/loader/loader.com
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { FormPageBase } from '../../../../shared/components/form-page/form-page.base';
 import { FieldEditorComponent, FieldRow } from '../field-editor/field-editor.component';
+import { PrintFormatEditorComponent } from '../print-format-editor/print-format-editor.component';
+import { WorkflowEditorComponent } from '../workflow-editor/workflow-editor.component';
 import { API } from '../../../../core/api/endpoints';
 import * as V from '../../../../shared/validators/common';
 
@@ -27,13 +29,17 @@ const MODAL_SIZE_OPTIONS = [
   selector: 'app-doctype-form',
   templateUrl: './doctype-form.component.html',
   imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FormFieldComponent,
-    LoaderComponent, BreadcrumbComponent, FieldEditorComponent],
+    LoaderComponent, BreadcrumbComponent, FieldEditorComponent, PrintFormatEditorComponent, WorkflowEditorComponent],
 })
 export class DoctypeFormComponent extends FormPageBase {
   listRoute = '/engine/meta';
 
   fields: FieldRow[] = [];
   fieldError = '';
+  activeTab: 'fields' | 'print' | 'workflow' = 'fields';
+
+  get docSlug(): string { return this.editId ?? ''; }
+  get fieldNames(): string[] { return this.fields.map(f => f.field_name).filter(Boolean); }
 
   displayModeOptions = DISPLAY_MODE_OPTIONS;
   modalSizeOptions   = MODAL_SIZE_OPTIONS;

@@ -118,7 +118,7 @@ export const personTypeLabel = (type: string): string =>
 export type FieldType =
   | 'text' | 'email' | 'url' | 'number' | 'date'
   | 'select' | 'async-select' | 'textarea' | 'checkbox' | 'phone'
-  | 'file' | 'address' | 'relation-widget';
+  | 'file' | 'address' | 'relation-widget' | 'child-table' | 'naming-series';
 
 export const FIELD_TYPE_OPTIONS: SelectOption[] = [
   { value: 'text',            label: 'Text' },
@@ -134,6 +134,8 @@ export const FIELD_TYPE_OPTIONS: SelectOption[] = [
   { value: 'file',            label: 'File / Image' },
   { value: 'address',         label: 'Address' },
   { value: 'relation-widget', label: 'Relation Widget (multi-select)' },
+  { value: 'child-table',     label: 'Child Table (nested rows)' },
+  { value: 'naming-series',   label: 'Naming Series (auto number)' },
 ];
 
 export const FILE_DISPLAY_STYLE_OPTIONS: SelectOption[] = [

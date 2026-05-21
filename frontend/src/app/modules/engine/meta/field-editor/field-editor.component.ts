@@ -36,9 +36,12 @@ export interface FieldRow {
   rw_has_default: boolean;
   rw_label_field: string;
   rw_sub_field: string;
+  // field intelligence
+  fetch_from: string;
+  depends_on: string;
 }
 
-const FULL_SPAN_TYPES = new Set(['address', 'relation-widget']);
+const FULL_SPAN_TYPES = new Set(['address', 'relation-widget', 'child-table']);
 
 @Component({
   selector: 'app-field-editor',
@@ -67,7 +70,6 @@ export class FieldEditorComponent implements OnInit, OnChanges {
 
   dragIndex: number | null = null;
   dragOverIndex: number | null = null;
-
   constructor(private fb: FormBuilder) {}
 
   ngOnInit(): void {
@@ -124,6 +126,9 @@ export class FieldEditorComponent implements OnInit, OnChanges {
       rw_has_default:     [f.rw_has_default    ?? !!(storedMeta.extraColumns?.is_default)],
       rw_label_field:     [f.rw_label_field    ?? storedMeta.displayFields?.label ?? 'name'],
       rw_sub_field:       [f.rw_sub_field      ?? storedMeta.displayFields?.sub   ?? 'code'],
+      // field intelligence
+      fetch_from:         [f.fetch_from  ?? ''],
+      depends_on:         [f.depends_on  ?? ''],
     });
   }
 
@@ -211,7 +216,15 @@ export class FieldEditorComponent implements OnInit, OnChanges {
       }
 
       const col_span = FULL_SPAN_TYPES.has(r.field_type) ? 12 : (r.col_span ?? 6);
-      return { ...r, display_order: i, col_span, validators, select_options };
+      return {
+        ...r,
+        display_order: i,
+        col_span,
+        validators,
+        select_options,
+        fetch_from: r.fetch_from?.trim() || null,
+        depends_on: r.depends_on?.trim() || null,
+      };
     }));
   }
 
@@ -222,6 +235,8 @@ export class FieldEditorComponent implements OnInit, OnChanges {
   isFile(i: number): boolean { return this.fieldTypeAt(i) === 'file'; }
   isAddress(i: number): boolean { return this.fieldTypeAt(i) === 'address'; }
   isRelationWidget(i: number): boolean { return this.fieldTypeAt(i) === 'relation-widget'; }
+  isChildTable(i: number): boolean { return this.fieldTypeAt(i) === 'child-table'; }
+  isNamingSeries(i: number): boolean { return this.fieldTypeAt(i) === 'naming-series'; }
 
   toggleAddressType(i: number, value: string, checked: boolean): void {
     const ctrl = this.rows.at(i).get('address_types');

@@ -6,6 +6,8 @@ const recordsRepo = require('./records.repository');
 const fileRepo = require('../../files/file.repository');
 const password = require('../../../shared/helpers/password.helper');
 const { saveAddresses, getAddresses } = require('../../../shared/helpers/address.helper');
+const { generateNextCode, peekNextCode } = require('../../../shared/helpers/sequence.helper');
+const workflowRepo = require('../workflow/workflow.repository');
 
 const UPLOADS_DIR = path.join(__dirname, '../../../../uploads');
 
@@ -69,8 +71,8 @@ function applyTransform(value, transform) {
 
 function validateAndTransform(fields, data, { skipRequired = false } = {}) {
   for (const f of fields) {
-    if (f.field_type === 'address' || f.field_type === 'file' || f.field_type === 'relation-widget') continue;
-    if (f.field_name === 'is_active' || f.field_name === 'location_id') continue;
+    if (['address', 'file', 'relation-widget', 'child-table', 'naming-series'].includes(f.field_type)) continue;
+    if (['is_active', 'location_id', 'workflow_state'].includes(f.field_name)) continue;
     const v = f.validators || {};
     const val = data[f.field_name];
     const isEmpty = val === undefined || val === null || val === '';
@@ -136,6 +138,14 @@ async function createRecord(slug, body, userId) {
   const err = validateAndTransform(fields, data);
   if (err) return err;
 
+  // Auto-generate naming-series values before insert
+  const namingSeriesFields = fields.filter(f => f.field_type === 'naming-series' && f.ref_doctype_slug);
+  for (const f of namingSeriesFields) {
+    const seqResult = await generateNextCode(f.ref_doctype_slug, data.location_id || null);
+    if (seqResult.error) return seqResult;
+    data[f.field_name] = seqResult.code;
+  }
+
   for (const f of fields) {
     if (f.is_unique && data[f.field_name]) {
       const taken = await recordsRepo.checkUnique(doc, f.field_name, data[f.field_name]);
@@ -144,6 +154,13 @@ async function createRecord(slug, body, userId) {
     if (f.field_type === 'password' && data[f.field_name]) {
       data[f.field_name] = await password.hash(data[f.field_name]);
     }
+  }
+
+  // Auto-set initial workflow state if a workflow is configured
+  const wf = await workflowRepo.findBySlug(slug);
+  if (wf?.is_active) {
+    const initialState = (wf.states || []).find(s => s.is_initial);
+    if (initialState) data.workflow_state = initialState.name;
   }
 
   const id = await recordsRepo.create(doc, fields, data, userId);
@@ -242,6 +259,15 @@ async function checkUnique(slug, field, value, excludeId) {
   return { data: { available: !taken } };
 }
 
+async function previewNamingSeries(slug, fieldName, locationId) {
+  const doc = await getDoctype(slug);
+  if (!doc) return { error: 'notFound', message: `DocType "${slug}" not found` };
+  const field = activeFields(doc).find(f => f.field_name === fieldName && f.field_type === 'naming-series');
+  if (!field) return { error: 'notFound', message: `Naming-series field "${fieldName}" not found` };
+  const preview = await peekNextCode(field.ref_doctype_slug, locationId || null);
+  return { data: { preview: preview || 'Not configured' } };
+}
+
 async function getDropdown(slug, query) {
   const doc = await getDoctype(slug);
   if (!doc) return { error: 'notFound', message: `DocType "${slug}" not found` };
@@ -257,5 +283,5 @@ async function getDropdown(slug, query) {
 
 module.exports = {
   listRecords, getRecord, createRecord, updateRecord,
-  deleteRecord, deleteMultiple, checkUnique, getDropdown,
+  deleteRecord, deleteMultiple, checkUnique, getDropdown, previewNamingSeries,
 };

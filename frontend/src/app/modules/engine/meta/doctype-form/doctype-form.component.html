@@ -77,14 +77,59 @@
         </div>
       </div>
 
-      <!-- Fields — hidden for tab-group (no own fields) -->
+      <!-- Tabs: Fields + Print Formats (hidden for tab-group) -->
       @if (!isTabGroup) {
-        <div class="bg-background border-muted/30 rounded-lg border p-5">
-          <app-field-editor
-            [fields]="fields"
-            [viewMode]="viewMode"
-            (fieldsChange)="fields = $event; fieldError = ''" />
-          @if (fieldError) { <p class="mt-2 text-xs text-red-500">{{ fieldError }}</p> }
+        <div class="bg-background border-muted/30 rounded-lg border">
+
+          <!-- Tab headers -->
+          <div class="flex border-b border-muted/30">
+            <button type="button"
+              (click)="activeTab = 'fields'"
+              [class]="'px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px '
+                + (activeTab === 'fields'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground')">
+              Fields
+            </button>
+            @if (editMode || viewMode) {
+              <button type="button"
+                (click)="activeTab = 'print'"
+                [class]="'px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px '
+                  + (activeTab === 'print'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground')">
+                Print Formats
+              </button>
+              <button type="button"
+                (click)="activeTab = 'workflow'"
+                [class]="'px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px '
+                  + (activeTab === 'workflow'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground')">
+                Workflow
+              </button>
+            }
+          </div>
+
+          <!-- Tab content -->
+          <div class="p-5">
+            @if (activeTab === 'fields') {
+              <app-field-editor
+                [fields]="fields"
+                [viewMode]="viewMode"
+                (fieldsChange)="fields = $event; fieldError = ''" />
+              @if (fieldError) { <p class="mt-2 text-xs text-red-500">{{ fieldError }}</p> }
+            }
+            @if (activeTab === 'print') {
+              <app-print-format-editor
+                [slug]="docSlug"
+                [fieldNames]="fieldNames" />
+            }
+            @if (activeTab === 'workflow') {
+              <app-workflow-editor [slug]="docSlug" />
+            }
+          </div>
+
         </div>
       }
 

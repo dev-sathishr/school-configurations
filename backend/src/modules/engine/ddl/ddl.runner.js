@@ -16,11 +16,15 @@ const PG_TYPE = {
   'file':         'TEXT',          // stores file id
 };
 
-// These field types are handled externally (files API / address_mappings) — no DB column created
-const NO_COLUMN_TYPES = new Set(['address', 'file']);
+// These field types are handled externally — no DB column created on the parent table
+const NO_COLUMN_TYPES = new Set(['address', 'file', 'child-table', 'relation-widget']);
+
+// naming-series stores its value as TEXT in its own column (created via PG_TYPE fallback)
+PG_TYPE['naming-series'] = 'VARCHAR(100)';
 
 // Extra columns added after the field columns
 const AUDIT_COLS = `
+  workflow_state VARCHAR(64),
   is_active     BOOLEAN NOT NULL DEFAULT true,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by    UUID REFERENCES settings.users(id),
@@ -116,6 +120,11 @@ async function syncColumns(doctype) {
     if (!existingCols.has(f.field_name)) {
       await db.query(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS "${f.field_name}" ${pgType}`).catch(() => {});
     }
+  }
+
+  // Ensure workflow_state column exists on older tables
+  if (!existingCols.has('workflow_state')) {
+    await db.query(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS workflow_state VARCHAR(64)`).catch(() => {});
   }
 
   return { ok: true };

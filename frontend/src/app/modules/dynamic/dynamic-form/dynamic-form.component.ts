@@ -1,5 +1,6 @@
-import { Component, OnInit, ViewChildren, QueryList, inject, signal, Input, Output, EventEmitter } from '@angular/core';
-import { lastValueFrom } from 'rxjs';
+import { Component, OnInit, OnDestroy, ViewChildren, QueryList, inject, signal, Input, Output, EventEmitter } from '@angular/core';
+import { lastValueFrom, Subscription } from 'rxjs';
+import { distinctUntilChanged } from 'rxjs/operators';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
@@ -11,6 +12,7 @@ import { AddressComponent, Address } from '../../../shared/components/address/ad
 import { ADDRESS_TYPE_OPTIONS, SelectOption } from '../../../core/constants/enums';
 import { FileUploadComponent, UploadedFile } from '../../../shared/components/file-upload/file-upload.component';
 import { RelationWidgetComponent, RelationWidgetConfig } from '../../../shared/components/relation-widget/relation-widget.component';
+import { ChildTableComponent, ChildDocTypeMeta } from '../../../shared/components/child-table/child-table.component';
 import { FormPageBase } from '../../../shared/components/form-page/form-page.base';
 import { LocationContextService } from '../../../core/services/location-context.service';
 import { DoctypeConfigService, DoctypeConfig, FieldDef } from '../doctype-config.service';
@@ -26,9 +28,9 @@ interface FieldSection {
   templateUrl: './dynamic-form.component.html',
   imports: [NgTemplateOutlet, ReactiveFormsModule, ButtonComponent, FormFieldComponent,
     LocationFieldComponent, LoaderComponent, BreadcrumbComponent, AddressComponent,
-    FileUploadComponent, RelationWidgetComponent],
+    FileUploadComponent, RelationWidgetComponent, ChildTableComponent],
 })
-export class DynamicFormComponent extends FormPageBase implements OnInit {
+export class DynamicFormComponent extends FormPageBase implements OnInit, OnDestroy {
   @Input() embedMode = false;      // true when rendered inside a modal
   @Input() embedSlug = '';         // slug override for embed mode
   @Input() embedId: string | null = null;    // record id for edit in embed mode
@@ -53,6 +55,19 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
   uploadedFiles: Record<string, UploadedFile | null> = {};
   initialLabels: Record<string, string> = {};
   relationErrors: Record<string, string> = {};
+  childMetas: Record<string, ChildDocTypeMeta> = {};
+  childRows: Record<string, any[]> = {};
+  namingSeriesPreviews: Record<string, string> = {};
+  namingSeriesValues: Record<string, string> = {};
+
+  workflowState: string | null = null;
+  workflowActions: { action_label: string; to_state: string }[] = [];
+  transitioningAction: string | null = null;
+
+  // depends_on: fields hidden because their condition is false
+  hiddenByCondition = new Set<string>();
+  // subscriptions for value-change watchers (fetch_from + depends_on)
+  private _fieldSubs: Subscription[] = [];
 
   recordLocation = signal<{ id: string; name: string; code: string } | null>(null);
 
@@ -77,11 +92,14 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
         this.formFields = doc.fields ?? [];
         this.groupedSections = this.buildSections(this.formFields);
         this.form = this.buildForm();
+        this.loadChildMetas();
+        this.wireFieldIntelligence();
         this.configLoading = false;
         if (this.embedMode) {
           this.editId   = this.embedId ?? '';
           this.editMode = !!this.embedId;
           this.viewMode = this.embedViewMode;
+          this.loadNamingSeriesPreviews();
           if (this.embedId) {
             this.loading = true;
             this.cs.getService({ url: `${this.resourcePath}/${this.embedId}` }).subscribe({
@@ -91,6 +109,7 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
           }
         } else {
           this.detectModeAndLoad();
+          this.loadNamingSeriesPreviews();
         }
       },
       error: () => { this.notFound = true; this.configLoading = false; },
@@ -106,7 +125,7 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
     }
 
     for (const field of this.formFields) {
-      if (field.field_type === 'address' || field.field_type === 'file' || field.field_type === 'relation-widget') continue;
+      if (['address', 'file', 'relation-widget', 'child-table', 'naming-series'].includes(field.field_type)) continue;
       if (this.config?.is_location_scoped && field.field_name === 'location_id') continue;
       const v = field.validators ?? {};
       const syncValidators = [];
@@ -145,6 +164,14 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
         // RelationWidget loads its own data using parentId — handled via ngOnChanges in the widget
         continue;
       }
+      if (field.field_type === 'child-table') {
+        // ChildTableComponent loads its own rows via API when parentId is set
+        continue;
+      }
+      if (field.field_type === 'naming-series') {
+        this.namingSeriesValues[field.field_name] = data[field.field_name] ?? '';
+        continue;
+      }
       if (field.field_type === 'phone') {
         patch[field.field_name] = { code: data[`${field.field_name}_code`] || '+91', number: data[field.field_name] || '' };
         continue;
@@ -161,6 +188,11 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
       }
     }
     this.form.patchValue(patch);
+    this.workflowState = data.workflow_state ?? null;
+    // Re-evaluate depends_on with loaded values
+    this.evaluateAllConditions();
+    this.cdr.markForCheck();
+    if (this.workflowState) this.loadWorkflowActions();
   }
 
   protected override beforeSubmit(): boolean {
@@ -206,8 +238,8 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
           delete data[field.field_name];
         }
       }
-      // relation-widget data is saved separately after the main record is saved
-      if (field.field_type === 'relation-widget') {
+      // relation-widget, child-table, and naming-series are not part of the payload from the form
+      if (field.field_type === 'relation-widget' || field.field_type === 'child-table' || field.field_type === 'naming-series') {
         delete data[field.field_name];
       }
     }
@@ -217,7 +249,10 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
   protected override afterSave(res: any): void {
     this.fileUploads?.forEach(c => c.clearPending());
     const savedId = res?.data?.id ?? this.editId;
-    this.saveRelationWidgets(savedId).then(() => {
+    Promise.all([
+      this.saveRelationWidgets(savedId),
+      this.pushBufferedChildRows(savedId),
+    ]).then(() => {
       this.saving = false;
       this.cs.showToastr({ type: 'success', message: 'Saved successfully' });
       if (this.embedMode) {
@@ -226,6 +261,165 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
         this.cs.navigate({ url: this.listRoute });
       }
     });
+  }
+
+  private loadNamingSeriesPreviews(): void {
+    if (this.editMode || this.viewMode) return;
+    const nsFields = this.formFields.filter(f => f.field_type === 'naming-series');
+    for (const f of nsFields) {
+      const locationId = this.form.get('location_id')?.value;
+      this.cs.getService({ url: API.engineRecords.namingSeriesPreview(this.config!.slug, f.field_name, locationId || undefined) }).subscribe({
+        next: (res: any) => {
+          this.namingSeriesPreviews[f.field_name] = res?.data?.preview ?? 'Auto-generated';
+          this.cdr.markForCheck();
+        },
+      });
+    }
+  }
+
+  private loadChildMetas(): void {
+    const childFields = this.formFields.filter(f => f.field_type === 'child-table' && f.ref_doctype_slug);
+    for (const f of childFields) {
+      this.doctypeConfig.get(f.ref_doctype_slug!).subscribe({
+        next: (doc) => {
+          if (doc) {
+            this.childMetas[f.field_name] = {
+              slug: doc.slug,
+              label: doc.label,
+              fields: doc.fields.map(cf => ({
+                field_name: cf.field_name,
+                field_label: cf.field_label,
+                field_type: cf.field_type,
+                is_required: !!cf.validators?.required,
+                show_in_list: cf.show_in_list,
+                validators: cf.validators,
+                select_options: cf.select_options,
+                ref_doctype_slug: cf.ref_doctype_slug ?? undefined,
+                col_span: cf.col_span,
+              })),
+            };
+          }
+        },
+      });
+    }
+  }
+
+  private async pushBufferedChildRows(parentId: string): Promise<void> {
+    if (!parentId || this.editMode) return;
+    const childFields = this.formFields.filter(f => f.field_type === 'child-table' && f.ref_doctype_slug);
+    for (const f of childFields) {
+      const rows = this.childRows[f.field_name] ?? [];
+      if (rows.length === 0) continue;
+      await lastValueFrom(this.cs.postService({
+        url: API.engineChildRecords.replace(this.config!.slug, parentId, f.field_name),
+        payload: { rows },
+      })).catch(() => {});
+    }
+  }
+
+  onChildRowsChange(fieldName: string, rows: any[]): void {
+    this.childRows[fieldName] = rows;
+  }
+
+  isChildTableField(f: FieldDef): boolean { return f.field_type === 'child-table'; }
+  getChildMeta(f: FieldDef): ChildDocTypeMeta | null { return this.childMetas[f.field_name] ?? null; }
+
+  override ngOnDestroy(): void {
+    this._fieldSubs.forEach(s => s.unsubscribe());
+  }
+
+  // Called once after form is built and config is loaded
+  private wireFieldIntelligence(): void {
+    this._fieldSubs.forEach(s => s.unsubscribe());
+    this._fieldSubs = [];
+
+    // Initial evaluation of all depends_on conditions
+    this.evaluateAllConditions();
+
+    for (const field of this.formFields) {
+
+      // ── depends_on ────────────────────────────────────────────────────
+      // If any field referenced in the expression changes, re-evaluate
+      if (field.depends_on) {
+        const watchFields = this.extractDocFields(field.depends_on);
+        for (const watchName of watchFields) {
+          const ctrl = this.form.get(watchName);
+          if (!ctrl) continue;
+          const sub = ctrl.valueChanges.pipe(distinctUntilChanged()).subscribe(() => {
+            this.evaluateAllConditions();
+            this.cdr.markForCheck();
+          });
+          this._fieldSubs.push(sub);
+        }
+      }
+
+      // ── fetch_from ────────────────────────────────────────────────────
+      // Format: "linked_field_name.source_field"  e.g. "student_id.full_name"
+      if (field.fetch_from) {
+        const dotIdx = field.fetch_from.indexOf('.');
+        if (dotIdx > 0) {
+          const linkedFieldName = field.fetch_from.substring(0, dotIdx);
+          const sourceField = field.fetch_from.substring(dotIdx + 1);
+          const linkedCtrl = this.form.get(linkedFieldName);
+          if (linkedCtrl) {
+            const sub = linkedCtrl.valueChanges.pipe(distinctUntilChanged()).subscribe((linkedId: string) => {
+              if (!linkedId) {
+                this.form.get(field.field_name)?.setValue(null, { emitEvent: false });
+                return;
+              }
+              // Find the ref_doctype_slug of the linked field
+              const linkedFieldDef = this.formFields.find(f => f.field_name === linkedFieldName);
+              const refSlug = linkedFieldDef?.ref_doctype_slug;
+              if (!refSlug) return;
+
+              this.cs.getService({
+                url: API.engineRecords.fetchFields(refSlug, linkedId, [sourceField]),
+              }).subscribe({
+                next: (res: any) => {
+                  const val = res?.data?.[sourceField] ?? null;
+                  this.form.get(field.field_name)?.setValue(val, { emitEvent: false });
+                  this.cdr.markForCheck();
+                },
+              });
+            });
+            this._fieldSubs.push(sub);
+          }
+        }
+      }
+    }
+  }
+
+  private evaluateAllConditions(): void {
+    const doc = this.form.value;
+    for (const field of this.formFields) {
+      if (!field.depends_on) continue;
+      const visible = this.evalExpression(field.depends_on, doc);
+      if (visible) {
+        this.hiddenByCondition.delete(field.field_name);
+      } else {
+        this.hiddenByCondition.add(field.field_name);
+      }
+    }
+  }
+
+  private evalExpression(expr: string, doc: any): boolean {
+    try {
+      // Safe evaluation: only expose `doc` variable
+      // eslint-disable-next-line no-new-func
+      return !!new Function('doc', `return !!(${expr})`)(doc);
+    } catch {
+      return true; // show by default if expression is invalid
+    }
+  }
+
+  // Extract all "doc.fieldName" references from an expression string
+  private extractDocFields(expr: string): string[] {
+    const matches = expr.matchAll(/doc\.([a-z_][a-z0-9_]*)/gi);
+    return [...new Set([...matches].map(m => m[1]))];
+  }
+
+  isHiddenByCondition(f: FieldDef): boolean {
+    return this.hiddenByCondition.has(f.field_name);
   }
 
   private async saveRelationWidgets(parentId: string): Promise<void> {
@@ -263,14 +457,19 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
     return 'col-span-' + (f?.col_span ?? 6);
   }
 
+  isNamingSeries(f: FieldDef): boolean { return f.field_type === 'naming-series'; }
+  getNamingSeriesPreview(f: FieldDef): string { return this.namingSeriesPreviews[f.field_name] ?? 'Auto-generated'; }
+  getNamingSeriesValue(f: FieldDef): string { return this.namingSeriesValues[f.field_name] ?? ''; }
+
   isStandardField(f: FieldDef): boolean {
-    return f.field_type !== 'address' && f.field_type !== 'file' && f.field_type !== 'relation-widget'
-      && !(this.config?.is_location_scoped && f.field_name === 'location_id');
+    return !['address', 'file', 'relation-widget', 'child-table', 'naming-series'].includes(f.field_type)
+      && !(this.config?.is_location_scoped && f.field_name === 'location_id')
+      && !this.hiddenByCondition.has(f.field_name);
   }
   getFieldType(f: FieldDef): any { return f.field_type; }
   getTransform(f: FieldDef): string { return (f.validators as any)?.transform || ''; }
   getColSpan(f: FieldDef): string {
-    if (f.field_type === 'address' || f.field_type === 'relation-widget') {
+    if (f.field_type === 'address' || f.field_type === 'relation-widget' || f.field_type === 'child-table') {
       return 'col-span-12';
     }
     if (f.field_type === 'checkbox') return 'col-span-' + (f.col_span ?? 6) + ' flex items-center';
@@ -327,21 +526,24 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
     return this.relationWidgets?.find(w => w.fieldName === fieldName);
   }
 
+  private isVisible(f: FieldDef): boolean {
+    return !f.is_hidden && !this.hiddenByCondition.has(f.field_name);
+  }
   sectionHasFileField(section: FieldSection): boolean {
-    return section.fields.some(f => f.field_type === 'file' && !f.is_hidden);
+    return section.fields.some(f => f.field_type === 'file' && this.isVisible(f));
   }
   sectionNonFileFields(section: FieldSection): FieldDef[] {
-    return section.fields.filter(f => f.field_type !== 'file' && !f.is_hidden);
+    return section.fields.filter(f => f.field_type !== 'file' && this.isVisible(f));
   }
   sectionFileFields(section: FieldSection): FieldDef[] {
-    return section.fields.filter(f => f.field_type === 'file' && !f.is_hidden);
+    return section.fields.filter(f => f.field_type === 'file' && this.isVisible(f));
   }
   sectionIsAddressOnly(section: FieldSection): boolean {
-    const visible = section.fields.filter(f => !f.is_hidden);
+    const visible = section.fields.filter(f => this.isVisible(f));
     return visible.length > 0 && visible.every(f => f.field_type === 'address');
   }
   sectionIsRelationOnly(section: FieldSection): boolean {
-    const visible = section.fields.filter(f => !f.is_hidden);
+    const visible = section.fields.filter(f => this.isVisible(f));
     return visible.length > 0 && visible.every(f => f.field_type === 'relation-widget');
   }
 
@@ -359,6 +561,76 @@ export class DynamicFormComponent extends FormPageBase implements OnInit {
     } else {
       super.cancel();
     }
+  }
+
+  private loadWorkflowActions(): void {
+    if (!this.config || !this.editId) return;
+    this.cs.getService({ url: API.engineWorkflow.actions(this.config.slug, this.editId) }).subscribe({
+      next: (res: any) => {
+        this.workflowActions = res?.data ?? [];
+        this.cdr.markForCheck();
+      },
+      error: () => { this.workflowActions = []; },
+    });
+  }
+
+  doTransition(action: { action_label: string; to_state: string }): void {
+    if (!this.config || !this.editId) return;
+    this.transitioningAction = action.action_label;
+    this.cs.postService({
+      url: API.engineWorkflow.transition(this.config.slug, this.editId),
+      payload: { action_label: action.action_label },
+    }).subscribe({
+      next: (res: any) => {
+        this.transitioningAction = null;
+        this.workflowState = res?.data?.workflow_state ?? action.to_state;
+        this.cs.showToastr({ type: 'success', message: `State changed to "${this.workflowState}"` });
+        this.loadWorkflowActions();
+        this.cdr.markForCheck();
+      },
+      error: (err: any) => {
+        this.transitioningAction = null;
+        this.cs.showToastr({ type: 'error', message: err?.error?.message || 'Transition failed' });
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  getWorkflowStateBadgeClass(state: string): string {
+    // Simple color mapping based on common state names
+    const lower = state.toLowerCase();
+    if (['approved', 'active', 'completed', 'published'].some(k => lower.includes(k))) return 'bg-green-100 text-green-700';
+    if (['rejected', 'cancelled', 'failed', 'closed'].some(k => lower.includes(k))) return 'bg-red-100 text-red-700';
+    if (['pending', 'review', 'submitted'].some(k => lower.includes(k))) return 'bg-yellow-100 text-yellow-700';
+    if (['draft'].some(k => lower.includes(k))) return 'bg-gray-100 text-gray-700';
+    return 'bg-blue-100 text-blue-700';
+  }
+
+  printRecord(): void {
+    if (!this.config || !this.editId) return;
+    this.cs.getService({ url: API.enginePrintFormats.list(this.config.slug) }).subscribe({
+      next: (res: any) => {
+        const formats: any[] = res?.data ?? [];
+        if (formats.length === 0) {
+          this.cs.showToastr({ type: 'error', message: 'No print formats configured for this DocType.' });
+          return;
+        }
+        const def = formats.find(f => f.is_default) ?? formats[0];
+        const url = API.enginePrintFormats.render(this.config!.slug, def.id, this.editId!);
+        this.cs.getService({ url }).subscribe({
+          next: (r: any) => {
+            const html: string = r?.data?.html ?? '';
+            const win = window.open('', '_blank');
+            if (win) {
+              win.document.write(html);
+              win.document.close();
+              win.focus();
+              setTimeout(() => win.print(), 500);
+            }
+          },
+        });
+      },
+    });
   }
 
   /** Called by the modal footer buttons when in embedMode */

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"C:\\\\\\\\Sathish R\\\\\\\\projects\\\\\\\\school-configurations\" -type f -name \"*doc*\" -o -name \"*dynamic*\" -o -name \"*engine*\" -o -name \"*seed*\" -o -name \"*config*\")",
+      "Bash(find \"C:\\\\\\\\Sathish R\\\\\\\\projects\\\\\\\\school-project\" -type f -name \"*doc*\" -o -name \"*dynamic*\" -o -name \"*seed*\" -o -name \"*migrate*\")",
+      "Bash(ls -la \"C:\\\\\\\\Sathish R\\\\\\\\projects\\\\\\\\school-configurations/\")",
+      "Bash(ls -la \"C:\\\\\\\\Sathish R\\\\\\\\projects\\\\\\\\school-project\\\\\\\\backend\\\\\\\\src\\\\\\\\\")",
+      "Bash(ls -la \"C:\\\\\\\\Sathish R\\\\\\\\projects\\\\\\\\school-project\\\\\\\\backend\\\\\\\\src\\\\\\\\modules\\\\\\\\\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Sathish R\\\\projects\\\\SMS\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "PowerShell(head -50)",
+      "PowerShell(Get-ChildItem \"C:\\\\Sathish R\\\\projects\\\\SMS\\\\SMS-BACK-END\" -Recurse -Depth 2 | Where-Object { $_.PSIsContainer } | Select-Object FullName)"
+    ]
+  }
+}

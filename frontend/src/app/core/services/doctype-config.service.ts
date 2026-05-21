@@ -21,6 +21,10 @@ export interface FieldDef {
   select_options: any[] | null;
   ref_doctype_slug: string | null;
   default_value: string | null;
+  /** "linked_field_name.source_field"  e.g. "student_id.full_name" */
+  fetch_from: string | null;
+  /** JS expression that must be truthy to show this field  e.g. "doc.type === 'advance'" */
+  depends_on: string | null;
 }
 
 export interface DoctypeConfig {

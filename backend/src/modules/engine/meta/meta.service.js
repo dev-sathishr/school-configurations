@@ -9,6 +9,7 @@ const SLUG_PATTERN = /^[a-z][a-z0-9_-]{1,62}$/;
 const VALID_FIELD_TYPES = new Set([
   'text', 'email', 'url', 'number', 'date',
   'select', 'async-select', 'textarea', 'checkbox', 'phone', 'password', 'file', 'address', 'relation-widget',
+  'child-table', 'naming-series',
 ]);
 
 const DOCTYPE_RULES = {

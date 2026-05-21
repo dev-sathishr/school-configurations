@@ -170,11 +170,34 @@ export const API = {
     dropdown: (slug: string) => `/engine/records/${slug}/dropdown`,
     deleteMultiple: (slug: string) => `/engine/records/${slug}/delete-multiple`,
     checkUnique: (slug: string) => `/engine/records/${slug}/check-unique`,
+    fetchFields: (slug: string, id: string, fields: string[]) => `/engine/records/${slug}/${id}/fetch?fields=${fields.join(',')}`,
+    namingSeriesPreview: (slug: string, field: string, locationId?: string) =>
+      `/engine/records/${slug}/naming-series-preview?field=${field}${locationId ? `&location_id=${locationId}` : ''}`,
   },
   engineRelations: {
     get:    (junctionTable: string, parentId: string) => `/engine/relations/${encodeURIComponent(junctionTable)}/${parentId}`,
     save:   (junctionTable: string, parentId: string) => `/engine/relations/${encodeURIComponent(junctionTable)}/${parentId}`,
     matrix: (junctionTable: string, parentId: string) => `/engine/relations/${encodeURIComponent(junctionTable)}/${parentId}/matrix`,
+  },
+  engineChildRecords: {
+    list:    (parentSlug: string, parentId: string, fieldName: string) => `/engine/child-records/${parentSlug}/${parentId}/${fieldName}`,
+    create:  (parentSlug: string, parentId: string, fieldName: string) => `/engine/child-records/${parentSlug}/${parentId}/${fieldName}`,
+    replace: (parentSlug: string, parentId: string, fieldName: string) => `/engine/child-records/${parentSlug}/${parentId}/${fieldName}/replace`,
+    update:  (parentSlug: string, parentId: string, fieldName: string, rowId: string) => `/engine/child-records/${parentSlug}/${parentId}/${fieldName}/${rowId}`,
+    delete:  (parentSlug: string, parentId: string, fieldName: string, rowId: string) => `/engine/child-records/${parentSlug}/${parentId}/${fieldName}/${rowId}`,
+  },
+  engineWorkflow: {
+    get:        (slug: string) => `/engine/workflow/${slug}`,
+    save:       (slug: string) => `/engine/workflow/${slug}`,
+    delete:     (slug: string) => `/engine/workflow/${slug}`,
+    actions:    (slug: string, recordId: string) => `/engine/workflow/${slug}/${recordId}/actions`,
+    transition: (slug: string, recordId: string) => `/engine/workflow/${slug}/${recordId}/transition`,
+  },
+  enginePrintFormats: {
+    list:   (slug: string) => `/engine/print-formats/${slug}`,
+    create: (slug: string) => `/engine/print-formats/${slug}`,
+    detail: (slug: string, id: string) => `/engine/print-formats/${slug}/${id}`,
+    render: (slug: string, id: string, recordId: string) => `/engine/print-formats/${slug}/${id}/render/${recordId}`,
   },
 
 } as const;

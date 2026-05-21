@@ -23,9 +23,12 @@ const permissionRequestRoutes = require('./modules/settings/permission-requests/
 const preferencesRoutes = require('./modules/settings/user-preferences/preferences.routes');
 const sessionRoutes = require('./modules/settings/sessions/session.routes');
 
-const engineMetaRoutes      = require('./modules/engine/meta/meta.routes');
-const engineRecordsRoutes   = require('./modules/engine/records/records.routes');
-const engineRelationsRoutes = require('./modules/engine/relations/relations.routes');
+const engineMetaRoutes        = require('./modules/engine/meta/meta.routes');
+const engineRecordsRoutes     = require('./modules/engine/records/records.routes');
+const engineRelationsRoutes   = require('./modules/engine/relations/relations.routes');
+const engineChildRoutes       = require('./modules/engine/child-records/child-records.routes');
+const enginePrintRoutes       = require('./modules/engine/print-formats/print-formats.routes');
+const engineWorkflowRoutes    = require('./modules/engine/workflow/workflow.routes');
 
 const { lookupPincode } = require('./shared/helpers/pincode.helper');
 const { authenticate } = require('./shared/middleware/auth.middleware');
@@ -56,8 +59,16 @@ app.use('/api/v1/sessions', sessionRoutes);
 
 // Engine
 app.use('/api/v1/engine/meta', engineMetaRoutes);
+
+// Fixed engine-records utility routes (must be before /:slug to avoid slug capture)
+const engineRecordsCtrl = require('./modules/engine/records/records.controller');
+app.get('/api/v1/engine/records/sequence-code-options', authenticate, engineRecordsCtrl.sequenceCodeOptions);
+
 app.use('/api/v1/engine/records/:slug', engineRecordsRoutes);
 app.use('/api/v1/engine/relations', engineRelationsRoutes);
+app.use('/api/v1/engine/child-records', engineChildRoutes);
+app.use('/api/v1/engine/print-formats/:slug', enginePrintRoutes);
+app.use('/api/v1/engine/workflow/:slug',       engineWorkflowRoutes);
 
 // Shared
 app.use('/api/v1/notifications', notificationRoutes);
